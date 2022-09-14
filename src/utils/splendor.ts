@@ -1,9 +1,9 @@
 import _ from 'lodash';
 import { DECK } from '../constants/allCards';
 import { ALL_NOBLES } from '../constants/allNobles';
-import { getCost } from '../constants/utils';
+import { getCost, EMPTY_COINS } from '../constants/utils';
 import { Action, Card, Color, Game, Player } from "../models/Splendor";
-import { genMinimaxAB } from './minimax';
+import { genMaxN, genMinimaxAB } from './minimax';
 
 const generateThreeCoinPermutations = (coins: Record<Color, number>, currentCoins: Color[] = []): Color[][] => {
   if (currentCoins.length === 3) {
@@ -19,8 +19,6 @@ const generateThreeCoinPermutations = (coins: Record<Color, number>, currentCoin
   }, [] as Color[][]);
 };
 
-const EMPTY_COINS = getCost(0, 0, 0, 0, 0, 0);
-
 const canAffordCard = (player: Player, card: Card) => {
   let yellowCoins = player.coins[Color.Yellow];
   const cardCost = _.mapValues(card.cost, (coinCost, color) => Math.max(0, coinCost - player.bought.filter(card => card.color === color as Color).length));
@@ -35,6 +33,26 @@ const canAffordCard = (player: Player, card: Card) => {
   });
   return canAfford ? { ...cardCost, [Color.Yellow]: player.coins[Color.Yellow] - yellowCoins } : null;
 }
+
+export const getBuyActions = (game: Game, player: Player) => [...game.table, ...player.reserved].reduce((agg, card, index) => {
+  const payableCost = canAffordCard(player, card);
+  if (payableCost) {
+    agg.push({
+      type: index >= game.table.length ? 'buyReserve' : 'buy',
+      coinCost: payableCost,
+      card,
+    });
+  }
+  return agg;
+}, [] as Action[]);
+
+export const getReserveActions = (game: Game, player: Player) => {
+  return player.reserved.length >= 3 ? [] : game.table.map(card => ({
+    type: 'reserve',
+    coinCost: { ...EMPTY_COINS, [Color.Yellow]: game.coins[Color.Yellow] > 0 ? -1 : 0 },
+    card,
+  }) as Action)
+};
 
 export const getPossibleActions = (game: Game) => {
   const playerIndex = game.turn % game.players.length;
@@ -72,26 +90,10 @@ export const getPossibleActions = (game: Game) => {
   // TODO(jkarges): Put back coins if you have more than 10.
 
   /** Buy Or Reserve */
-  const buyOrReserveActions = [...game.table, ...player.reserved].reduce((agg, card, index) => {
-    const payableCost = canAffordCard(player, card);
-    if (payableCost) {
-      agg.push({
-        type: index > game.table.length ? 'buyReserve' : 'buy',
-        coinCost: payableCost,
-        card,
-      });
-    }
-    if (player.reserved.length < 3) {
-      agg.push({
-        type: 'reserve',
-        coinCost: { ...EMPTY_COINS, [Color.Yellow]: game.coins[Color.Yellow] > 0 ? -1 : 0 },
-        card,
-      });
-    }
-    return agg;
-  }, [] as Action[]);
+  const buyActions = getBuyActions(game, player);
+  const reserveActions = getReserveActions(game, player);
 
-  return [...threeCoinActions, ...twoCoinActions, ...buyOrReserveActions];
+  return [...threeCoinActions, ...twoCoinActions, ...buyActions, ...reserveActions];
 };
 
 const coinsExchange = (game: Game, player: Player, action: Action) => {
@@ -181,10 +183,33 @@ export const setupGame = (numPlayers: number): Game => {
   return game;
 };
 
+const playerValue = (game: Game, player: Player): number => {
+  const pointsString = player.points.toString().padStart(2, '0');
+  const boughtString = player.bought.length.toString().padStart(2, '0');
+  const gainCardsString = getBuyActions(game, player).length.toString().padStart(2, '0');
+  const coinsString = _.reduce(player.coins, (sumCoins, numCoins) => sumCoins + numCoins, 0).toString().padStart(2, '0');
+  const valueString = `${pointsString}${boughtString}${gainCardsString}${coinsString}`;
+  return +valueString;
+};
+
 const gameValue = (game: Game) => {
-  return game.players[0].points - game.players.slice(1).reduce((maxPoints, player) => {
-    return Math.max(maxPoints, player.points);
-  }, 0);
+  const playerIndex = getPlayerIndex(game);
+  return playerValue(game, game.players[playerIndex]) - game.players.reduce((maxValue, player, i) => {
+    return i === playerIndex ? maxValue : Math.max(maxValue, playerValue(game, player));
+  }, -Infinity);
+};
+
+const gameValueForAllPlayers = (game: Game) => {
+  const playerValues = game.players.map((player) => playerValue(game, player));
+  const [first, second] = playerValues.sort((a, b) => b - a);
+  const firstIndex = playerValues.indexOf(first);
+  return playerValues.map((pVal, i) => {
+    return pVal - (i === firstIndex ? second : first);
+  });
+};
+
+const getPlayerIndex = (game: Game) => {
+  return game.turn % game.players.length;
 };
 
 const isTerminal = (game: Game) => {
@@ -198,15 +223,20 @@ const randomPlay = (game: Game) => {
 
 const minimaxAB = genMinimaxAB(getPossibleActions, takeAction, gameValue, isTerminal, 2);
 
+const maxn = genMaxN(getPossibleActions, takeAction, gameValueForAllPlayers, getPlayerIndex, isTerminal, 4);
+
 export enum Strategy {
   Random,
   AlphaBeta,
+  MaxN,
 }
 
 const getStrategy = (strat: Strategy) => {
   switch (strat) {
     case (Strategy.Random):
       return randomPlay;
+    case (Strategy.MaxN):
+      return maxn;
     case (Strategy.AlphaBeta):
     default:
       return minimaxAB;
@@ -218,19 +248,27 @@ export const runGame = (numPlayers: number, strat: Strategy = Strategy.Random) =
   const allActionsTaken: Action[][] = _.times(numPlayers, () => []);
   const getNextAction = getStrategy(strat);
   while (!isTerminal(game)) {
+    let numNoActions = 0;
     _.times(numPlayers, () => {
-      const playerIndex = game.turn % game.players.length;
-      const player = game.players[playerIndex];
+      const playerIndex = getPlayerIndex(game);
+      // console.log(`Player ${playerIndex}`);
       const action = getNextAction(game);
-      console.log(action);
+      // console.log(action);
       if (!action) {
-        console.warn('No action available for player', player, game);
+        numNoActions++;
+        const player = game.players[playerIndex];
+        console.warn('No action available for player', _.cloneDeep(player), _.cloneDeep(game));
         game.turn++;
         return;
       }
       allActionsTaken[playerIndex].push(action);
       takeAction(game, action);
+      numNoActions = 0;
     });
+    if (numNoActions === numPlayers) {
+      console.error('Infinite Loop', _.cloneDeep(game));
+      break;
+    }
   }
   const winningPlayer = _.maxBy(game.players, player => player.points);
   return [_.map(game.players, 'points').join(',') + ':' + game.turn, ...allActionsTaken[winningPlayer!.id].map(action => JSON.stringify(action))];

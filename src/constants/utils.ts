@@ -8,3 +8,5 @@ export const getCost = (white: number, blue: number, green: number, red: number,
   black,
   yellow,
 });
+
+export const EMPTY_COINS = getCost(0, 0, 0, 0, 0, 0);
