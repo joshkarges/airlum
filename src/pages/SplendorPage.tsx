@@ -5,6 +5,8 @@ import { Table } from "../components/splendor/Table";
 import { useGame } from "../redux/selectors";
 import { runGame, setupGame, Strategy } from "../utils/splendor";
 import { Playermat } from "../components/splendor/PlayerMat";
+import { Opponents } from "../components/splendor/Opponents";
+import { EndGameModal } from "../components/splendor/EndGameModal";
 
 const useStyles = makeStyles()((theme) => ({
   container: {
@@ -31,6 +33,7 @@ export const SplendorPage = () => {
   return (
     <div className={classes.container}>
       <div className={classes.tableAndOnDeck}>
+        <Opponents />
         <Table game={game} />
         <OnDeck />
         {/* {gameLogs.map((log, i) => (
@@ -41,6 +44,7 @@ export const SplendorPage = () => {
       ))} */}
       </div>
       <Playermat />
+      <EndGameModal />
     </div>
   );
 };

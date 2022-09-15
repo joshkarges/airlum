@@ -5,7 +5,7 @@ const gameSlice = createSlice({
   name: 'game',
   initialState: setupGame(2),
   reducers: {
-    setupGame: (state, action) => setupGame(action.payload.numPlayers),
+    setupGame: (state, action) => setupGame(action.payload),
     takeAction: (state, action) => takeAction(state, { type: action.type, ...action.payload }),
   },
 });

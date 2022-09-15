@@ -6,7 +6,11 @@ import { Card } from "./Card";
 import { useActionOnDeck, useGame } from "../../redux/selectors";
 import { prepBuyCard, prepReserveCard } from "../../redux/slices/actionOnDeck";
 import { useDispatch } from "react-redux";
-import { canAffordCard, getPlayerIndex } from "../../utils/splendor";
+import {
+  canAffordCard,
+  getNumCoins,
+  getPlayerIndex,
+} from "../../utils/splendor";
 
 const useStyles = makeStyles()((theme) => ({
   tierRow: {
@@ -29,9 +33,9 @@ export const TableCards: VFC<TableCardsProps> = () => {
     if (canAffordCard(player, card)) {
       dispatch(prepBuyCard(card));
     } else {
-      dispatch(
-        prepReserveCard({ card, yellow: game.coins[Color.Yellow] ? 1 : 0 })
-      );
+      const yellow =
+        getNumCoins(player.coins) < 10 && game.coins[Color.Yellow] ? 1 : 0;
+      dispatch(prepReserveCard({ card, yellow }));
     }
   };
 

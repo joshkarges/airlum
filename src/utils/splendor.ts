@@ -214,7 +214,7 @@ export const getPlayerIndex = (game: Game) => {
   return game.turn % game.players.length;
 };
 
-const isTerminal = (game: Game) => {
+export const isTerminal = (game: Game) => {
   return _.some(game.players, player => player.points >= 15);
 };
 

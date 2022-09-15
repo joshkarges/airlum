@@ -15,6 +15,7 @@ import { Card } from "./Card";
 import { Coin } from "./Coin";
 import { takeActionAction } from "../../redux/slices/game";
 import { canAffordCard, getPlayerIndex } from "../../utils/splendor";
+import classNames from "classnames";
 
 const useStyles = makeStyles()((theme) => ({
   onDeckContainer: {
@@ -24,6 +25,9 @@ const useStyles = makeStyles()((theme) => ({
   },
   cardAndCoins: {
     display: "flex",
+  },
+  reservedCard: {
+    transform: "rotateZ(-90deg)",
   },
 }));
 
@@ -91,7 +95,13 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     <MuiCard className={classes.onDeckContainer}>
       <div className={classes.cardAndCoins}>
         {actionOnDeck.card && (
-          <Card {...actionOnDeck.card} onClick={onCardClick} />
+          <Card
+            {...actionOnDeck.card}
+            onClick={onCardClick}
+            className={classNames({
+              [classes.reservedCard]: actionOnDeck.type === "reserve",
+            })}
+          />
         )}
         {_.map(
           actionOnDeck.coins,
