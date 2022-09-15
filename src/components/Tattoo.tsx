@@ -1,7 +1,7 @@
-import { makeStyles } from "@material-ui/core";
+import { makeStyles } from 'tss-react/mui';
 import { VFC } from "react";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => ({
   container: {
     display: "flex",
     width: "100%",
@@ -38,7 +38,7 @@ const useStyles = makeStyles((theme) => ({
 const GOLDEN_RATIO = (1 + Math.sqrt(5)) / 2;
 
 export const TattooPage: VFC = () => {
-  const classes = useStyles();
+  const { classes } = useStyles();
   const strokeWidth = 32;
   const halfHeight = (4 * strokeWidth) / 2;
   const gap = (halfHeight - 1.5 * strokeWidth) / 2;

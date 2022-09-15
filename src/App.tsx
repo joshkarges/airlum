@@ -5,13 +5,20 @@ import { TattooPage } from "./components/Tattoo";
 import { SplendorPage } from "./pages/SplendorPage";
 import { Provider } from "react-redux";
 import { store } from "./redux/configureStore";
-import { createTheme, ThemeProvider } from "@mui/material/styled";
+// import { createTheme, ThemeProvider } from "@mui/material/styled";
+import createCache from "@emotion/cache";
+import { CacheProvider } from "@emotion/react";
+
+export const muiCache = createCache({
+  key: "mui",
+  prepend: true,
+});
 
 function App() {
-  const theme = createTheme({});
+  // const theme = createTheme({});
   return (
     <Provider store={store}>
-      <ThemeProvider theme={theme}>
+      <CacheProvider value={muiCache}>
         <div className="App">
           <PageWrapper>
             <Router>
@@ -29,7 +36,7 @@ function App() {
             </Router>
           </PageWrapper>
         </div>
-      </ThemeProvider>
+      </CacheProvider>
     </Provider>
   );
 }

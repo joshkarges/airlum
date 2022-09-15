@@ -5,6 +5,8 @@ import { getCost, EMPTY_COINS } from '../constants/utils';
 import { Action, Card, Color, Game, Player } from "../models/Splendor";
 import { genMaxN, genMinimaxAB } from './minimax';
 
+export const getNumCoins = (coins: Record<Color, number>) => _.reduce(coins, (sum, num) => sum + num, 0);
+
 const generateThreeCoinPermutations = (coins: Record<Color, number>, currentCoins: Color[] = []): Color[][] => {
   if (currentCoins.length === 3) {
     return [currentCoins];
@@ -19,7 +21,7 @@ const generateThreeCoinPermutations = (coins: Record<Color, number>, currentCoin
   }, [] as Color[][]);
 };
 
-const canAffordCard = (player: Player, card: Card) => {
+export const canAffordCard = (player: Player, card: Card) => {
   let yellowCoins = player.coins[Color.Yellow];
   const cardCost = _.mapValues(card.cost, (coinCost, color) => Math.max(0, coinCost - player.bought.filter(card => card.color === color as Color).length));
   const canAfford = _.every(cardCost, (value, color) => {
@@ -208,7 +210,7 @@ const gameValueForAllPlayers = (game: Game) => {
   });
 };
 
-const getPlayerIndex = (game: Game) => {
+export const getPlayerIndex = (game: Game) => {
   return game.turn % game.players.length;
 };
 
