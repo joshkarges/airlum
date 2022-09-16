@@ -21,7 +21,9 @@ import { putCoinBack } from "../../redux/slices/game";
 const useStyles = makeStyles()((theme) => ({
   card: {
     minWidth: 300,
-    minHeight: 300,
+    "&&": {
+      paddingBottom: 86,
+    },
     margin: theme.spacing(4),
     padding: theme.spacing(2),
     width: "fit-content",

@@ -105,14 +105,16 @@ const coinsExchange = (game: Game, player: Player, action: Action) => {
   game.coins = _.mapValues(game.coins, (value, color) => value + action.coinCost[color as Color]);
 };
 
-const drawCardFromDeck = (game: Game, tier: 'tier1' | 'tier2' | 'tier3') => {
+const drawCardFromDeck = (game: Game, tier: 'tier1' | 'tier2' | 'tier3', cardIndex?: number) => {
+  cardIndex = cardIndex || game.table.length;
   const nextCard = game.deck[tier].pop();
-  if (nextCard) game.table.push(nextCard);
+  if (nextCard) game.table.splice(cardIndex, 0, nextCard);
 };
 
 const takeCardFromTable = (game: Game, card: Card) => {
+  const cardIndex = _.findIndex(game.table, (c) => c.id === card.id);
   _.remove(game.table, (c) => c.id === card.id);
-  drawCardFromDeck(game, card.tier);
+  drawCardFromDeck(game, card.tier, cardIndex);
 };
 
 export const getAffordableNobles = (game: Game, player: Player) => game.nobles.filter((noble) => {

@@ -34,7 +34,7 @@ export const SplendorPage = () => {
   //   }
   // }, [gameLogs.length]);
 
-  useTestGameSetup(multipleNoblesTest);
+  // useTestGameSetup(multipleNoblesTest);
 
   return (
     <div className={classes.container}>

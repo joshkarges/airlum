@@ -1,4 +1,5 @@
 import { Button, ButtonGroup, Dialog, DialogTitle } from "@mui/material";
+import _ from "lodash";
 import { useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { useGame } from "../../redux/selectors";
@@ -13,17 +14,15 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
   const dispatch = useDispatch();
   const playerIndex = getPlayerIndex(game);
   // game.players[1].points = 16;
-  const { idx: playerIndicesWithMostPoints, points: mostPoints } =
-    game.players.reduce(
-      (agg, player, i) => {
-        if (player.points >= agg.points) {
-          agg.idx.push(i);
-          agg.points = player.points;
-        }
-        return agg;
-      },
-      { idx: [] as number[], points: 0 }
-    );
+  const mostPoints = game.players.reduce((agg, player, i) => {
+    if (player.points >= agg) {
+      agg = player.points;
+    }
+    return agg;
+  }, 0);
+  const playerIndicesWithMostPoints = _.range(0, game.players.length).filter(
+    (i) => game.players[i].points === mostPoints
+  );
   const isGameOver = playerIndex === 0 && mostPoints >= 15;
 
   useEffect(() => {

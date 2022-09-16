@@ -99,7 +99,17 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         dispatch(setGameState("chooseNobles"));
       }
     } else if (actionOnDeck.type === "reserve") {
-      dispatch(takeActionAction(actionOnDeck));
+      const chooseCoins =
+        getNumCoins(player.coins) - getNumCoins(actionOnDeck.coinCost) > 10;
+      dispatch(
+        takeActionAction({
+          ...actionOnDeck,
+          dontAdvance: chooseCoins,
+        })
+      );
+      if (chooseCoins) {
+        dispatch(setGameState("chooseCoins"));
+      }
     }
   };
 
