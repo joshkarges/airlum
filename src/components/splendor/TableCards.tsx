@@ -3,14 +3,11 @@ import _ from "lodash";
 import { VFC } from "react";
 import { Card as CardModel, Color } from "../../models/Splendor";
 import { Card } from "./Card";
-import { useActionOnDeck, useGame } from "../../redux/selectors";
+import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
 import { prepBuyCard, prepReserveCard } from "../../redux/slices/actionOnDeck";
 import { useDispatch } from "react-redux";
-import {
-  canAffordCard,
-  getNumCoins,
-  getPlayerIndex,
-} from "../../utils/splendor";
+import { canAffordCard, getPlayerIndex } from "../../utils/splendor";
+import { GameState } from "../../redux/slices/gameState";
 
 const useStyles = makeStyles()((theme) => ({
   tierRow: {
@@ -23,19 +20,22 @@ export const TableCards: VFC<TableCardsProps> = () => {
   const { classes } = useStyles();
   const actionOnDeck = useActionOnDeck();
   const game = useGame();
+  const gameState = useGameState();
   const playerIndex = getPlayerIndex(game);
   const player = game.players[playerIndex];
   const dispatch = useDispatch();
 
   const onCardClick = (card: CardModel) => {
+    if (gameState !== GameState.play) return;
     if (actionOnDeck.type !== "none") return;
     if (actionOnDeck.card) return;
-    if (canAffordCard(player, card)) {
-      dispatch(prepBuyCard(card));
+    const coinCost = canAffordCard(player, card);
+    if (coinCost) {
+      dispatch(prepBuyCard({ card, coinCost }));
     } else {
-      const yellow =
-        getNumCoins(player.coins) < 10 && game.coins[Color.Yellow] ? 1 : 0;
-      dispatch(prepReserveCard({ card, yellow }));
+      dispatch(
+        prepReserveCard({ card, takeYellow: !!game.coins[Color.Yellow] })
+      );
     }
   };
 

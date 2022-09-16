@@ -1,8 +1,13 @@
 import { makeStyles } from "tss-react/mui";
 import { Card as MuiCard } from "@mui/material";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { VFC } from "react";
-import { useActionOnDeck, useGame } from "../../redux/selectors";
-import { canAffordCard, getPlayerIndex } from "../../utils/splendor";
+import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
+import {
+  canAffordCard,
+  getNumCoins,
+  getPlayerIndex,
+} from "../../utils/splendor";
 import { Coin } from "./Coin";
 import { Card as CardModel, Color } from "../../models/Splendor";
 import _ from "lodash";
@@ -10,6 +15,8 @@ import { Card } from "./Card";
 import { Noble } from "./Noble";
 import { useDispatch } from "react-redux";
 import { prepBuyReserveCard } from "../../redux/slices/actionOnDeck";
+import { GameState, setGameState } from "../../redux/slices/gameState";
+import { putCoinBack } from "../../redux/slices/game";
 
 const useStyles = makeStyles()((theme) => ({
   card: {
@@ -53,14 +60,22 @@ export const Playermat: VFC<PlayerMatProps> = () => {
   const { classes } = useStyles();
   const actionOnDeck = useActionOnDeck();
   const game = useGame();
+  const gameState = useGameState();
   const dispatch = useDispatch();
   const playerIndex = getPlayerIndex(game);
   const player = game.players[playerIndex];
 
   const onReservedCardClick = (card: CardModel) => {
+    if (gameState !== GameState.play) return;
     if (actionOnDeck.type !== "none") return;
     if (!canAffordCard(player, card)) return;
     dispatch(prepBuyReserveCard(card));
+  };
+
+  const onCoinClick = (color: Color) => {
+    if (gameState !== GameState.chooseCoins) return;
+    dispatch(putCoinBack({ color, playerIndex }));
+    if (getNumCoins(player.coins) - 1 <= 10) dispatch(setGameState("play"));
   };
 
   const boughtByColor = _.groupBy(player.bought, "color");
@@ -73,7 +88,8 @@ export const Playermat: VFC<PlayerMatProps> = () => {
             const cards = boughtByColor[color];
             return (
               <div className={classes.coinCardsContainer}>
-                <Coin count={count} color={color} />
+                {gameState === GameState.chooseCoins && <KeyboardArrowUpIcon />}
+                <Coin count={count} color={color} onClick={onCoinClick} />
                 <div className={classes.stackedCardGroup}>
                   {cards?.map((card) => (
                     <div className={classes.stackedCard}>

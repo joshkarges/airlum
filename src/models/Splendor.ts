@@ -47,4 +47,4 @@ export type Action = {
   type: 'buy' | 'reserve' | 'buyReserve';
   coinCost: Record<Color, number>;
   card: Card;
-} | { type: 'takeCoins', coinCost: Record<Color, number>, };
+} | { type: 'takeCoins', coinCost: Record<Color, number>, card: null };

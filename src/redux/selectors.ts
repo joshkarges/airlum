@@ -4,3 +4,5 @@ import { State } from "./rootReducer"
 export const useActionOnDeck = () => useSelector((state: State) => state.actionOnDeck)
 
 export const useGame = () => useSelector((state: State) => state.game);
+
+export const useGameState = () => useSelector((state: State) => state.gameState);

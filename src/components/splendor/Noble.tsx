@@ -14,6 +14,8 @@ const useStyles = makeStyles()((theme) => ({
     border: `1px solid black`,
     borderRadius: 4,
     flexDirection: "column",
+    cursor: "pointer",
+    userSelect: "none",
   },
   nobleCardsContainer: {
     display: "flex",
@@ -51,11 +53,17 @@ const NobleCard: VFC<NobleCardProps> = ({ color, cost }) => {
   );
 };
 
-type NobleProps = NobleModel;
-export const Noble: VFC<NobleProps> = ({ cards, points }) => {
+type NobleProps = NobleModel & {
+  onClick?: (noble: NobleModel) => void;
+};
+export const Noble: VFC<NobleProps> = ({ onClick, ...noble }) => {
   const { classes } = useStyles();
+  const { cards, points } = noble;
   return (
-    <MuiCard className={classes.nobleContainer}>
+    <MuiCard
+      className={classes.nobleContainer}
+      onClick={(e) => onClick?.(noble)}
+    >
       <div className={classes.points}>{points}</div>
       <div className={classes.nobleCardsContainer}>
         {_.map(

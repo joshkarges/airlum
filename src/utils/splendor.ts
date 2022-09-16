@@ -79,12 +79,14 @@ export const getPossibleActions = (game: Game) => {
         return agg;
       }, {} as Record<Color, number>)
     },
+    card: null,
   }));
   const twoCoinActions = _.reduce(game.coins, (agg, value, color) => {
     if (value >= 4 && color !== Color.Yellow) {
       agg.push({
         type: 'takeCoins',
         coinCost: { ...EMPTY_COINS, [color as Color]: -2 },
+        card: null,
       });
     }
     return agg;
@@ -113,12 +115,14 @@ const takeCardFromTable = (game: Game, card: Card) => {
   drawCardFromDeck(game, card.tier);
 };
 
+export const getAffordableNobles = (game: Game, player: Player) => game.nobles.filter((noble) => {
+  return _.every(noble.cards, (value, color) => {
+    return player.bought.filter(card => card.color === color as Color).length >= value;
+  });
+});
+
 const maybeAcquireNoble = (game: Game, player: Player) => {
-  const firstAffordableNoble = game.nobles.find((noble) => {
-    return _.every(noble.cards, (value, color) => {
-      return player.bought.filter(card => card.color === color as Color).length >= value;
-    });
-  })
+  const firstAffordableNoble = getAffordableNobles(game, player)[0];
   // TODO(jkarges): Decide between multiple nobles.
   if (!firstAffordableNoble) return;
   _.remove(game.nobles, firstAffordableNoble);
