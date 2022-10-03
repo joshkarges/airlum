@@ -52,9 +52,10 @@ export const actionOnDeckSlice = createSlice({
       state.card = null;
       state.coinCost = EMPTY_COINS;
     },
-    prepBuyReserveCard: (state, action: PayloadAction<Card>) => {
+    prepBuyReserveCard: (state, action: PayloadAction<{ card: Card, coinCost: Action['coinCost'] }>) => {
       state.type = 'buyReserve';
-      state.card = action.payload;
+      state.card = action.payload.card;
+      state.coinCost = action.payload.coinCost;
     },
     unPrepBuyReserveCard: (state) => {
       state.type = 'none';

@@ -70,8 +70,9 @@ export const Playermat: VFC<PlayerMatProps> = () => {
   const onReservedCardClick = (card: CardModel) => {
     if (gameState !== GameState.play) return;
     if (actionOnDeck.type !== "none") return;
-    if (!canAffordCard(player, card)) return;
-    dispatch(prepBuyReserveCard(card));
+    const coinCost = canAffordCard(player, card);
+    if (!coinCost) return;
+    dispatch(prepBuyReserveCard({ card, coinCost }));
   };
 
   const onCoinClick = (color: Color) => {
@@ -89,12 +90,12 @@ export const Playermat: VFC<PlayerMatProps> = () => {
           {_.map(player.coins, (count: number, color: Color) => {
             const cards = boughtByColor[color];
             return (
-              <div className={classes.coinCardsContainer}>
+              <div key={color} className={classes.coinCardsContainer}>
                 {gameState === GameState.chooseCoins && <KeyboardArrowUpIcon />}
                 <Coin count={count} color={color} onClick={onCoinClick} />
                 <div className={classes.stackedCardGroup}>
                   {cards?.map((card) => (
-                    <div className={classes.stackedCard}>
+                    <div key={card.id} className={classes.stackedCard}>
                       <Card {...card} />
                     </div>
                   ))}
@@ -112,6 +113,7 @@ export const Playermat: VFC<PlayerMatProps> = () => {
       <div>
         {player.reserved.map((card, i) => (
           <Card
+            key={card.id}
             {...card}
             onClick={onReservedCardClick}
             placeholder={card.id === actionOnDeck.card?.id}

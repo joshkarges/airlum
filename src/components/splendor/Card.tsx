@@ -102,7 +102,7 @@ export const Cost: VFC<CostProps> = ({ white, blue, green, red, black }) => {
   );
 };
 
-type CardProps = CardModel & {
+export type CardProps = CardModel & {
   onClick?: (card: CardModel) => void;
   placeholder?: boolean;
   className?: string;

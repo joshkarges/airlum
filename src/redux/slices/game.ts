@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, original, PayloadAction } from "@reduxjs/toolkit";
 import _ from "lodash";
 import { Action, Color, Game, Noble } from "../../models/Splendor";
 import { getNumCoins, getPlayerIndex, setupGame, takeAction } from "../../utils/splendor";
@@ -14,18 +14,19 @@ const gameSlice = createSlice({
       popNoble?: boolean;
     }>) => {
       const { dontAdvance, popNoble, ...gameAction } = action.payload
-      takeAction(state, gameAction);
-      let turn = state.turn;
+      const newState = takeAction(original(state)!, gameAction);
       if (dontAdvance) {
-        turn = --state.turn;
+        newState.turn = state.turn;
       }
       if (popNoble) {
-        const player = state.players[turn % state.players.length];
+        // Return the noble you just aquired because there are multiple to choose from.
+        const player = newState.players[newState.turn % newState.players.length];
         const poppedNoble = player.nobles.pop();
         if (!poppedNoble) return;
         player.points -= poppedNoble.points;
-        state.nobles.push(poppedNoble);
+        newState.nobles.push(poppedNoble);
       }
+      return newState;
     },
     putCoinBack: (state, action: PayloadAction<{ color: Color, playerIndex: number }>) => {
       state.coins[action.payload.color]++

@@ -1,125 +1,162 @@
 import _ from 'lodash';
+import produce from 'immer';
 import { DECK } from '../constants/allCards';
 import { ALL_NOBLES } from '../constants/allNobles';
 import { getCost, EMPTY_COINS } from '../constants/utils';
-import { Action, Card, Color, Game, Player } from "../models/Splendor";
-import { genMaxN, genMinimaxAB } from './minimax';
+import { Action, Card, CoinSet, Color, Game, Player } from "../models/Splendor";
+import { count } from './collection';
+import { actionPool, arrPool } from './memory';
+import { genMaxN, genMinimaxAB, genProbablyBestMove } from './minimax';
 
 export const getNumCoins = (coins: Record<Color, number>) => _.reduce(coins, (sum, num) => sum + num, 0);
 
-const generateThreeCoinPermutations = (coins: Record<Color, number>, currentCoins: Color[] = []): Color[][] => {
-  if (currentCoins.length === 3) {
-    return [currentCoins];
-  }
-  const coinsLeft = { ...coins }
-  return _.reduce(coins, (agg, value, color) => {
-    if (value > 0 && color !== Color.Yellow) {
-      coinsLeft[color as Color] = 0;
-      agg.push(...generateThreeCoinPermutations(coinsLeft, [...currentCoins, color as Color]));
+/** Put this inside an arrPool */
+const generateThreeCoinPermutations = (coins: Record<Color, number>, output: Color[][] = []): Color[][] => {
+  const gatherThreeCoins = (currentCoins: Color[]) => {
+    if (currentCoins.length === 3) {
+      output.push(currentCoins);
+      return output;
     }
-    return agg;
-  }, [] as Color[][]);
+    _.forEach(coins, (value, color) => {
+      if (color === currentCoins[0] || color === currentCoins[1]) return;
+      if (value > 0 && color !== Color.Yellow) {
+        // This is used inside the start-end pool of getPossibleActions.
+        const nextCoins = arrPool.get() as Color[];
+        nextCoins.push(...currentCoins, color as Color);
+        gatherThreeCoins(nextCoins);
+      }
+    });
+  };
+
+  gatherThreeCoins(arrPool.get());
+  return output;
 };
 
-export const canAffordCard = (player: Player, card: Card) => {
-  let yellowCoins = player.coins[Color.Yellow];
-  const cardCost = _.mapValues(card.cost, (coinCost, color) => Math.max(0, coinCost - player.bought.filter(card => card.color === color as Color).length));
-  const canAfford = _.every(cardCost, (value, color) => {
-    if (player.coins[color as Color] - value >= 0) return true;
-    if (yellowCoins > 0 && player.coins[color as Color] - value >= -yellowCoins) {
-      yellowCoins += (player.coins[color as Color] - value);
-      cardCost[color as Color] = player.coins[color as Color];
+export const canAffordCard = (player: Player, card: Card, output: CoinSet = {} as CoinSet): CoinSet | null => {
+  _.forEach(card.cost, (coinCost, color) => {
+    output[color as Color] = Math.max(0, coinCost - count(player.bought, card => card.color === color as Color));
+  });
+  const canAfford = _.every(output, (coinsNeeded, color) => {
+    if (player.coins[color as Color] >= coinsNeeded) return true;
+    const yellowCoinsNeeded = coinsNeeded - player.coins[color as Color];
+    const yellowCoinsAvailable = player.coins[Color.Yellow] - output[Color.Yellow];
+    if (yellowCoinsAvailable >= yellowCoinsNeeded) {
+      output[color as Color] = player.coins[color as Color];
+      output[Color.Yellow] += yellowCoinsNeeded;
       return true;
     }
     return false;
   });
-  return canAfford ? { ...cardCost, [Color.Yellow]: player.coins[Color.Yellow] - yellowCoins } : null;
+  return canAfford ? output : null;
 }
 
-export const getBuyActions = (game: Game, player: Player) => [...game.table, ...player.reserved].reduce((agg, card, index) => {
-  const payableCost = canAffordCard(player, card);
-  if (payableCost) {
-    agg.push({
-      type: index >= game.table.length ? 'buyReserve' : 'buy',
-      coinCost: payableCost,
-      card,
-    });
-  }
-  return agg;
-}, [] as Action[]);
-
-export const getReserveActions = (game: Game, player: Player) => {
-  return player.reserved.length >= 3 ? [] : game.table.map(card => ({
-    type: 'reserve',
-    coinCost: { ...EMPTY_COINS, [Color.Yellow]: game.coins[Color.Yellow] > 0 ? -1 : 0 },
-    card,
-  }) as Action)
+/** Put this inside an actionPool */
+export const getBuyActions = (game: Game, player: Player, output: Action[] = []) => {
+  const gatherBuyActions = (type: 'buy' | 'buyReserve') => (card: Card) => {
+    const action = actionPool.get();
+    const payableCost = canAffordCard(player, card, action.coinCost);
+    if (payableCost) {
+      action.type = type;
+      action.card = card;
+      output.push(action);
+    }
+  };
+  game.table.forEach(gatherBuyActions('buy'))
+  player.reserved.forEach(gatherBuyActions('buyReserve'));
+  return output;
 };
 
-export const getPossibleActions = (game: Game) => {
-  const playerIndex = game.turn % game.players.length;
+/** Put this inside an actionPool */
+export const getReserveActions = (game: Game, player: Player, output: Action[] = []) => {
+  if (player.reserved.length < 3) {
+    const yellowCost = game.coins[Color.Yellow] > 0 ? -1 : 0;
+    game.table.forEach(card => {
+      const action = actionPool.get();
+      action.coinCost[Color.Yellow] = yellowCost;
+      action.card = card;
+      output.push(action);
+    });
+  }
+  return output;
+};
+
+/** Put inside actionPool */
+export const getPossibleActions = (game: Game, output: Action[] = []) => {
+  arrPool.start();
+  const playerIndex = getPlayerIndex(game);
   const player = game.players[playerIndex];
   /** Take Coins */
   const lessThanThreeStacks = _.reduce(game.coins, (agg, value, color) => agg += (value > 0 && color !== Color.Yellow ? 1 : 0), 0) < 3;
-  let threeCoinPermutations = [];
+  const threeCoinPermutations: Color[][] = arrPool.get();
   if (lessThanThreeStacks) {
     const onlyCoinsToTake = _.reduce(game.coins, (agg, value, color) => {
       if (value > 0 && color !== Color.Yellow) agg.push(color as Color);
       return agg;
-    }, [] as Color[]);
-    threeCoinPermutations = onlyCoinsToTake.length ? [onlyCoinsToTake] : [];
+    }, arrPool.get() as Color[]);
+    if (onlyCoinsToTake.length) threeCoinPermutations.push(onlyCoinsToTake);
   } else {
-    threeCoinPermutations = generateThreeCoinPermutations(game.coins);
+    generateThreeCoinPermutations(game.coins, threeCoinPermutations);
   }
-  const threeCoinActions = threeCoinPermutations.map((permutation): Action => ({
-    type: 'takeCoins',
-    coinCost: {
-      ...EMPTY_COINS, ...permutation.reduce((agg, color) => {
-        agg[color] = -1;
-        return agg;
-      }, {} as Record<Color, number>)
-    },
-    card: null,
-  }));
-  const twoCoinActions = _.reduce(game.coins, (agg, value, color) => {
+  threeCoinPermutations.forEach((permutation) => {
+    const action = actionPool.get('takeCoins');
+    action.card = null;
+    permutation.forEach((color) => {
+      action.coinCost[color] = -1;
+    });
+    output.push(action);
+  });
+
+  _.forEach(game.coins, (value, color) => {
     if (value >= 4 && color !== Color.Yellow) {
-      agg.push({
-        type: 'takeCoins',
-        coinCost: { ...EMPTY_COINS, [color as Color]: -2 },
-        card: null,
-      });
+      const action = actionPool.get('takeCoins');
+      action.card = null;
+      action.coinCost[color as Color] = -2;
+      output.push(action);
     }
-    return agg;
-  }, [] as Action[]);
-  // TODO(jkarges): Put back coins if you have more than 10.
+  });
 
   /** Buy Or Reserve */
-  const buyActions = getBuyActions(game, player);
-  const reserveActions = getReserveActions(game, player);
+  getBuyActions(game, player, output);
+  getReserveActions(game, player, output);
 
-  return [...threeCoinActions, ...twoCoinActions, ...buyActions, ...reserveActions];
+  arrPool.end();
+  return output;
+};
+
+export const forSomePossibleActions = (game: Game, callback: (action: Action) => any) => {
+  actionPool.start();
+  const actions = getPossibleActions(game);
+  const result = actions.some(callback);
+  actionPool.end();
+  return result;
 };
 
 const coinsExchange = (game: Game, player: Player, action: Action) => {
-  player.coins = _.mapValues(player.coins, (value, color) => value - action.coinCost[color as Color]);
-  game.coins = _.mapValues(game.coins, (value, color) => value + action.coinCost[color as Color]);
+  _.assignWith(player.coins, action.coinCost, (playerCoins, actionCost) => playerCoins - actionCost);
+  _.assignWith(game.coins, action.coinCost, (gameCoins, actionCost) => gameCoins + actionCost);
 };
 
-const drawCardFromDeck = (game: Game, tier: 'tier1' | 'tier2' | 'tier3', cardIndex?: number) => {
-  cardIndex = cardIndex || game.table.length;
-  const nextCard = game.deck[tier].pop();
-  if (nextCard) game.table.splice(cardIndex, 0, nextCard);
+const getNullCard = (tier: 'tier1' | 'tier2' | 'tier3'): Card => {
+  return {
+    id: -1,
+    color: Color.White,
+    cost: getCost(0, 0, 0, 0, 0),
+    points: 0,
+    tier,
+  };
 };
 
-const takeCardFromTable = (game: Game, card: Card) => {
-  const cardIndex = _.findIndex(game.table, (c) => c.id === card.id);
-  _.remove(game.table, (c) => c.id === card.id);
-  drawCardFromDeck(game, card.tier, cardIndex);
+const drawCardFromDeck = (game: Game, tier: 'tier1' | 'tier2' | 'tier3', removeCard?: Card) => {
+  const cardIndex = removeCard ? _.findIndex(game.table, (c) => c.id === removeCard.id) : game.table.length;
+  const nextCard = game.deck[tier].pop() || getNullCard(tier);
+  game.table.splice(cardIndex, removeCard ? 1 : 0, nextCard);
 };
+
+const takeCardFromTable = (game: Game, card: Card) => drawCardFromDeck(game, card.tier, card);
 
 export const getAffordableNobles = (game: Game, player: Player) => game.nobles.filter((noble) => {
   return _.every(noble.cards, (value, color) => {
-    return player.bought.filter(card => card.color === color as Color).length >= value;
+    return count(player.bought, (card) => card.color === color as Color) >= value;
   });
 });
 
@@ -132,7 +169,7 @@ const maybeAcquireNoble = (game: Game, player: Player) => {
   player.points += firstAffordableNoble.points;
 };
 
-export const takeAction = (game: Game, action: Action) => {
+export const takeAction = produce((game: Game, action: Action) => {
   const playerIndex = game.turn % game.players.length;
   const player = game.players[playerIndex];
   coinsExchange(game, player, action);
@@ -159,7 +196,7 @@ export const takeAction = (game: Game, action: Action) => {
       break;
   }
   return game;
-};
+});
 
 export const setupGame = (numPlayers: number): Game => {
   const shuffledDeck = _.mapValues(DECK, (cards) => _.shuffle(cards));
@@ -192,11 +229,11 @@ export const setupGame = (numPlayers: number): Game => {
 };
 
 const playerValue = (game: Game, player: Player): number => {
-  const pointsString = player.points.toString().padStart(2, '0');
-  const boughtString = player.bought.length.toString().padStart(2, '0');
-  const gainCardsString = getBuyActions(game, player).length.toString().padStart(2, '0');
-  const coinsString = _.reduce(player.coins, (sumCoins, numCoins) => sumCoins + numCoins, 0).toString().padStart(2, '0');
-  const valueString = `${pointsString}${boughtString}${gainCardsString}${coinsString}`;
+  const points = player.points;
+  const bought = player.bought.length;
+  const gainCards = getBuyActions(game, player).length;
+  const coins = Math.min(10, _.reduce(player.coins, (sumCoins, numCoins) => sumCoins + numCoins, 0));
+  const valueString = [points, bought, gainCards, coins].map(x => x.toString().padStart(2, '0')).join('');
   return +valueString;
 };
 
@@ -208,43 +245,57 @@ const gameValue = (game: Game) => {
 };
 
 const gameValueForAllPlayers = (game: Game) => {
-  const playerValues = game.players.map((player) => playerValue(game, player));
+  arrPool.start();
+  const playerValues = arrPool.get();
+  game.players.forEach((player) => playerValues.push(playerValue(game, player)));
   const [first, second] = playerValues.sort((a, b) => b - a);
   const firstIndex = playerValues.indexOf(first);
-  return playerValues.map((pVal, i) => {
-    return pVal - (i === firstIndex ? second : first);
+  playerValues.forEach((pVal, i) => {
+    playerValues[i] = pVal - (i === firstIndex ? second : first);
   });
+  arrPool.end();
+  return playerValues;
 };
 
 export const getPlayerIndex = (game: Game) => {
   return game.turn % game.players.length;
 };
 
+export const isLastTurns = (game: Game) => _.some(game.players, player => player.points >= 15);
+
 export const isTerminal = (game: Game) => {
-  return _.some(game.players, player => player.points >= 15);
+  return isLastTurns(game) && getPlayerIndex(game) === 0;
 };
 
 const randomPlay = (game: Game) => {
+  actionPool.start();
   const possibleActions = getPossibleActions(game);
-  return possibleActions[Math.floor(Math.random() * possibleActions.length)] || null;
+  const bestAction = possibleActions[Math.floor(Math.random() * possibleActions.length)] || null;
+  actionPool.end();
+  return _.cloneDeep(bestAction);
 };
 
-const minimaxAB = genMinimaxAB(getPossibleActions, takeAction, gameValue, isTerminal, 2);
+const minimaxAB = genMinimaxAB(forSomePossibleActions, takeAction, gameValue, isTerminal, 2);
 
-const maxn = genMaxN(getPossibleActions, takeAction, gameValueForAllPlayers, getPlayerIndex, isTerminal, 4);
+const maxn = genMaxN(forSomePossibleActions, takeAction, gameValueForAllPlayers, getPlayerIndex, isTerminal, 4);
+
+const probablyBestMove = genProbablyBestMove(forSomePossibleActions, takeAction, gameValueForAllPlayers, getPlayerIndex, isTerminal, 4);
 
 export enum Strategy {
   Random,
   AlphaBeta,
   MaxN,
+  Probablistic,
 }
 
-const getStrategy = (strat: Strategy) => {
+export const getStrategy = (strat: Strategy) => {
   switch (strat) {
     case (Strategy.Random):
       return randomPlay;
     case (Strategy.MaxN):
       return maxn;
+    case (Strategy.Probablistic):
+      return probablyBestMove;
     case (Strategy.AlphaBeta):
     default:
       return minimaxAB;

@@ -30,7 +30,7 @@ const useStyles = makeStyles()((theme) => ({
   },
 }));
 
-type CoinProps = {
+export type CoinProps = {
   count: number;
   color: Color;
   onClick?: (color: Color, count?: number) => void;

@@ -68,7 +68,8 @@ export const Noble: VFC<NobleProps> = ({ onClick, ...noble }) => {
       <div className={classes.nobleCardsContainer}>
         {_.map(
           cards,
-          (cost, color) => !!cost && <NobleCard color={color} cost={cost} />
+          (cost, color) =>
+            !!cost && <NobleCard key={color} color={color} cost={cost} />
         )}
       </div>
     </MuiCard>

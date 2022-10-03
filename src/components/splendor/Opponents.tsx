@@ -5,7 +5,7 @@ import { Grid, Card as MuiCard } from "@mui/material";
 import _ from "lodash";
 import { useGame } from "../../redux/selectors";
 import classNames from "classnames";
-import { getPlayerIndex, isTerminal } from "../../utils/splendor";
+import { getPlayerIndex, isLastTurns } from "../../utils/splendor";
 
 const useStyles = makeStyles()((theme) => ({
   opponentContainer: {
@@ -144,12 +144,12 @@ export const Opponents: VFC<OpponentsProps> = () => {
   const { classes } = useStyles();
   const game = useGame();
   const playerIndex = getPlayerIndex(game);
-  const lastTurns = isTerminal(game);
+  const lastTurns = isLastTurns(game);
   return (
     <div>
       <div className={classes.lastTurns}>{lastTurns && "Last Turns"}</div>
       {game.players.map((player, i) => (
-        <Opponent {...player} currentPlayer={playerIndex === i} />
+        <Opponent key={i} {...player} currentPlayer={playerIndex === i} />
       ))}
     </div>
   );

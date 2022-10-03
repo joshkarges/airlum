@@ -35,7 +35,7 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
         playerIndicesWithMostPoints.length > 1 ? "s" : ""
       } ${oxfordCommaList(
         playerIndicesWithMostPoints.map((idx) => `#${idx}`)
-      )} Won!`}</DialogTitle>
+      )} Won! (${game.turn / game.players.length} moves)`}</DialogTitle>
       <ButtonGroup>
         <Button variant="outlined" onClick={() => setIsOpen(false)}>
           Close

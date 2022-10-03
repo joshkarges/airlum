@@ -7,10 +7,12 @@ export enum Color {
   Yellow = 'yellow',
 };
 
+export type CoinSet = Record<Color, number>;
+
 export type Card = {
   id: number;
   color: Color;
-  cost: Record<Color, number>;
+  cost: CoinSet;
   points: number;
   tier: 'tier1' | 'tier2' | 'tier3';
 };
@@ -23,7 +25,7 @@ export type Noble = {
 
 export type Player = {
   id: number;
-  coins: Record<Color, number>;
+  coins: CoinSet;
   bought: Card[];
   reserved: Card[];
   nobles: Noble[];
@@ -45,6 +47,6 @@ export type Game = {
 
 export type Action = {
   type: 'buy' | 'reserve' | 'buyReserve';
-  coinCost: Record<Color, number>;
+  coinCost: CoinSet;
   card: Card;
-} | { type: 'takeCoins', coinCost: Record<Color, number>, card: null };
+} | { type: 'takeCoins', coinCost: CoinSet, card: null };
