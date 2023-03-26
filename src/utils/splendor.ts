@@ -72,6 +72,7 @@ export const getReserveActions = (game: Game, player: Player, output: Action[] =
     const yellowCost = game.coins[Color.Yellow] > 0 ? -1 : 0;
     game.table.forEach(card => {
       const action = actionPool.get();
+      action.type = 'reserve';
       action.coinCost[Color.Yellow] = yellowCost;
       action.card = card;
       output.push(action);

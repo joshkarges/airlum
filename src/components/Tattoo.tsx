@@ -105,9 +105,9 @@ export const TattooPage: VFC = () => {
           h-${2 * halfHeight}
 
           m${2 * halfHeight + gap + strokeWidth} 0v-${
-              halfHeight + strokeWidth / 2 - strokeWidth - gap / 2
+              halfHeight + strokeWidth / 2 - strokeWidth
             }
-          m0 -${gap / 2}v-${strokeWidth}
+          m0 -${gap}v-${strokeWidth - gap}
 
           m${gap + strokeWidth} ${
               halfHeight + strokeWidth / 2

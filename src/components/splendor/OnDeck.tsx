@@ -43,6 +43,9 @@ const useStyles = makeStyles()((theme) => ({
   reservedCard: {
     transform: "rotateZ(-90deg)",
   },
+  aiContainer: {
+    marginTop: theme.spacing(2),
+  },
 }));
 
 type DisplayActionProps = {
@@ -215,10 +218,10 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         </ButtonGroup>
       </div>
       {aiAction ? (
-        <>
+        <div className={classes.aiContainer}>
           <DisplayAction action={aiAction} />
           {depth}
-        </>
+        </div>
       ) : (
         "No AI Action."
       )}
