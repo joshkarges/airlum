@@ -1,4 +1,4 @@
-import { createSlice, original, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import _ from "lodash";
 import { Action, Color, Game, Noble } from "../../models/Splendor";
 import { getNumCoins, getPlayerIndex, setupGame, takeAction } from "../../utils/splendor";
@@ -14,7 +14,7 @@ const gameSlice = createSlice({
       popNoble?: boolean;
     }>) => {
       const { dontAdvance, popNoble, ...gameAction } = action.payload
-      const newState = takeAction(original(state)!, gameAction);
+      const newState = takeAction(state, gameAction);
       if (dontAdvance) {
         newState.turn = state.turn;
       }
