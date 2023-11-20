@@ -1,5 +1,6 @@
-import PageWrapper from "./pages/PageWrapper";
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import * as EasyForm from 'jk-form';
+import PageWrapper from "./pages/PageWrapper";
 import HomePage from "./pages/HomePage";
 import { TattooPage } from "./components/Tattoo";
 import { SplendorPage } from "./pages/SplendorPage";
@@ -8,6 +9,9 @@ import { store } from "./redux/configureStore";
 // import { createTheme, ThemeProvider } from "@mui/material/styled";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
+import { BangForBuckPage } from "./pages/BangForBuckPage";
+import { ModalContextProvider } from "./components/modals/ModalContext";
+import { ChristmasListPage } from "./pages/ChristmasListPage";
 
 export const muiCache = createCache({
   key: "mui",
@@ -19,23 +23,31 @@ function App() {
   return (
     <Provider store={store}>
       <CacheProvider value={muiCache}>
+        <ModalContextProvider>
         <div className="App">
-          <PageWrapper>
             <Router>
+          <PageWrapper>
               <Switch>
+                <Route path="/tasks">
+                  <BangForBuckPage/>
+                </Route>
                 <Route path="/splendor">
                   <SplendorPage />
                 </Route>
                 <Route path="/tattoo">
                   <TattooPage />
                 </Route>
+                <Route path="/christmas-list">
+                  <ChristmasListPage />
+                </Route>
                 <Route path="/">
                   <HomePage />
                 </Route>
               </Switch>
-            </Router>
           </PageWrapper>
+            </Router>
         </div>
+        </ModalContextProvider>
       </CacheProvider>
     </Provider>
   );
