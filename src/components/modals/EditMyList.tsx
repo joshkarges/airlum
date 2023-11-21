@@ -4,6 +4,9 @@ import { makeStyles } from "@mui/styles";
 import { Formik, FormikProps } from "formik";
 import _ from "lodash";
 import { useContext, useState } from "react";
+import * as uuid from "uuid";
+import { createWishList } from "../../api/ChristmasListApi";
+import { Idea } from "../../models/ChristmasList";
 import { Flex } from "../Flex";
 import { ModalContext, ModalType } from "./ModalContext";
 
@@ -20,13 +23,8 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-type Idea = {
-  description: string;
-  timestamp: number;
-};
-
 const initalFormValues = {
-  ideas: [{description: '', timestamp: 0}] as Idea[],
+  ideas: [] as Idea[],
 };
 
 type EditMyListFormType = typeof initalFormValues;
@@ -45,6 +43,9 @@ export const EditMyList = () => {
   const classes = useStyles();
   const {modal, setModal} = useContext(ModalContext);
   const [formValues, setFormValues] = useState(initalFormValues);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
+  const [response, setResponse] = useState<any>(null)
   return (
     <Dialog open={modal === ModalType.EditMyList}>
       <Flex flexDirection="column" className={classes.modalContainer}>
@@ -54,6 +55,7 @@ export const EditMyList = () => {
           onSubmit={(values) => {
             console.log(values);
             setFormValues(values);
+            createWishList(values)
           }}
         >
           {(props) => (
@@ -63,18 +65,21 @@ export const EditMyList = () => {
                 <Typography variant="h6">Idea {i + 1}</Typography>
                 <TextField
                   className={classes.ideaTextField}
-                  key={`idea-${idea.timestamp}`}
+                  key={`idea-${idea.id}`}
                   multiline
                   {...getFormikProps(props, `ideas[${i}].description`)}
                 />
-                <IconButton onClick={() => props.setFieldValue('ideas', props.values.ideas.filter(({timestamp}) => timestamp !== idea.timestamp))}>
+                <IconButton onClick={() => props.setFieldValue('ideas', props.values.ideas.filter(({id}) => id !== idea.id))}>
                   <DeleteOutline/>
                 </IconButton>
               </Flex>
             ))}
             <Button
               startIcon={<AddCircleOutline/>}
-              onClick={() => props.setFieldValue('ideas', [...props.values.ideas, {description: '', timestamp: Date.now()}])}
+              onClick={() => {
+                const newIdea = {description: '', timestamp: Date.now(), id: uuid.v4()}
+                props.setFieldValue('ideas', [...props.values.ideas, newIdea]);
+              }}
             >Add Gift Idea</Button>
             <Flex flexGrow={1} gap="8px" justifyContent="flex-end">
               <Button variant="contained" onClick={() => setModal(null)}>
