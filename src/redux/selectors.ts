@@ -10,3 +10,7 @@ export const useGameState = () => useSelector((state: State) => state.gameState)
 export const useUser = () => useSelector((state: State) => state.user);
 
 export const useExchangeEvent = () => useSelector((state: State) => state.exchangeEvent);
+
+export const useWishLists = () => useSelector((state: State) => {
+  return state.wishLists;
+});

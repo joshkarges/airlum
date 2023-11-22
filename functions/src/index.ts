@@ -32,7 +32,7 @@ const app = express();
 // when decoded successfully, the ID Token content will be added as `req.user`.
 const authenticate = async (req: any, res: any, next: any) => {
   if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
-    res.status(403).send('Unauthorized');
+    res.status(403).send('Unauthorized: Bearer token missing');
     return;
   }
   const idToken = req.headers.authorization.split('Bearer ')[1];
@@ -42,7 +42,7 @@ const authenticate = async (req: any, res: any, next: any) => {
     next();
     return;
   } catch(e) {
-    res.status(403).send('Unauthorized');
+    res.status(403).send(`Unauthorized: ${e}`);
     return;
   }
 };
@@ -54,15 +54,22 @@ app.get('/health', (req, res) => res.send('OK'));
 app.post('/setWishList', async (req, res) => {
   const data = req.body;
   const user = (req as any).user as admin.auth.DecodedIdToken;
-  const newDoc = getFirestore()
-      .collection("wishList").doc(user.uid);
-  const writeResult = await newDoc.set({
+  console.log('setWishList user', user)
+  const wishListCollection = getFirestore()
+      .collection("wishList");
+  const newDoc = data.docId ? wishListCollection.doc(data.docId) : wishListCollection.doc();
+  const newData = {
     ...data,
-    email: user.email,
-    uid: user.uid,
+    user: {
+      displayName: user.name,
+      uid: user.uid,
+      email: user.email,
+    },
     createdAt: Date.now(),
     updatedAt: Date.now(),
-  });
+  };
+  console.log('setWishList newData', newData);
+  const writeResult = await newDoc.set(newData);
   return res.send(writeResult);
 });
 // app.put('/:id', (req, res) => res.send(Widgets.update(req.params.id, req.body)));
@@ -114,18 +121,21 @@ app.get('/getExchangeEvent/:exchangeEvent', async (req, res) => {
 
 app.get('/getAllWishLists/:exchangeEvent', async (req, res) => {
   const user = (req as any).user as admin.auth.DecodedIdToken;
-  if (!user || !('uid' in user) || !user.uid) return res.send({success: false, error: 'No user found', data: null});
+  if (!user || !('uid' in user) || !user.uid) return res.send({success: false, error: 'No user found', data: []});
   const result = await getFirestore()
       .collection("exchangeEvent").doc(req.params.exchangeEvent).get();
-  if (!result.exists) return res.send({success: false, error: 'No event found', data: null});
+  if (!result.exists) return res.send({success: false, error: 'No event found', data: []});
   const event = result.data() as ExchangeEvent;
-  if (!event.users.find(u => u.email === user.email)) return res.send({success: false, error: 'User not in event', data: null});
+  if (!event.users.find(u => u.email === user.email)) return res.send({success: false, error: 'User not in event', data: []});
 
   const wishLists = await getFirestore().collection("wishList").where('exchangeEvent', '==', req.params.exchangeEvent).get();
 
-  if (wishLists.empty) return res.send({success: false, error: 'No wish lists found', data: null});
+  if (wishLists.empty) return res.send({success: false, error: 'No wish lists found', data: []});
 
-  return res.send({success: true, data: wishLists.docs.map(d => d.data())});
+  return res.send({success: true, data: wishLists.docs.map(d => ({
+    ...d.data(),
+    id: d.id,
+  }))});
 });
 
 // Expose Express API as a single Cloud Function:

@@ -6,17 +6,21 @@ import { Flex } from "../components/Flex";
 import { ModalContext, ModalType } from "../components/modals/ModalContext";
 import { SignIn } from "../components/SignIn";
 import { setUser } from "../redux/slices/user";
-import { useUser } from "../redux/selectors";
+import { useExchangeEvent, useUser, useWishLists } from "../redux/selectors";
 import { User } from "../models/User";
 import { useParams } from "react-router-dom";
-import { getExchangeEventFromServer } from "../api/ChristmasListApi";
+import { checkHealth, getAllWishListsFromServer, getExchangeEventFromServer } from "../api/ChristmasListApi";
 import { exchangeEvent, setExchangeEvent } from "../redux/slices/exchangeEvent";
+import { setWishLists } from "../redux/slices/wishLists";
+import { EditMyList } from "../components/modals/EditMyList";
 
 export const ChristmasListPage = () => {
   const {setModal} = useContext(ModalContext);
   const dispatch = useDispatch();
   const user = useUser();
-  const {exchangeEvent} = useParams<{exchangeEvent: string}>();
+  const {exchangeEvent: exchangeEventUrlParam} = useParams<{exchangeEvent: string}>();
+  const exchangeEvent = useExchangeEvent();
+  const wishLists = useWishLists();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -32,16 +36,29 @@ export const ChristmasListPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    if (!exchangeEvent) return;
+    if (!exchangeEventUrlParam) return;
     const fetchExchangeEvent = async () => {
       setLoading(true);
-      const response = await getExchangeEventFromServer(exchangeEvent);
+      const response = await getExchangeEventFromServer(exchangeEventUrlParam);
       setLoading(false);
       if (!response.success) console.error(`Error fetching exchange event ${response.error}`);
       dispatch(setExchangeEvent(response.data));
     };
     fetchExchangeEvent();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!exchangeEventUrlParam) return;
+    const fetchAllWishLists = async () => {
+      setLoading(true);
+      const response = await getAllWishListsFromServer(exchangeEventUrlParam);
+      setLoading(false);
+      if (!response.success) console.error(`Error fetching all wish lists ${response.error}`);
+      dispatch(setWishLists(response.data));
+    };
+    fetchAllWishLists();
+  }, [exchangeEventUrlParam, user]);
 
   return (
     <Flex flexDirection="column" p={3}>
@@ -50,13 +67,24 @@ export const ChristmasListPage = () => {
           <Flex justifyContent="flex-end">
             <Button variant="contained" onClick={() => setModal(ModalType.EditMyList)}>Edit My List</Button>
           </Flex>
-          <Flex>
-            <Card>
-              <Flex flexDirection="column" p={3}>
-                <h1>My List</h1>
-                
-              </Flex>
-            </Card>
+          <Flex gap="32px" flexWrap='wrap'>
+            {wishLists.map((list) => {
+              return (
+                <Card>
+                  <Flex flexDirection="column" p={3}>
+                    <h1>{list.user.displayName}</h1>
+                    {list.ideas.map((idea) => {
+                      return (
+                        <Flex p="8px">
+                          <p>{idea.description}</p>
+                        </Flex>
+                      );
+                    })}
+                  </Flex>
+                </Card>
+              );
+            })}
+            
           </Flex>
         </Flex>
       ) : (
@@ -64,6 +92,7 @@ export const ChristmasListPage = () => {
           <SignIn signInSuccessUrl='/christmas-list' />
         </Flex>
       )}
+      <EditMyList/>
     </Flex>
   );
 };

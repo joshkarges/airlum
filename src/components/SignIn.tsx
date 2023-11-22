@@ -1,7 +1,7 @@
 import StyledFirebaseAuth from 'react-firebaseui/StyledFirebaseAuth';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
-import { useMemo } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 
 var firebaseConfig = {
   apiKey: "AIzaSyAzSO8pByh5RcpfmwksHOHdh-IMjFetutQ",
@@ -37,11 +37,18 @@ export const SignIn = ({signInSuccessUrl}: SignInProps) => {
       ...initialUiConfig,
       signInSuccessUrl,
     };
-  }, [signInSuccessUrl])
+  }, [signInSuccessUrl]);
+  const firbaseAuth = firebase.auth();
+
+  const [widget, setWidget] = useState<ReactNode>(null);
+
+  useEffect(() => {
+    setWidget(<StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firbaseAuth} />);
+  }, [uiConfig, firbaseAuth])
   return (
     <div>
       <p>Please sign-in:</p>
-      <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firebase.auth()} />
+      {widget}
     </div>
   );
 };

@@ -25,7 +25,6 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
         </Toolbar>
       </AppBar>
       {children}
-      <EditMyList/>
     </div>
   );
 };

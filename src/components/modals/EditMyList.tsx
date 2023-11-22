@@ -5,11 +5,13 @@ import { Formik, FormikProps } from "formik";
 
 import _ from "lodash";
 import { useContext, useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { useParams } from "react-router-dom";
 import * as uuid from "uuid";
 import { getWishListFromServer, setWishListOnServer } from "../../api/ChristmasListApi";
-import { ChristmasList, Idea } from "../../models/ChristmasList";
-import { useUser } from "../../redux/selectors";
+import { ChristmasList, EditMyListFormType, Idea, wishListToForm } from "../../models/ChristmasList";
+import { useUser, useWishLists } from "../../redux/selectors";
+import { setWishList } from "../../redux/slices/wishLists";
 import { Flex } from "../Flex";
 import { ModalContext, ModalType } from "./ModalContext";
 
@@ -26,11 +28,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const initalFormValues = {
+const initalFormValues: EditMyListFormType = {
   ideas: [] as Idea[],
 };
-
-type EditMyListFormType = typeof initalFormValues;
 
 const getFormikProps = (
   props: FormikProps<EditMyListFormType>,
@@ -45,27 +45,13 @@ const getFormikProps = (
 export const EditMyList = () => {
   const classes = useStyles();
   const {modal, setModal} = useContext(ModalContext);
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
-  const [myWishList, setMyWishList] = useState<EditMyListFormType>(initalFormValues);
-  const user = useUser();
-  const {exchangeEvent} = useParams<{exchangeEvent: string}>();
-
-  useEffect(() => {
-    const fetchMyWishList = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const result = await getWishListFromServer();
-        setMyWishList(_.pick(result.data, 'ideas'));
-      } catch (err) {
-        setError(err);
-      }
-      setLoading(false);
-    };
-    fetchMyWishList();
-    return () => {};
-  }, [user]);
+  const user = useUser()!;
+  const {exchangeEvent: exchangeEventUrlParam} = useParams<{exchangeEvent: string}>();
+  const wishLists = useWishLists();
+  const myWishList = wishLists.find(({user}) => user.uid === user.uid);
 
   return (
     <Dialog open={modal === ModalType.EditMyList}>
@@ -74,13 +60,13 @@ export const EditMyList = () => {
         {loading && <LinearProgress/>}
         {error && <Typography color="error">{error.message}</Typography>}
         <Formik
-          initialValues={myWishList}
+          initialValues={myWishList ? wishListToForm(myWishList) : initalFormValues}
           onSubmit={(values) => {
-            setMyWishList(values);
-            setWishListOnServer({
+            dispatch(setWishList({userId: user?.uid, list: values, exchangeEvent: exchangeEventUrlParam}));
+            setWishListOnServer({list: {
               ...values,
-              exchangeEvent,
-            });
+              exchangeEvent: exchangeEventUrlParam,
+            }, docId: myWishList?.id});
           }}
         >
           {(props) => (

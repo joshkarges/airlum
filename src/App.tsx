@@ -12,6 +12,19 @@ import { CacheProvider } from "@emotion/react";
 import { BangForBuckPage } from "./pages/BangForBuckPage";
 import { ModalContextProvider } from "./components/modals/ModalContext";
 import { ChristmasListPage } from "./pages/ChristmasListPage";
+import firebase from "firebase/compat/app";
+
+var firebaseConfig = {
+  apiKey: "AIzaSyAzSO8pByh5RcpfmwksHOHdh-IMjFetutQ",
+  authDomain: "airlum.firebaseapp.com",
+  projectId: "airlum",
+  storageBucket: "airlum.appspot.com",
+  messagingSenderId: "1002201936954",
+  appId: "1:1002201936954:web:a17f309ae03b868557f103",
+  measurementId: "G-FZ88CGSCH7"
+};
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
 
 export const muiCache = createCache({
   key: "mui",
@@ -25,8 +38,8 @@ function App() {
       <CacheProvider value={muiCache}>
         <ModalContextProvider>
         <div className="App">
-            <Router>
-          <PageWrapper>
+          <Router>
+            <PageWrapper>
               <Switch>
                 <Route path="/tasks">
                   <BangForBuckPage/>
@@ -44,8 +57,8 @@ function App() {
                   <HomePage />
                 </Route>
               </Switch>
-          </PageWrapper>
-            </Router>
+            </PageWrapper>
+          </Router>
         </div>
         </ModalContextProvider>
       </CacheProvider>
