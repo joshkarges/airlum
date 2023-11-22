@@ -5,10 +5,6 @@ export type Idea = {
 };
 
 export type ChristmasList = {
-  name: string,
-  email: string,
   ideas: Idea[],
-  createdAt: number,
-  updatedAt: number,
-  id: string,
+  exchangeEvent: string,
 };

@@ -6,3 +6,7 @@ export const useActionOnDeck = () => useSelector((state: State) => state.actionO
 export const useGame = () => useSelector((state: State) => state.game);
 
 export const useGameState = () => useSelector((state: State) => state.gameState);
+
+export const useUser = () => useSelector((state: State) => state.user);
+
+export const useExchangeEvent = () => useSelector((state: State) => state.exchangeEvent);

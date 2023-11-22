@@ -1,12 +1,15 @@
 import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
-import { Button, Dialog, DialogTitle, IconButton, TextField, Typography } from "@mui/material";
+import { Button, Dialog, DialogTitle, IconButton, LinearProgress, TextField, Typography } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import { Formik, FormikProps } from "formik";
+
 import _ from "lodash";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import * as uuid from "uuid";
-import { createWishList } from "../../api/ChristmasListApi";
-import { Idea } from "../../models/ChristmasList";
+import { getWishListFromServer, setWishListOnServer } from "../../api/ChristmasListApi";
+import { ChristmasList, Idea } from "../../models/ChristmasList";
+import { useUser } from "../../redux/selectors";
 import { Flex } from "../Flex";
 import { ModalContext, ModalType } from "./ModalContext";
 
@@ -42,20 +45,42 @@ const getFormikProps = (
 export const EditMyList = () => {
   const classes = useStyles();
   const {modal, setModal} = useContext(ModalContext);
-  const [formValues, setFormValues] = useState(initalFormValues);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
-  const [response, setResponse] = useState<any>(null)
+  const [myWishList, setMyWishList] = useState<EditMyListFormType>(initalFormValues);
+  const user = useUser();
+  const {exchangeEvent} = useParams<{exchangeEvent: string}>();
+
+  useEffect(() => {
+    const fetchMyWishList = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const result = await getWishListFromServer();
+        setMyWishList(_.pick(result.data, 'ideas'));
+      } catch (err) {
+        setError(err);
+      }
+      setLoading(false);
+    };
+    fetchMyWishList();
+    return () => {};
+  }, [user]);
+
   return (
     <Dialog open={modal === ModalType.EditMyList}>
       <Flex flexDirection="column" className={classes.modalContainer}>
         <DialogTitle>Edit My List</DialogTitle>
+        {loading && <LinearProgress/>}
+        {error && <Typography color="error">{error.message}</Typography>}
         <Formik
-          initialValues={formValues}
+          initialValues={myWishList}
           onSubmit={(values) => {
-            console.log(values);
-            setFormValues(values);
-            createWishList(values)
+            setMyWishList(values);
+            setWishListOnServer({
+              ...values,
+              exchangeEvent,
+            });
           }}
         >
           {(props) => (

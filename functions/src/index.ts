@@ -16,29 +16,117 @@ import * as logger from "firebase-functions/logger";
 import express = require('express');
 
 // The Firebase Admin SDK to access Firestore.
-import { initializeApp } from "firebase-admin/app";
+import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 
-initializeApp();
+admin.initializeApp();
 
 const app = express();
 
 // Add middleware to authenticate requests
 // app.use();
 
+// Express middleware that validates Firebase ID Tokens passed in the Authorization HTTP header.
+// The Firebase ID token needs to be passed as a Bearer token in the Authorization HTTP header like this:
+// `Authorization: Bearer <Firebase ID Token>`.
+// when decoded successfully, the ID Token content will be added as `req.user`.
+const authenticate = async (req: any, res: any, next: any) => {
+  if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
+    res.status(403).send('Unauthorized');
+    return;
+  }
+  const idToken = req.headers.authorization.split('Bearer ')[1];
+  try {
+    const decodedIdToken = await admin.auth().verifyIdToken(idToken);
+    req.user = decodedIdToken;
+    next();
+    return;
+  } catch(e) {
+    res.status(403).send('Unauthorized');
+    return;
+  }
+};
+
+app.use(authenticate);
+
 // build multiple CRUD interfaces:
 app.get('/health', (req, res) => res.send('OK'));
-app.post('/createWishList', async (req, res) => {
+app.post('/setWishList', async (req, res) => {
   const data = req.body;
-  console.log('data', data);
-  const newDoc = await getFirestore()
-      .collection("wishList").doc();
-  const writeResult = newDoc.set(data);
+  const user = (req as any).user as admin.auth.DecodedIdToken;
+  const newDoc = getFirestore()
+      .collection("wishList").doc(user.uid);
+  const writeResult = await newDoc.set({
+    ...data,
+    email: user.email,
+    uid: user.uid,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
   return res.send(writeResult);
 });
 // app.put('/:id', (req, res) => res.send(Widgets.update(req.params.id, req.body)));
 // app.delete('/:id', (req, res) => res.send(Widgets.delete(req.params.id)));
-// app.get('/', (req, res) => res.send(Widgets.list()));
+app.get('/getWishList', async (req, res) => {
+  const user = (req as any).user as admin.auth.DecodedIdToken;
+  if (!user || !('uid' in user) || !user.uid) return res.send({success: false, error: 'No user found', data: null});
+  const result = await getFirestore()
+      .collection("wishList").doc(user.uid).get();
+  if (!result.exists) return res.send({success: false, error: 'No data found', data: null});
+  return res.send({success: true, data: result.data()});
+});
+
+// Must match the airlum models type.
+type ExchangeEvent = {
+  createdAt: number;
+  updatedAt: number;
+  name: string;
+  description: string;
+  ledger: {
+    [uid: string]: {
+      [ideaId: string]: {
+        completedBy: string;
+        completedAt: number;
+        ideaTimestamp: number;
+      },
+    },
+  }[],
+  users: {
+    email: string;
+    joinedAt: number;
+    uid: string;
+  }[]
+};
+
+app.get('/getExchangeEvent/:exchangeEvent', async (req, res) => {
+  const user = (req as any).user as admin.auth.DecodedIdToken;
+  if (!user || !('uid' in user) || !user.uid) return res.send({success: false, error: 'No user found', data: null});
+  const result = await getFirestore()
+      .collection("exchangeEvent").doc(req.params.exchangeEvent).get();
+  if (!result.exists) return res.send({success: false, error: 'No event found', data: null});
+
+  const event = result.data() as ExchangeEvent;
+
+  if (!event.users.find(u => u.email === user.email)) return res.send({success: false, error: 'User not in event', data: null});
+
+  return res.send({success: true, data: event});
+});
+
+app.get('/getAllWishLists/:exchangeEvent', async (req, res) => {
+  const user = (req as any).user as admin.auth.DecodedIdToken;
+  if (!user || !('uid' in user) || !user.uid) return res.send({success: false, error: 'No user found', data: null});
+  const result = await getFirestore()
+      .collection("exchangeEvent").doc(req.params.exchangeEvent).get();
+  if (!result.exists) return res.send({success: false, error: 'No event found', data: null});
+  const event = result.data() as ExchangeEvent;
+  if (!event.users.find(u => u.email === user.email)) return res.send({success: false, error: 'User not in event', data: null});
+
+  const wishLists = await getFirestore().collection("wishList").where('exchangeEvent', '==', req.params.exchangeEvent).get();
+
+  if (wishLists.empty) return res.send({success: false, error: 'No wish lists found', data: null});
+
+  return res.send({success: true, data: wishLists.docs.map(d => d.data())});
+});
 
 // Expose Express API as a single Cloud Function:
 exports.api = onRequest(app);

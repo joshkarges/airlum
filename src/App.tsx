@@ -37,7 +37,7 @@ function App() {
                 <Route path="/tattoo">
                   <TattooPage />
                 </Route>
-                <Route path="/christmas-list">
+                <Route path="/christmas-list/:exchangeEvent">
                   <ChristmasListPage />
                 </Route>
                 <Route path="/">
