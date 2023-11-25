@@ -33,6 +33,7 @@ export type ExchangeEvent = {
 
 export type Idea = {
   description: string;
+  notes: string;
   timestamp: number;
   id: string;
 };

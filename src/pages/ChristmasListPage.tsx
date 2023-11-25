@@ -1,4 +1,4 @@
-import { Button, Card } from "@mui/material";
+import { Button, Card, IconButton } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import firebase from "firebase/compat/app";
@@ -17,6 +17,8 @@ import {
 import { exchangeEvent, setExchangeEvent } from "../redux/slices/exchangeEvent";
 import { setWishLists } from "../redux/slices/wishLists";
 import { EditMyList } from "../components/modals/EditMyList";
+import { EditOutlined } from "@mui/icons-material";
+import { WishListCard } from "../components/WishListCard";
 
 export const ChristmasListPage = () => {
   const { setModal } = useContext(ModalContext);
@@ -72,30 +74,19 @@ export const ChristmasListPage = () => {
     <Flex flexDirection="column" p={3}>
       {!!user ? (
         <Flex flexDirection="column" p={3}>
-          <Flex justifyContent="flex-end">
-            <Button
-              variant="contained"
-              onClick={() => setModal(ModalType.EditMyList)}
-            >
-              Edit My List
-            </Button>
-          </Flex>
+          {!wishLists.find((list) => list.user.uid === user.uid) ? (
+            <Flex justifyContent="flex-end">
+              <Button
+                variant="contained"
+                onClick={() => setModal(ModalType.EditMyList)}
+              >
+                Start My List
+              </Button>
+            </Flex>
+          ) : null}
           <Flex gap="32px" flexWrap="wrap">
             {wishLists.map((list) => {
-              return (
-                <Card>
-                  <Flex flexDirection="column" p={3}>
-                    <h1>{list.user.displayName}</h1>
-                    {list.ideas.map((idea) => {
-                      return (
-                        <Flex p="8px">
-                          <p>{idea.description}</p>
-                        </Flex>
-                      );
-                    })}
-                  </Flex>
-                </Card>
-              );
+              return <WishListCard list={list} user={user} />;
             })}
           </Flex>
         </Flex>
