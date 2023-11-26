@@ -9,8 +9,10 @@ import {
   GetAllWishListsResponse,
 } from "../models/functions";
 
+console.log(process.env);
+
 var firebaseConfig = {
-  apiKey: process.env.REACT_FIREBASE_API_KEY,
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: "airlum.firebaseapp.com",
   projectId: "airlum",
   storageBucket: "airlum.appspot.com",
