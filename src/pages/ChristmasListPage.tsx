@@ -92,7 +92,7 @@ export const ChristmasListPage = () => {
         </Flex>
       ) : (
         <Flex>
-          <SignIn signInSuccessUrl="/christmas-list" />
+          <SignIn signInSuccessUrl={window.location.href} />
         </Flex>
       )}
       <EditMyList />
