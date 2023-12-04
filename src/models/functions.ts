@@ -7,6 +7,7 @@ export type ServerResponse<T> = {
 };
 
 export type ExchangeEvent = {
+  id: string;
   createdAt: number;
   updatedAt: number;
   name: string;
@@ -32,30 +33,42 @@ export type ExchangeEvent = {
 };
 
 export type Idea = {
-  description: string;
-  notes: string;
-  timestamp: number;
   id: string;
+  description: string;
+  timestamp: number;
 };
 
-export type ChristmasList = {
-  ideas: Idea[];
-  exchangeEvent: string;
+type UserCreatedAsset = {
+  id: string;
   createdAt: number;
+  updatedAt: number;
   user: {
     email: string;
     uid: string;
     displayName: string;
   };
-  updatedAt: number;
-  docId: string;
 };
 
-export type EditMyListFormType = {
-  ideas: Idea[];
+export type Comment = UserCreatedAsset & {
+  text: string;
 };
 
-export const wishListToForm = (wishList: ChristmasList): EditMyListFormType => {
+export type WishItem = UserCreatedAsset & {
+  title: string;
+  description: string;
+  comments: Comment[];
+};
+
+export type WishList = UserCreatedAsset & {
+  title: string;
+  notes: string;
+  ideas: WishItem[];
+  exchangeEvent: string; // Needs index in firestore
+};
+
+export type EditMyListFormType = Partial<WishList>;
+
+export const wishListToForm = (wishList: WishList): EditMyListFormType => {
   return {
     ideas: wishList.ideas,
   };
@@ -63,8 +76,9 @@ export const wishListToForm = (wishList: ChristmasList): EditMyListFormType => {
 
 export type SetWishListRequest = EditMyListFormType & {
   exchangeEvent: string;
-  docId?: string;
+  id?: string;
 };
+
 export type SetWishListResponse = ServerResponse<WriteResult | null>;
 
 export type GetExchangeEventRequest = { exchangeEvent: string };
@@ -73,4 +87,4 @@ export type GetExchangeEventResponse = ServerResponse<ExchangeEvent | null>;
 
 export type GetAllWishListsRequest = { exchangeEvent: string };
 
-export type GetAllWishListsResponse = ServerResponse<ChristmasList[]>;
+export type GetAllWishListsResponse = ServerResponse<WishList[]>;

@@ -1,14 +1,14 @@
 import { EditOutlined } from "@mui/icons-material";
 import { Card, IconButton } from "@mui/material";
 import { useContext } from "react";
-import { ChristmasList } from "../models/functions";
+import { WishList } from "../models/functions";
 import { User } from "../models/User";
 import { useExchangeEvent } from "../redux/selectors";
 import { Flex } from "./Flex";
 import { ModalContext, ModalType } from "./modals/ModalContext";
 
 type WishListCardProps = {
-  list: ChristmasList;
+  list: WishList;
   user: User;
 };
 export const WishListCard = ({ list, user }: WishListCardProps) => {
@@ -18,7 +18,7 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
     <Card>
       <Flex flexDirection="column" p={3}>
         <Flex>
-          <h1>{list.user.displayName}</h1>
+          <h1>{list.title}</h1>
           {list.user.uid === user.uid ? (
             <Flex alignItems="center">
               <IconButton onClick={() => setModal(ModalType.EditMyList)}>

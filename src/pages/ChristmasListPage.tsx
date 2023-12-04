@@ -19,6 +19,7 @@ import { setWishLists } from "../redux/slices/wishLists";
 import { EditMyList } from "../components/modals/EditMyList";
 import { EditOutlined } from "@mui/icons-material";
 import { WishListCard } from "../components/WishListCard";
+import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 
 export const ChristmasListPage = () => {
   const { setModal } = useContext(ModalContext);
@@ -73,23 +74,27 @@ export const ChristmasListPage = () => {
   return (
     <Flex flexDirection="column" p={3}>
       {!!user ? (
-        <Flex flexDirection="column" p={3}>
-          {!wishLists.find((list) => list.user.uid === user.uid) ? (
-            <Flex justifyContent="flex-end">
-              <Button
-                variant="contained"
-                onClick={() => setModal(ModalType.EditMyList)}
-              >
-                Start My List
-              </Button>
+        <FetchedComponent>
+          {(data) => (
+            <Flex flexDirection="column" p={3}>
+              {!wishLists.find((list) => list.user.uid === user.uid) ? (
+                <Flex justifyContent="flex-end">
+                  <Button
+                    variant="contained"
+                    onClick={() => setModal(ModalType.EditMyList)}
+                  >
+                    Start My List
+                  </Button>
+                </Flex>
+              ) : null}
+              <Flex gap="32px" flexWrap="wrap">
+                {wishLists.map((list) => {
+                  return <WishListCard list={list} user={user} />;
+                })}
+              </Flex>
             </Flex>
-          ) : null}
-          <Flex gap="32px" flexWrap="wrap">
-            {wishLists.map((list) => {
-              return <WishListCard list={list} user={user} />;
-            })}
-          </Flex>
-        </Flex>
+          )}
+        </FetchedComponent>
       ) : (
         <Flex>
           <SignIn signInSuccessUrl={window.location.href} />

@@ -1,13 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { ChristmasList, EditMyListFormType } from "../../models/functions";
+import { WishList, EditMyListFormType } from "../../models/functions";
+import { makeFetchedResourceReducer } from "../../utils/fetchers";
 
 const WishListsSlice = createSlice({
   name: "wishLists",
-  initialState: [] as ChristmasList[],
+  initialState: [] as WishList[],
   reducers: {
-    setWishLists: (state, action: PayloadAction<ChristmasList[]>) => {
-      return action.payload;
-    },
+    setWishLists: makeFetchedResourceReducer("wishLists/setWishLists"),
     setWishList: (
       state,
       action: PayloadAction<{
