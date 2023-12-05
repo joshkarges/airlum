@@ -16,14 +16,14 @@ import { useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useParams } from "react-router-dom";
 import * as uuid from "uuid";
-import { setWishListOnServer } from "../../api/ChristmasListApi";
+// import { setWishListOnServer } from "../../api/ChristmasListApi";
 import {
   EditMyListFormType,
   Idea,
   wishListToForm,
 } from "../../models/functions";
 import { useUser, useWishLists } from "../../redux/selectors";
-import { setWishList } from "../../redux/slices/wishLists";
+// import { setWishList } from "../../redux/slices/wishLists";
 import { Flex } from "../Flex";
 import { ModalContext, ModalType } from "./ModalContext";
 
@@ -41,7 +41,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const initalFormValues: EditMyListFormType = {
-  ideas: [] as Idea[],
+  // ideas: [] as Idea[],
 };
 
 const getFormikProps = (
@@ -65,7 +65,7 @@ export const EditMyList = () => {
     exchangeEvent: string;
   }>();
   const wishLists = useWishLists();
-  const myWishList = wishLists.find(({ user: { uid } }) => uid === user.uid);
+  // const myWishList = wishLists.find(({ user: { uid } }) => uid === user.uid);
 
   return (
     <Dialog open={modal === ModalType.EditMyList}>
@@ -75,21 +75,21 @@ export const EditMyList = () => {
         {error && <Typography color="error">{error.message}</Typography>}
         <Formik
           initialValues={
-            myWishList ? wishListToForm(myWishList) : initalFormValues
+            initalFormValues
+            // myWishList ? wishListToForm(myWishList) : initalFormValues
           }
           onSubmit={(values) => {
-            dispatch(
-              setWishList({
-                userId: user?.uid,
-                list: values,
-                exchangeEvent: exchangeEventUrlParam,
-              })
-            );
-            setWishListOnServer({
-              ...values,
-              exchangeEvent: exchangeEventUrlParam,
-              docId: myWishList?.docId,
-            });
+            // dispatch();
+            // setWishList({
+            //   userId: user?.uid,
+            //   list: values,
+            //   exchangeEvent: exchangeEventUrlParam,
+            // })
+            // setWishListOnServer({
+            //   ...values,
+            //   exchangeEvent: exchangeEventUrlParam,
+            //   docId: myWishList?.docId,
+            // });
             setModal(null);
           }}
         >
@@ -99,7 +99,7 @@ export const EditMyList = () => {
               className={classes.formContainer}
               gap="8px"
             >
-              {props.values.ideas.map((idea, i) => (
+              {/* {props.values.ideas.map((idea, i) => (
                 <Flex gap="8px" alignItems="center" flexGrow={1}>
                   <Typography variant="h6">Idea {i + 1}</Typography>
                   <TextField
@@ -119,7 +119,7 @@ export const EditMyList = () => {
                     <DeleteOutline />
                   </IconButton>
                 </Flex>
-              ))}
+              ))} */}
               <Button
                 startIcon={<AddCircleOutline />}
                 onClick={() => {
@@ -129,7 +129,7 @@ export const EditMyList = () => {
                     id: uuid.v4(),
                   };
                   props.setFieldValue("ideas", [
-                    ...props.values.ideas,
+                    // ...props.values.ideas,
                     newIdea,
                   ]);
                 }}

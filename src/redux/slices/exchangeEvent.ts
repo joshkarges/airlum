@@ -1,15 +1,19 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { ExchangeEvent } from "../../models/ExchangeEvent";
+import { getExchangeEventFromServer } from "../../api/ChristmasListApi";
+import { ExchangeEvent } from "../../models/functions";
+import {
+  makeFetchedResourceReducer,
+  makeFetchingActionCreator,
+} from "../../utils/fetchers";
 
-const exchangeEventSlice = createSlice({
-  name: 'exchangeEvent',
-  initialState: null as ExchangeEvent | null,
-  reducers: {
-    setExchangeEvent: (state, action: PayloadAction<ExchangeEvent>) => {
-      return action.payload;
-    },
-  },
-});
+export const getExchangeEventAction = makeFetchingActionCreator(
+  "getExchangeEventAction",
+  getExchangeEventFromServer,
+  {
+    parser: (response) => response.data,
+  }
+);
 
-export const { setExchangeEvent } = exchangeEventSlice.actions;
-export const exchangeEvent = exchangeEventSlice.reducer;
+export const exchangeEvent = makeFetchedResourceReducer(
+  getExchangeEventAction.type,
+  null as ExchangeEvent | null
+);

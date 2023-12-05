@@ -14,12 +14,19 @@ import {
   getAllWishListsFromServer,
   getExchangeEventFromServer,
 } from "../api/ChristmasListApi";
-import { exchangeEvent, setExchangeEvent } from "../redux/slices/exchangeEvent";
-import { setWishLists } from "../redux/slices/wishLists";
+import {
+  exchangeEvent,
+  getExchangeEventAction,
+} from "../redux/slices/exchangeEvent";
+import {
+  getAllWishListsAction /* setWishLists */,
+} from "../redux/slices/wishLists";
 import { EditMyList } from "../components/modals/EditMyList";
 import { EditOutlined } from "@mui/icons-material";
 import { WishListCard } from "../components/WishListCard";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
+import { anyIsIdle, useReduxState } from "../utils/fetchers";
+import _ from "lodash";
 
 export const ChristmasListPage = () => {
   const { setModal } = useContext(ModalContext);
@@ -28,9 +35,14 @@ export const ChristmasListPage = () => {
   const { exchangeEvent: exchangeEventUrlParam } = useParams<{
     exchangeEvent: string;
   }>();
-  const exchangeEvent = useExchangeEvent();
-  const wishLists = useWishLists();
-  const [loading, setLoading] = useState(false);
+  const [exchangeEvent, fetchExchangeEvent] = useReduxState(
+    "exchangeEvent",
+    getExchangeEventAction
+  );
+  const [wishLists, fetchAllWishLists] = useReduxState(
+    "wishLists",
+    getAllWishListsAction
+  );
 
   useEffect(() => {
     const unregister = firebase.auth().onAuthStateChanged((authUser) => {
@@ -46,38 +58,27 @@ export const ChristmasListPage = () => {
   useEffect(() => {
     if (!user) return;
     if (!exchangeEventUrlParam) return;
-    const fetchExchangeEvent = async () => {
-      setLoading(true);
-      const response = await getExchangeEventFromServer(exchangeEventUrlParam);
-      setLoading(false);
-      if (!response.success)
-        console.error(`Error fetching exchange event ${response.error}`);
-      if (response.data) dispatch(setExchangeEvent(response.data));
-    };
-    fetchExchangeEvent();
-  }, [dispatch, exchangeEventUrlParam, user]);
+    if (anyIsIdle(exchangeEvent)) {
+      fetchExchangeEvent({
+        exchangeEvent: exchangeEventUrlParam,
+      });
+    }
+  }, [exchangeEvent, exchangeEventUrlParam, fetchExchangeEvent, user]);
 
   useEffect(() => {
     if (!user) return;
     if (!exchangeEventUrlParam) return;
-    const fetchAllWishLists = async () => {
-      setLoading(true);
-      const response = await getAllWishListsFromServer(exchangeEventUrlParam);
-      setLoading(false);
-      if (!response.success)
-        console.error(`Error fetching all wish lists ${response.error}`);
-      dispatch(setWishLists(response.data));
-    };
-    fetchAllWishLists();
-  }, [dispatch, exchangeEventUrlParam, user]);
+    if (anyIsIdle(wishLists))
+      fetchAllWishLists({ exchangeEvent: exchangeEventUrlParam });
+  }, [dispatch, exchangeEventUrlParam, fetchAllWishLists, user, wishLists]);
 
   return (
     <Flex flexDirection="column" p={3}>
       {!!user ? (
-        <FetchedComponent>
+        <FetchedComponent resource={wishLists}>
           {(data) => (
             <Flex flexDirection="column" p={3}>
-              {!wishLists.find((list) => list.user.uid === user.uid) ? (
+              {!_.find(data, (list) => list.user.uid === user.uid) ? (
                 <Flex justifyContent="flex-end">
                   <Button
                     variant="contained"
@@ -88,7 +89,7 @@ export const ChristmasListPage = () => {
                 </Flex>
               ) : null}
               <Flex gap="32px" flexWrap="wrap">
-                {wishLists.map((list) => {
+                {_.map(data, (list) => {
                   return <WishListCard list={list} user={user} />;
                 })}
               </Flex>

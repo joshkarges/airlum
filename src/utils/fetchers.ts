@@ -1,5 +1,10 @@
 import _ from "lodash";
 import { useCallback, useMemo, useReducer, useState, useEffect } from "react";
+import {
+  ReduxDefaultRootState as DefaultRootState,
+  useDispatch,
+  useSelector,
+} from "react-redux";
 
 // TYPES
 export type FetcherInputArg = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -721,3 +726,141 @@ export const useFetch = <T, R = T, Args extends [] | [any] = [any]>(
   useEffectIfNotFetchedYet<void, R, Args>(resource, fetch, ...fetcherArgs);
   return resourceAndFetcher;
 };
+
+// REDUX DISPATCHERS
+
+// Convenience hook which returns the functions that dispatch the input actions to the redux store
+export const useDispatcher = <Args extends [] | [any] = [any], Data = any>(
+  action: FetchingActionDescriptor<Args, Data>
+) => {
+  const dispatch = useDispatch();
+  return useCallback(
+    (...args: Args) => action.creator(...args)(dispatch),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [action, dispatch]
+  );
+};
+
+// REDUX COMBINED SELECTOR & DISPATCHER
+
+/**
+ * Like useState, but for redux
+ * @param {string} statePath - The _.get style path of the redux store to get
+ *  the element at.
+ * @param {FetchingActionDescriptor} actionDescriptor - The action that ultimately sets
+ *  that value at that statePath.
+ * @returns {[*, (arg: Params<typeof actionDescriptor.creator>) => AnyAction | ThunkAction]}
+ *  [stateValue, dispatcher] - Like state and setState return of useState, but
+ *  for Redux
+ */
+export function useReduxState<
+  K extends keyof DefaultRootState,
+  Args extends [] | [any],
+  Data
+>(
+  statePath: K,
+  actionDescriptor: FetchingActionDescriptor<Args, Data>
+): [DefaultRootState[K], Fetcher<FetchingActionResponse<Data>, Args>];
+export function useReduxState<Args extends [] | [any], Data>(
+  statePath: string,
+  actionDescriptor: FetchingActionDescriptor<Args, Data>
+): [any, Fetcher<FetchingActionResponse<Data>, Args>] {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const selector = useCallback(_.property<DefaultRootState, any>(statePath), [
+    statePath,
+  ]);
+  const stateValue = useSelector(selector);
+  const dispatcher = useDispatcher(actionDescriptor);
+  return [stateValue, dispatcher];
+}
+
+// REDUX SELECTORS
+
+type OneInOneOut<I, O> = (input: I) => O;
+
+/**
+ * Select a portion of the state using the prefix argument as the path in the state.
+ * This is just a slight convenience to using the useSelector hook which take the entire state in the callback
+ * @template T The key type.  A string that is either a key of the DefaultRootState, or a _.get style path.
+ * @template S The portion of the State accessed by the prefix: T.
+ * @template R The return type of the selector (defaults to S)
+ * @param prefix - The path to the portion of the state you want to use for the returned hook
+ * @param [selector] - An optional function that takes the portion of the state as input
+ * @returns The return of the selector or the portion of the state itself
+ * @example foo = useSelectorWithPrefix('foo')
+ * @example fooStr = useSelectorWithPrefix('foo', (foo) => foo.toString())
+ */
+export function useSelectorWithPrefix<T extends keyof DefaultRootState>(
+  prefix: T
+): DefaultRootState[T];
+export function useSelectorWithPrefix<
+  T extends keyof DefaultRootState,
+  R = DefaultRootState[T]
+>(prefix: T, selector: OneInOneOut<DefaultRootState[T], R>): R;
+export function useSelectorWithPrefix<S = any>(prefix: string): S;
+export function useSelectorWithPrefix<S, R = any>(
+  prefix: string,
+  selector: OneInOneOut<S, R>
+): R;
+export function useSelectorWithPrefix<T extends keyof DefaultRootState, S, R>(
+  prefix: T | string,
+  selector: OneInOneOut<S, R> = _.identity
+) {
+  return useSelector((state) => {
+    return selector(_.get(state, prefix) as S);
+  }, _.isEqual);
+}
+
+export interface SelectorHookWithBakedPath<S, R = S> {
+  (): R;
+  <R2>(selector: OneInOneOut<S, R2>): R2;
+}
+
+/**
+ * Make a quick selector hook of a portion of the state
+ * @template T The key type.  A string that is either a key of the DefaultRootState, or a _.get style path.
+ * @template S The portion of the State accessed by the prefix: T.
+ * @template R The return type of the selector (defaults to S)
+ * @param prefix - The path to the portion of the state you want to use for the returned hook
+ * @param [selector] - An optional function that takes the portion of the state as input
+ * @returns A hook that gets the return of the selector or the portion of the state itself
+ * @example
+ * const useFooSelector = makeSelectorWithPrefix('foo');
+ * // Use the generated hook in a component like below
+ * const foo = useFooSelector();
+ * const fooStr = useFooSelector((foo) => foo.toString());
+ * @example
+ * const useFooSelector2 = makeSelectorWithPrefix('foo', (foo) => foo.toString());
+ * // Use the generated hook in a component like below
+ * const fooStr = useFooSelector2();
+ * const fooArr = useFooSelector2((foo) => [foo]);
+ * @example
+ * // You can use _.get path syntax, but you'll have to explicitly provide the type of the state portion in a generic parameter
+ * const useNestedSelector = makeSelectorWithPrefix<State['foo']['bar']>('foo.bar');
+ */
+export function makeSelectorWithPrefix<T extends keyof DefaultRootState>(
+  prefix: T
+): SelectorHookWithBakedPath<DefaultRootState[T]>;
+export function makeSelectorWithPrefix<T extends keyof DefaultRootState, R>(
+  prefix: T,
+  defaultSelector: OneInOneOut<DefaultRootState[T], R>
+): SelectorHookWithBakedPath<DefaultRootState[T], R>;
+export function makeSelectorWithPrefix<S>(
+  prefix: string
+): SelectorHookWithBakedPath<S>;
+export function makeSelectorWithPrefix<S, R>(
+  prefix: string,
+  defaultSelector: OneInOneOut<S, R>
+): SelectorHookWithBakedPath<S, R>;
+export function makeSelectorWithPrefix<T extends keyof DefaultRootState, S, R>(
+  prefix: T | string,
+  defaultSelector?: OneInOneOut<S, R>
+) {
+  return <R2>(selector?: OneInOneOut<S, R2>) => {
+    return selector
+      ? useSelectorWithPrefix(prefix, selector)
+      : defaultSelector
+      ? useSelectorWithPrefix(prefix, defaultSelector)
+      : useSelectorWithPrefix(prefix);
+  };
+}

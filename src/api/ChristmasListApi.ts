@@ -1,15 +1,31 @@
 import firebase from "firebase/compat/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
-  SetWishListRequest,
-  SetWishListResponse,
   GetExchangeEventRequest,
   GetExchangeEventResponse,
   GetAllWishListsRequest,
   GetAllWishListsResponse,
+  AddCommentRequest,
+  AddCommentResponse,
+  AddIdeaRequest,
+  AddIdeaResponse,
+  CreateWishListRequest,
+  CreateWishListResponse,
+  DeleteCommentRequest,
+  DeleteCommentResponse,
+  DeleteExtraWishListRequest,
+  DeleteExtraWishListResponse,
+  DeleteIdeaRequest,
+  DeleteIdeaResponse,
+  MarkIdeaRequest,
+  MarkIdeaResponse,
+  UpdateCommentRequest,
+  UpdateCommentResponse,
+  UpdateIdeaMetadataRequest,
+  UpdateIdeaMetadataResponse,
+  UpdateWishListMetadataRequest,
+  UpdateWishListMetadataResponse,
 } from "../models/functions";
-
-console.log(process.env);
 
 var firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -41,38 +57,66 @@ export const checkHealth = async () => {
   return response.data;
 };
 
-const setWishList = httpsCallable<SetWishListRequest, SetWishListResponse>(
-  functions,
-  `${isDev ? "airlum/us-central1/" : ""}setWishList`
-);
-
-export const setWishListOnServer = async (request: SetWishListRequest) => {
-  console.log("Set List Request", request.ideas);
-  const response = await setWishList(request);
-  console.log("Set List Response", response);
-  return response.data;
+const makeFunctionsCall = <Req, Res>(name: string) => {
+  const callable = httpsCallable<Req, Res>(
+    functions,
+    `${isDev ? "airlum/us-central1/" : ""}${name}`
+  );
+  return async (req: Req) => {
+    console.log(`${name} Request`, req);
+    const response = await callable(req);
+    console.log(`${name} Response`, response);
+    return response.data;
+  };
 };
 
-const getExchangeEvent = httpsCallable<
+export const createWishListOnServer = makeFunctionsCall<
+  CreateWishListRequest,
+  CreateWishListResponse
+>("createWishList");
+export const deleteExtraWishListOnServer = makeFunctionsCall<
+  DeleteExtraWishListRequest,
+  DeleteExtraWishListResponse
+>("deleteExtraWishList");
+export const updateWishListMetadataOnServer = makeFunctionsCall<
+  UpdateWishListMetadataRequest,
+  UpdateWishListMetadataResponse
+>("updateWishListMetadata");
+export const addIdeaOnServer = makeFunctionsCall<
+  AddIdeaRequest,
+  AddIdeaResponse
+>("addIdea");
+export const deleteIdeaOnServer = makeFunctionsCall<
+  DeleteIdeaRequest,
+  DeleteIdeaResponse
+>("deleteIdea");
+export const markIdeaOnServer = makeFunctionsCall<
+  MarkIdeaRequest,
+  MarkIdeaResponse
+>("markIdea");
+export const updateIdeaMetadataOnServer = makeFunctionsCall<
+  UpdateIdeaMetadataRequest,
+  UpdateIdeaMetadataResponse
+>("updateIdeaMetadata");
+export const addCommentOnServer = makeFunctionsCall<
+  AddCommentRequest,
+  AddCommentResponse
+>("addComment");
+export const deleteCommentOnServer = makeFunctionsCall<
+  DeleteCommentRequest,
+  DeleteCommentResponse
+>("deleteComment");
+export const updateCommentOnServer = makeFunctionsCall<
+  UpdateCommentRequest,
+  UpdateCommentResponse
+>("updateComment");
+
+export const getExchangeEventFromServer = makeFunctionsCall<
   GetExchangeEventRequest,
   GetExchangeEventResponse
->(functions, `${isDev ? "airlum/us-central1/" : ""}getExchangeEvent`);
+>("getExchangeEvent");
 
-export const getExchangeEventFromServer = async (exchangeEvent: string) => {
-  console.log("Get Exchange Event Request");
-  const response = await getExchangeEvent({ exchangeEvent });
-  console.log("Get Exchange Event Response", response);
-  return response.data;
-};
-
-const getAllWishLists = httpsCallable<
+export const getAllWishListsFromServer = makeFunctionsCall<
   GetAllWishListsRequest,
   GetAllWishListsResponse
->(functions, `${isDev ? "airlum/us-central1/" : ""}getAllWishLists`);
-
-export const getAllWishListsFromServer = async (exchangeEvent: string) => {
-  console.log("Get All Wish Lists Request", exchangeEvent);
-  const response = await getAllWishLists({ exchangeEvent });
-  console.log("Get All Wish Lists Response", response);
-  return response.data;
-};
+>("getAllWishLists");

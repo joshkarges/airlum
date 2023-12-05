@@ -1,5 +1,6 @@
 import { EditOutlined } from "@mui/icons-material";
 import { Card, IconButton } from "@mui/material";
+import _ from "lodash";
 import { useContext } from "react";
 import { WishList } from "../models/functions";
 import { User } from "../models/User";
@@ -13,7 +14,6 @@ type WishListCardProps = {
 };
 export const WishListCard = ({ list, user }: WishListCardProps) => {
   const { setModal } = useContext(ModalContext);
-  const exchangeEvent = useExchangeEvent();
   return (
     <Card>
       <Flex flexDirection="column" p={3}>
@@ -27,7 +27,7 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
             </Flex>
           ) : null}
         </Flex>
-        {list.ideas.map((idea) => {
+        {_.map(list.ideas, (idea) => {
           return (
             <Flex p="8px">
               <p>{idea.description}</p>

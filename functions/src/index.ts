@@ -51,6 +51,7 @@ import {
   DeleteCommentResponse,
   UpdateCommentRequest,
   UpdateCommentResponse,
+  CreateWishListResponse,
 } from "./models";
 import _ = require("lodash");
 import { AuthData } from "firebase-functions/lib/common/providers/https";
@@ -73,13 +74,13 @@ const getUserFromAuth = (auth: AuthData | undefined) => {
   } as User;
 };
 
-const runWishListTransaction = async (
+const runWishListTransaction = async <T>(
   wishListId: string,
   updateFunction: (
     transaction: admin.firestore.Transaction,
     doc: admin.firestore.DocumentReference<WishList>,
     wishList: WishList
-  ) => void
+  ) => Promise<T>
 ) => {
   const db = getFirestore();
   const wishListCollection = db.collection("wishList");
@@ -87,49 +88,49 @@ const runWishListTransaction = async (
     wishListId
   ) as admin.firestore.DocumentReference<WishList>;
   try {
-    await db.runTransaction(async (transaction) => {
+    const result = await db.runTransaction(async (transaction) => {
       const wishListDoc = await transaction.get(doc);
       if (!wishListDoc.exists) {
         throw "WishList does not exist";
       }
-      updateFunction(transaction, doc, wishListDoc.data() as WishList);
+      return updateFunction(transaction, doc, wishListDoc.data() as WishList);
     });
     return {
       success: true,
-      data: null,
+      data: result,
     };
   } catch (error) {
     return { success: false, error: `${error}`, data: null };
   }
 };
 
-exports.createWishList = onCall<CreateWishListRequest>(
-  { cors: [/firebase\.com$/, /airlum.web.app/] },
-  async (req) => {
-    const data = req.data;
-    const user = getUserFromAuth(req.auth);
-    console.log("createWishList user ", user?.email);
-    if (!user) {
-      return { success: false, error: "No user found", data: null };
-    }
-    const wishListCollection = getFirestore().collection("wishList");
-    const newDoc = wishListCollection.doc();
-    const newData: WishList = {
-      title: data.isExtra ? "Extra List" : user.displayName,
-      notes: "",
-      ideas: {},
-      exchangeEvent: data.exchangeEvent,
-      isExtra: data.isExtra,
-      user,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      id: newDoc.id,
-    };
-    console.log("createWishList newData", newData);
-    const writeResult = await newDoc.set(newData);
-    return { success: true, data: writeResult };
+exports.createWishList = onCall<
+  CreateWishListRequest,
+  Promise<CreateWishListResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const data = req.data;
+  const user = getUserFromAuth(req.auth);
+  console.log("createWishList user ", user?.email);
+  if (!user) {
+    return { success: false, error: "No user found", data: null };
   }
-);
+  const wishListCollection = getFirestore().collection("wishList");
+  const newDoc = wishListCollection.doc();
+  const newData: WishList = {
+    title: data.isExtra ? "Extra List" : user.displayName,
+    notes: "",
+    ideas: {},
+    exchangeEvent: data.exchangeEvent,
+    isExtra: data.isExtra,
+    user,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    id: newDoc.id,
+  };
+  console.log("createWishList newData", newData);
+  await newDoc.set(newData);
+  return { success: true, data: { wishList: newData } };
+});
 
 exports.deleteExtraWishList = onCall<
   DeleteExtraWishListRequest,
@@ -148,6 +149,7 @@ exports.deleteExtraWishList = onCall<
         throw "Document is not an extra wish list";
       }
       transaction.delete(doc);
+      return null;
     }
   );
 });
@@ -174,13 +176,14 @@ exports.updateWishListMetadata = onCall<
       };
       console.log("updateWishListMetadata newData", newData);
       transaction.update(doc, newData);
+      return null;
     }
   );
 });
 
 exports.addIdea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
-  async (req) => {
+  async (req): Promise<AddIdeaResponse> => {
     const data = req.data;
     const user = getUserFromAuth(req.auth);
     if (!user) {
@@ -199,11 +202,11 @@ exports.addIdea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
       id: uuid.v4(),
     };
     console.log("addIdea newIdea", newIdea);
-    const writeResult = await wishListDoc.update({
+    await wishListDoc.update({
       [`ideas.${newIdea.id}`]: newIdea,
       updatedAt: Date.now(),
     });
-    return { success: true, data: writeResult };
+    return { success: true, data: { idea: newIdea } };
   }
 );
 
@@ -218,7 +221,7 @@ exports.deleteIdea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
     console.log("deleteIdea user ", user.email);
     return runWishListTransaction(
       data.wishListId,
-      (transaction, doc, wishListData) => {
+      async (transaction, doc, wishListData) => {
         const oldIdeas = wishListData.ideas;
         const ideaToDelete = oldIdeas[data.ideaId];
         if (!ideaToDelete) {
@@ -234,6 +237,7 @@ exports.deleteIdea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
           [`ideas.${data.ideaId}`]: FieldValue.delete(),
           updatedAt: Date.now(),
         } as UpdateData<WishList>);
+        return null;
       }
     );
   }
@@ -262,14 +266,16 @@ exports.markIdea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
         }
 
         console.log("markIdea ideaId", data.ideaId, data.status);
+        const newMark: Mark = {
+          status: data.status,
+          user: user,
+          timestamp: Date.now(),
+        };
         transaction.update(wishListDoc, {
-          [`ideas.${data.ideaId}.mark`]: {
-            status: data.status,
-            user: user,
-            timestamp: Date.now(),
-          } as Mark,
+          [`ideas.${data.ideaId}.mark`]: newMark,
           updatedAt: Date.now(),
         } as UpdateData<WishList>);
+        return { mark: newMark };
       }
     );
   }
@@ -287,7 +293,7 @@ exports.updateIdeaMetadata = onCall<
   console.log("updateIdeaMetadata user ", user?.email);
   return runWishListTransaction(
     data.wishListId,
-    (transaction, doc, wishListData) => {
+    async (transaction, doc, wishListData) => {
       const oldIdeas = wishListData.ideas;
       const ideaToUpdate = oldIdeas[data.ideaId];
       if (!ideaToUpdate) {
@@ -305,6 +311,7 @@ exports.updateIdeaMetadata = onCall<
         [`ideas.${data.ideaId}`]: newData,
         updatedAt: Date.now(),
       } as UpdateData<WishList>);
+      return null;
     }
   );
 });
@@ -320,25 +327,26 @@ exports.addComment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
     console.log("addComment user ", user.email);
     return runWishListTransaction(
       data.wishListId,
-      (transaction, doc, wishListData) => {
+      async (transaction, doc, wishListData) => {
         const oldIdeas = wishListData.ideas;
         const ideaToUpdate = oldIdeas[data.ideaId];
         if (!ideaToUpdate) {
           throw "Idea not found";
         }
-        const newData: Comment = {
+        const newComment: Comment = {
           text: data.text,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           user,
           id: uuid.v4(),
         };
-        console.log("addComment newData", newData);
+        console.log("addComment newData", newComment);
         transaction.update(doc, {
-          [`ideas.${data.ideaId}.comments.${newData.id}`]: newData,
+          [`ideas.${data.ideaId}.comments.${newComment.id}`]: newComment,
           [`ideas.${data.ideaId}.updatedAt`]: Date.now(),
           updatedAt: Date.now(),
         } as UpdateData<WishList>);
+        return { comment: newComment };
       }
     );
   }
@@ -356,7 +364,7 @@ exports.deleteComment = onCall<
   console.log("deleteComment user ", user.email);
   return runWishListTransaction(
     data.wishListId,
-    (transaction, doc, wishListData) => {
+    async (transaction, doc, wishListData) => {
       const oldIdeas = wishListData.ideas;
       const ideaToUpdate = oldIdeas[data.ideaId];
       if (!ideaToUpdate) {
@@ -376,6 +384,7 @@ exports.deleteComment = onCall<
         [`ideas.${data.ideaId}.updatedAt`]: Date.now(),
         updatedAt: Date.now(),
       } as UpdateData<WishList>);
+      return null;
     }
   );
 });
@@ -392,7 +401,7 @@ exports.updateComment = onCall<
   console.log("updateComment user ", user.email);
   return runWishListTransaction(
     data.wishListId,
-    (transaction, doc, wishListData) => {
+    async (transaction, doc, wishListData) => {
       const oldIdeas = wishListData.ideas;
       const ideaToUpdate = oldIdeas[data.ideaId];
       if (!ideaToUpdate) {
@@ -420,6 +429,7 @@ exports.updateComment = onCall<
         [`ideas.${data.ideaId}.updatedAt`]: now,
         updatedAt: now,
       } as UpdateData<WishList>);
+      return null;
     }
   );
 });

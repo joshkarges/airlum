@@ -1,5 +1,3 @@
-import { WriteResult } from "firebase-admin/firestore";
-
 export type ServerResponse<T> = {
   success: boolean;
   error?: string;
@@ -90,21 +88,23 @@ export type CreateWishListRequest = {
   isExtra: boolean;
 };
 
-export type CreateWishListResponse = ServerResponse<WriteResult | null>;
+export type CreateWishListResponse = ServerResponse<{
+  wishList: WishList;
+} | null>;
 
 /** Delete Extra Wish List */
 export type DeleteExtraWishListRequest = {
   wishListId: string;
 };
 
-export type DeleteExtraWishListResponse = ServerResponse<WriteResult | null>;
+export type DeleteExtraWishListResponse = ServerResponse<null>;
 
 /** Update Wish List Metadata */
 export type UpdateWishListMetadataRequest = Partial<WishListMetadata> & {
   id: string;
 };
 
-export type UpdateWishListMetadataResponse = ServerResponse<WriteResult | null>;
+export type UpdateWishListMetadataResponse = ServerResponse<null>;
 
 /** Add Idea */
 export type AddIdeaRequest = {
@@ -112,7 +112,9 @@ export type AddIdeaRequest = {
   idea: IdeaMetadata;
 };
 
-export type AddIdeaResponse = ServerResponse<WriteResult | null>;
+export type AddIdeaResponse = ServerResponse<{
+  idea: Idea;
+} | null>;
 
 /** Delete Idea */
 export type DeleteIdeaRequest = {
@@ -120,7 +122,7 @@ export type DeleteIdeaRequest = {
   ideaId: string;
 };
 
-export type DeleteIdeaResponse = ServerResponse<WriteResult | null>;
+export type DeleteIdeaResponse = ServerResponse<null>;
 
 /** Update Idea Metadata */
 export type UpdateIdeaMetadataRequest = Partial<IdeaMetadata> & {
@@ -128,7 +130,7 @@ export type UpdateIdeaMetadataRequest = Partial<IdeaMetadata> & {
   ideaId: string;
 };
 
-export type UpdateIdeaMetadataResponse = ServerResponse<WriteResult | null>;
+export type UpdateIdeaMetadataResponse = ServerResponse<null>;
 
 /** Mark Idea */
 export type MarkIdeaRequest = {
@@ -137,7 +139,7 @@ export type MarkIdeaRequest = {
   status: IdeaMarkStatus;
 };
 
-export type MarkIdeaResponse = ServerResponse<WriteResult | null>;
+export type MarkIdeaResponse = ServerResponse<{ mark: Mark } | null>;
 
 /** Add Comment */
 export type AddCommentRequest = {
@@ -146,7 +148,9 @@ export type AddCommentRequest = {
   text: string;
 };
 
-export type AddCommentResponse = ServerResponse<WriteResult | null>;
+export type AddCommentResponse = ServerResponse<{
+  comment: Comment;
+} | null>;
 
 /** Delete Comment */
 export type DeleteCommentRequest = {
@@ -155,7 +159,7 @@ export type DeleteCommentRequest = {
   commentId: string;
 };
 
-export type DeleteCommentResponse = ServerResponse<WriteResult | null>;
+export type DeleteCommentResponse = ServerResponse<null>;
 
 /** Update Comment */
 export type UpdateCommentRequest = {
@@ -165,7 +169,7 @@ export type UpdateCommentRequest = {
   text: string;
 };
 
-export type UpdateCommentResponse = ServerResponse<WriteResult | null>;
+export type UpdateCommentResponse = ServerResponse<null>;
 
 /** Get Exchange Event */
 export type GetExchangeEventRequest = { exchangeEvent: string };
