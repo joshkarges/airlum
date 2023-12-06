@@ -1,4 +1,3 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import _ from "lodash";
 import {
   addCommentOnServer,
@@ -13,12 +12,7 @@ import {
   updateIdeaMetadataOnServer,
   updateWishListMetadataOnServer,
 } from "../../api/ChristmasListApi";
-import {
-  WishList,
-  EditMyListFormType,
-  CreateWishListResponse,
-  ServerResponse,
-} from "../../models/functions";
+import { WishList } from "../../models/functions";
 import {
   AnyAction,
   FetchedResource,
@@ -32,12 +26,8 @@ import {
 
 const initialState = {} as Record<string, WishList>;
 
-const makeWishListAction = <Req, Res>(
-  fn: Fetcher<ServerResponse<Res>, [Req]>
-) => {
-  return makeFetchingActionCreator(`wishLists/${fn.name}`, fn, {
-    parser: (response) => response.data,
-  });
+const makeWishListAction = <Req, Res>(fn: Fetcher<Res, [Req]>) => {
+  return makeFetchingActionCreator(`wishLists/${_.get(fn, "displayName")}`, fn);
 };
 
 export const getAllWishListsAction = makeWishListAction(
@@ -75,7 +65,6 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
   action: AnyAction
 ) => {
   let newState = wishListsGetAllReducer(state, action);
-  if (!action.data) return newState;
   if (isSuccessAction(action, createWishListAction)) {
     newState = {
       ...newState,

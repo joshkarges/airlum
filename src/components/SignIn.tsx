@@ -6,7 +6,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 // Configure FirebaseUI.
 const initialUiConfig: firebaseui.auth.Config = {
   // Popup signin flow rather than redirect flow.
-  signInFlow: "redirect",
+  signInFlow: "popup",
   // Redirect to /signedIn after sign in is successful. Alternatively you can provide a callbacks.signInSuccess function.
   signInSuccessUrl: "/christmas-list",
   // We will display Google as an auth provider.

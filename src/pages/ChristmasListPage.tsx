@@ -1,4 +1,5 @@
-import { Button, Card, IconButton } from "@mui/material";
+import { Button, Card, IconButton, Typography } from "@mui/material";
+import moment from "moment";
 import { useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import firebase from "firebase/compat/app";
@@ -19,13 +20,14 @@ import {
   getExchangeEventAction,
 } from "../redux/slices/exchangeEvent";
 import {
+  createWishListAction,
   getAllWishListsAction /* setWishLists */,
 } from "../redux/slices/wishLists";
 import { EditMyList } from "../components/modals/EditMyList";
 import { EditOutlined } from "@mui/icons-material";
 import { WishListCard } from "../components/WishListCard";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
-import { anyIsIdle, useReduxState } from "../utils/fetchers";
+import { anyIsIdle, useDispatcher, useReduxState } from "../utils/fetchers";
 import _ from "lodash";
 
 export const ChristmasListPage = () => {
@@ -43,6 +45,7 @@ export const ChristmasListPage = () => {
     "wishLists",
     getAllWishListsAction
   );
+  const createNewWishList = useDispatcher(createWishListAction);
 
   useEffect(() => {
     const unregister = firebase.auth().onAuthStateChanged((authUser) => {
@@ -75,27 +78,69 @@ export const ChristmasListPage = () => {
   return (
     <Flex flexDirection="column" p={3}>
       {!!user ? (
-        <FetchedComponent resource={wishLists}>
-          {(data) => (
-            <Flex flexDirection="column" p={3}>
-              {!_.find(data, (list) => list.user.uid === user.uid) ? (
+        <Flex flexDirection="column">
+          <FetchedComponent resource={exchangeEvent}>
+            {(data) => (
+              <Flex
+                flexDirection="column"
+                p={3}
+                justifyContent="center"
+                gap="16px"
+              >
+                <Typography variant="h2">{data.name}</Typography>
+                <Typography variant="subtitle1">{data.description}</Typography>
+                <Typography variant="subtitle1">
+                  {moment(data.date).format("dddd, MMMM Do YYYY")}
+                </Typography>
+                {/** TODO: Add edit button.  Maybe it opens a modal / drawer ? */}
+              </Flex>
+            )}
+          </FetchedComponent>
+          <FetchedComponent resource={wishLists}>
+            {(data) => (
+              <Flex flexDirection="column" p={3}>
                 <Flex justifyContent="flex-end">
+                  {!_.find(data, (list) => list.author.uid === user.uid) ? (
+                    <Button
+                      variant="contained"
+                      onClick={() =>
+                        createNewWishList({
+                          exchangeEvent: exchangeEventUrlParam,
+                          isExtra: false,
+                        })
+                      }
+                    >
+                      Start My List
+                    </Button>
+                  ) : null}
                   <Button
                     variant="contained"
-                    onClick={() => setModal(ModalType.EditMyList)}
+                    onClick={() =>
+                      createNewWishList({
+                        exchangeEvent: exchangeEventUrlParam,
+                        isExtra: true,
+                      })
+                    }
                   >
-                    Start My List
+                    Create List For Someone Else
                   </Button>
                 </Flex>
-              ) : null}
-              <Flex gap="32px" flexWrap="wrap">
-                {_.map(data, (list) => {
-                  return <WishListCard list={list} user={user} />;
-                })}
+                <Flex gap="32px" flexWrap="wrap">
+                  {_.map(
+                    _.orderBy(_.values(data), "updatedAt", "desc"),
+                    (list) => {
+                      return (
+                        <div>
+                          <WishListCard list={list} user={user} key={list.id} />
+                        </div>
+                      );
+                    }
+                  )}
+                </Flex>
               </Flex>
-            </Flex>
-          )}
-        </FetchedComponent>
+            )}
+          </FetchedComponent>
+        </Flex>
       ) : (
         <Flex>
           <SignIn signInSuccessUrl={window.location.href} />

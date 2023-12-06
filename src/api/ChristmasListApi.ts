@@ -62,12 +62,14 @@ const makeFunctionsCall = <Req, Res>(name: string) => {
     functions,
     `${isDev ? "airlum/us-central1/" : ""}${name}`
   );
-  return async (req: Req) => {
+  const result = async (req: Req) => {
     console.log(`${name} Request`, req);
     const response = await callable(req);
     console.log(`${name} Response`, response);
     return response.data;
   };
+  result.displayName = name;
+  return result;
 };
 
 export const createWishListOnServer = makeFunctionsCall<

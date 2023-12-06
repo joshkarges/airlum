@@ -15,43 +15,38 @@ import * as uuid from "uuid";
 
 // The Firebase Admin SDK to access Firestore.
 import * as admin from "firebase-admin";
+import { FieldValue, getFirestore, UpdateData } from "firebase-admin/firestore";
 import {
-  FieldValue,
-  getFirestore,
-  Transaction,
-  UpdateData,
-} from "firebase-admin/firestore";
-import {
-  CreateWishListRequest,
+  User,
   ExchangeEvent,
-  GetAllWishListsRequest,
-  GetAllWishListsResponse,
   GetExchangeEventRequest,
   GetExchangeEventResponse,
   WishList,
+  CreateWishListRequest,
+  CreateWishListResponse,
+  GetAllWishListsRequest,
+  GetAllWishListsResponse,
   UpdateWishListMetadataRequest,
   UpdateWishListMetadataResponse,
-  AddIdeaRequest,
-  AddIdeaResponse,
-  Idea,
-  DeleteIdeaRequest,
-  DeleteIdeaResponse,
-  MarkIdeaRequest,
-  MarkIdeaResponse,
-  User,
   DeleteExtraWishListRequest,
   DeleteExtraWishListResponse,
-  Mark,
+  Idea,
+  AddIdeaRequest,
+  AddIdeaResponse,
   UpdateIdeaMetadataRequest,
   UpdateIdeaMetadataResponse,
+  DeleteIdeaRequest,
+  DeleteIdeaResponse,
+  Mark,
+  MarkIdeaRequest,
+  MarkIdeaResponse,
+  Comment,
   AddCommentRequest,
   AddCommentResponse,
-  Comment,
-  DeleteCommentRequest,
-  DeleteCommentResponse,
   UpdateCommentRequest,
   UpdateCommentResponse,
-  CreateWishListResponse,
+  DeleteCommentRequest,
+  DeleteCommentResponse,
 } from "./models";
 import _ = require("lodash");
 import { AuthData } from "firebase-functions/lib/common/providers/https";
@@ -60,7 +55,7 @@ admin.initializeApp();
 
 exports.health = onCall(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
-  async (req) => {
+  async () => {
     return "OK";
   }
 );
@@ -95,12 +90,9 @@ const runWishListTransaction = async <T>(
       }
       return updateFunction(transaction, doc, wishListDoc.data() as WishList);
     });
-    return {
-      success: true,
-      data: result,
-    };
+    return result;
   } catch (error) {
-    return { success: false, error: `${error}`, data: null };
+    throw `${error}`;
   }
 };
 
@@ -112,7 +104,7 @@ exports.createWishList = onCall<
   const user = getUserFromAuth(req.auth);
   console.log("createWishList user ", user?.email);
   if (!user) {
-    return { success: false, error: "No user found", data: null };
+    throw "No user found";
   }
   const wishListCollection = getFirestore().collection("wishList");
   const newDoc = wishListCollection.doc();
@@ -122,14 +114,14 @@ exports.createWishList = onCall<
     ideas: {},
     exchangeEvent: data.exchangeEvent,
     isExtra: data.isExtra,
-    user,
+    author: user,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     id: newDoc.id,
   };
   console.log("createWishList newData", newData);
   await newDoc.set(newData);
-  return { success: true, data: { wishList: newData } };
+  return { wishList: newData };
 });
 
 exports.deleteExtraWishList = onCall<
@@ -139,7 +131,7 @@ exports.deleteExtraWishList = onCall<
   const data = req.data;
   const user = getUserFromAuth(req.auth);
   if (!user) {
-    return { success: false, error: "No user found", data: null };
+    throw "No user found";
   }
   console.log("deleteExtraWishList user ", user.email);
   return runWishListTransaction(
@@ -161,13 +153,13 @@ exports.updateWishListMetadata = onCall<
   const data = req.data;
   const user = getUserFromAuth(req.auth);
   if (!user) {
-    return { success: false, error: "No user found", data: null };
+    throw "No user found";
   }
   console.log("updateWishListMetadata user ", user.email);
   return runWishListTransaction(
     data.id,
     async (transaction, doc, wishListData) => {
-      if (wishListData.user.uid !== user.uid) {
+      if (wishListData.author.uid !== user.uid) {
         throw "Only the author can edit their list descriptions";
       }
       const newData = {
@@ -187,7 +179,7 @@ exports.addIdea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
     const data = req.data;
     const user = getUserFromAuth(req.auth);
     if (!user) {
-      return { success: false, error: "No user found", data: null };
+      throw "No user found";
     }
     console.log("addIdea user ", user.email);
     const wishListCollection = getFirestore().collection("wishList");
@@ -196,7 +188,7 @@ exports.addIdea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
       ...data.idea,
       comments: {},
       mark: null,
-      user,
+      author: user,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       id: uuid.v4(),
@@ -206,7 +198,7 @@ exports.addIdea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
       [`ideas.${newIdea.id}`]: newIdea,
       updatedAt: Date.now(),
     });
-    return { success: true, data: { idea: newIdea } };
+    return { idea: newIdea };
   }
 );
 
@@ -216,7 +208,7 @@ exports.deleteIdea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
     const data = req.data;
     const user = getUserFromAuth(req.auth);
     if (!user) {
-      return { success: false, error: "No user found", data: null };
+      throw "No user found";
     }
     console.log("deleteIdea user ", user.email);
     return runWishListTransaction(
@@ -227,7 +219,7 @@ exports.deleteIdea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
         if (!ideaToDelete) {
           throw "Idea not found";
         }
-        if (ideaToDelete.user.uid !== user.uid) {
+        if (ideaToDelete.author.uid !== user.uid) {
           throw "You are not allowed to delete this idea";
         }
 
@@ -249,7 +241,7 @@ exports.markIdea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
     const data = req.data;
     const user = getUserFromAuth(req.auth);
     if (!user) {
-      return { success: false, error: "No user found", data: null };
+      throw "No user found";
     }
     console.log("markIdea user ", user.email);
     return runWishListTransaction(
@@ -260,7 +252,7 @@ exports.markIdea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
         if (!ideaToMark) {
           throw "Idea not found";
         }
-        const wishListUser = wishListData.user;
+        const wishListUser = wishListData.author;
         if (wishListUser.uid === user.uid) {
           throw "You are not allowed to mark your own ideas";
         }
@@ -268,7 +260,7 @@ exports.markIdea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
         console.log("markIdea ideaId", data.ideaId, data.status);
         const newMark: Mark = {
           status: data.status,
-          user: user,
+          author: user,
           timestamp: Date.now(),
         };
         transaction.update(wishListDoc, {
@@ -288,7 +280,7 @@ exports.updateIdeaMetadata = onCall<
   const data = req.data;
   const user = getUserFromAuth(req.auth);
   if (!user) {
-    return { success: false, error: "No user found", data: null };
+    throw "No user found";
   }
   console.log("updateIdeaMetadata user ", user?.email);
   return runWishListTransaction(
@@ -299,18 +291,24 @@ exports.updateIdeaMetadata = onCall<
       if (!ideaToUpdate) {
         throw "Idea not found";
       }
-      if (ideaToUpdate.user.uid !== user.uid) {
+      if (ideaToUpdate.author.uid !== user.uid) {
         throw "You are not allowed to edit this idea";
       }
-      const newData = {
-        ...data,
-        updatedAt: Date.now(),
+      const now = Date.now();
+      const newData: Idea = {
+        ...ideaToUpdate,
+        ..._.pick(data, "title", "description"),
+        updatedAt: now,
       };
       console.log("updateIdeaMetadata newData", newData);
       transaction.update(doc, {
-        [`ideas.${data.ideaId}`]: newData,
-        updatedAt: Date.now(),
-      } as UpdateData<WishList>);
+        ...(data.title ? { [`ideas.${data.ideaId}.title`]: data.title } : {}),
+        ...(data.description
+          ? { [`ideas.${data.ideaId}.description`]: data.description }
+          : {}),
+        [`ideas.${data.ideaId}.updatedAt`]: now,
+        updatedAt: now,
+      } as unknown as UpdateData<WishList>);
       return null;
     }
   );
@@ -322,7 +320,7 @@ exports.addComment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
     const data = req.data;
     const user = getUserFromAuth(req.auth);
     if (!user) {
-      return { success: false, error: "No user found", data: null };
+      throw "No user found";
     }
     console.log("addComment user ", user.email);
     return runWishListTransaction(
@@ -337,7 +335,7 @@ exports.addComment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
           text: data.text,
           createdAt: Date.now(),
           updatedAt: Date.now(),
-          user,
+          author: user,
           id: uuid.v4(),
         };
         console.log("addComment newData", newComment);
@@ -359,7 +357,7 @@ exports.deleteComment = onCall<
   const data = req.data;
   const user = getUserFromAuth(req.auth);
   if (!user) {
-    return { success: false, error: "No user found", data: null };
+    throw "No user found";
   }
   console.log("deleteComment user ", user.email);
   return runWishListTransaction(
@@ -374,7 +372,7 @@ exports.deleteComment = onCall<
       if (!commentToDelete) {
         throw "Comment not found";
       }
-      if (commentToDelete.user.uid !== user.uid) {
+      if (commentToDelete.author.uid !== user.uid) {
         throw "You are not allowed to delete this comment";
       }
       console.log("deleteComment commentId", data.commentId);
@@ -396,7 +394,7 @@ exports.updateComment = onCall<
   const data = req.data;
   const user = getUserFromAuth(req.auth);
   if (!user) {
-    return { success: false, error: "No user found", data: null };
+    throw "No user found";
   }
   console.log("updateComment user ", user.email);
   return runWishListTransaction(
@@ -411,7 +409,7 @@ exports.updateComment = onCall<
       if (!commentToUpdate) {
         throw "Comment not found";
       }
-      if (commentToUpdate.user.uid !== user.uid) {
+      if (commentToUpdate.author.uid !== user.uid) {
         throw "You are not allowed to edit this comment";
       }
       const newData = {
@@ -440,7 +438,7 @@ exports.getExchangeEvent = onCall<
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const user = getUserFromAuth(req.auth);
   if (!user) {
-    return { success: false, error: "No user found", data: null };
+    throw "No user found";
   }
   console.log("getExchangeEvent user ", user?.email);
   const result = await getFirestore()
@@ -448,15 +446,15 @@ exports.getExchangeEvent = onCall<
     .doc(req.data.exchangeEvent)
     .get();
   if (!result.exists) {
-    return { success: false, error: "No event found", data: null };
+    throw "No event found";
   }
 
   const event = result.data() as ExchangeEvent;
 
   if (!event.users.find((u) => u.email === user.email)) {
-    return { success: false, error: "User not in event", data: null };
+    throw "User not in event";
   }
-  return { success: true, data: event };
+  return event;
 });
 
 exports.getAllWishLists = onCall<
@@ -465,7 +463,7 @@ exports.getAllWishLists = onCall<
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const user = getUserFromAuth(req.auth);
   if (!user) {
-    return { success: false, error: "No user found", data: {} };
+    throw "No user found";
   }
   console.log("getAllWishLists user ", user.email);
   const db = getFirestore();
@@ -474,11 +472,11 @@ exports.getAllWishLists = onCall<
     .doc(req.data.exchangeEvent)
     .get();
   if (!exchangeEventDoc.exists) {
-    return { success: false, error: "No event found", data: {} };
+    throw "No event found";
   }
   const exchangeEvent = exchangeEventDoc.data() as ExchangeEvent;
   if (!exchangeEvent.users.find((u) => u.email === user.email)) {
-    return { success: false, error: "User not in event", data: {} };
+    throw "User not in event";
   }
 
   const wishLists = await db
@@ -486,34 +484,27 @@ exports.getAllWishLists = onCall<
     .where("exchangeEvent", "==", req.data.exchangeEvent)
     .get();
 
-  if (wishLists.empty) {
-    return { success: false, error: "No wish lists found", data: {} };
-  }
-
-  return {
-    success: true,
-    data: _.keyBy(
-      wishLists.docs.map((d) => {
-        const wishList = d.data() as WishList;
-        if (wishList.user.uid === user.uid && !wishList.isExtra) {
-          return {
-            ...wishList,
-            ideas: _.mapValues(
-              _.pickBy(wishList.ideas, (idea) => idea.user.uid === user.uid),
-              (idea) => ({
-                ...idea,
-                mark: null,
-                comments: _.pickBy(idea.comments, (comment) => {
-                  return comment.user.uid === user.uid;
-                }),
-              })
-            ),
-          };
-        } else {
-          return wishList;
-        }
-      }),
-      "id"
-    ),
-  };
+  return _.keyBy(
+    wishLists.docs.map((d) => {
+      const wishList = d.data() as WishList;
+      if (wishList.author.uid === user.uid && !wishList.isExtra) {
+        return {
+          ...wishList,
+          ideas: _.mapValues(
+            _.pickBy(wishList.ideas, (idea) => idea.author.uid === user.uid),
+            (idea) => ({
+              ...idea,
+              mark: null,
+              comments: _.pickBy(idea.comments, (comment) => {
+                return comment.author.uid === user.uid;
+              }),
+            })
+          ),
+        };
+      } else {
+        return wishList;
+      }
+    }),
+    "id"
+  );
 });

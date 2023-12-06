@@ -1,19 +1,14 @@
-export type ServerResponse<T> = {
-  success: boolean;
-  error?: string;
-  data: T;
-};
-
-export type ExchangeEvent = {
+type UserCreatedAsset = {
   id: string;
   createdAt: number;
   updatedAt: number;
+  author: User;
+};
+
+export type ExchangeEvent = UserCreatedAsset & {
   name: string;
   description: string;
-  owner: {
-    email: string;
-    uid: string;
-  };
+  date: number;
   users: {
     email: string;
     joinedAt: number;
@@ -25,13 +20,6 @@ export type User = {
   email: string;
   uid: string;
   displayName: string;
-};
-
-type UserCreatedAsset = {
-  id: string;
-  createdAt: number;
-  updatedAt: number;
-  user: User;
 };
 
 export type Comment = UserCreatedAsset & {
@@ -51,7 +39,7 @@ export type IdeaMetadata = {
 };
 
 export type Mark = {
-  user: User;
+  author: User;
   timestamp: number;
   status: IdeaMarkStatus;
 };
@@ -88,23 +76,23 @@ export type CreateWishListRequest = {
   isExtra: boolean;
 };
 
-export type CreateWishListResponse = ServerResponse<{
+export type CreateWishListResponse = {
   wishList: WishList;
-} | null>;
+};
 
 /** Delete Extra Wish List */
 export type DeleteExtraWishListRequest = {
   wishListId: string;
 };
 
-export type DeleteExtraWishListResponse = ServerResponse<null>;
+export type DeleteExtraWishListResponse = null;
 
 /** Update Wish List Metadata */
 export type UpdateWishListMetadataRequest = Partial<WishListMetadata> & {
   id: string;
 };
 
-export type UpdateWishListMetadataResponse = ServerResponse<null>;
+export type UpdateWishListMetadataResponse = null;
 
 /** Add Idea */
 export type AddIdeaRequest = {
@@ -112,9 +100,9 @@ export type AddIdeaRequest = {
   idea: IdeaMetadata;
 };
 
-export type AddIdeaResponse = ServerResponse<{
+export type AddIdeaResponse = {
   idea: Idea;
-} | null>;
+};
 
 /** Delete Idea */
 export type DeleteIdeaRequest = {
@@ -122,7 +110,7 @@ export type DeleteIdeaRequest = {
   ideaId: string;
 };
 
-export type DeleteIdeaResponse = ServerResponse<null>;
+export type DeleteIdeaResponse = null;
 
 /** Update Idea Metadata */
 export type UpdateIdeaMetadataRequest = Partial<IdeaMetadata> & {
@@ -130,7 +118,7 @@ export type UpdateIdeaMetadataRequest = Partial<IdeaMetadata> & {
   ideaId: string;
 };
 
-export type UpdateIdeaMetadataResponse = ServerResponse<null>;
+export type UpdateIdeaMetadataResponse = null;
 
 /** Mark Idea */
 export type MarkIdeaRequest = {
@@ -139,7 +127,7 @@ export type MarkIdeaRequest = {
   status: IdeaMarkStatus;
 };
 
-export type MarkIdeaResponse = ServerResponse<{ mark: Mark } | null>;
+export type MarkIdeaResponse = { mark: Mark };
 
 /** Add Comment */
 export type AddCommentRequest = {
@@ -148,9 +136,9 @@ export type AddCommentRequest = {
   text: string;
 };
 
-export type AddCommentResponse = ServerResponse<{
+export type AddCommentResponse = {
   comment: Comment;
-} | null>;
+};
 
 /** Delete Comment */
 export type DeleteCommentRequest = {
@@ -159,7 +147,7 @@ export type DeleteCommentRequest = {
   commentId: string;
 };
 
-export type DeleteCommentResponse = ServerResponse<null>;
+export type DeleteCommentResponse = null;
 
 /** Update Comment */
 export type UpdateCommentRequest = {
@@ -169,14 +157,14 @@ export type UpdateCommentRequest = {
   text: string;
 };
 
-export type UpdateCommentResponse = ServerResponse<null>;
+export type UpdateCommentResponse = null;
 
 /** Get Exchange Event */
 export type GetExchangeEventRequest = { exchangeEvent: string };
 
-export type GetExchangeEventResponse = ServerResponse<ExchangeEvent | null>;
+export type GetExchangeEventResponse = ExchangeEvent;
 
 /** Get All Wish Lists */
 export type GetAllWishListsRequest = { exchangeEvent: string };
 
-export type GetAllWishListsResponse = ServerResponse<Record<string, WishList>>;
+export type GetAllWishListsResponse = Record<string, WishList>;

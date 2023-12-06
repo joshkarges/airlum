@@ -7,13 +7,25 @@ import {
 
 export const getExchangeEventAction = makeFetchingActionCreator(
   "getExchangeEventAction",
-  getExchangeEventFromServer,
-  {
-    parser: (response) => response.data,
-  }
+  getExchangeEventFromServer
 );
+
+const emptyExchangeEvent: ExchangeEvent = {
+  id: "",
+  createdAt: 0,
+  updatedAt: 0,
+  name: "",
+  description: "",
+  author: {
+    email: "",
+    uid: "",
+    displayName: "",
+  },
+  date: 0,
+  users: [],
+};
 
 export const exchangeEvent = makeFetchedResourceReducer(
   getExchangeEventAction.type,
-  null as ExchangeEvent | null
+  emptyExchangeEvent
 );
