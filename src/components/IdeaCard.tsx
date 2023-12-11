@@ -12,11 +12,12 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { makeStyles } from "@mui/styles";
 import _ from "lodash";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Idea, IdeaMarkStatus, WishList } from "../models/functions";
 import { useUser } from "../redux/selectors";
 import {
   addCommentAction,
+  deleteIdeaAction,
   markIdeaAction,
   updateIdeaMetadataAction,
 } from "../redux/slices/wishLists";
@@ -28,6 +29,8 @@ import {
   RadioButtonUnchecked,
   RemoveCircle,
 } from "@mui/icons-material";
+import { AddButtonWithText } from "./AddButtonWithText";
+import { DeleteButtonWithConfirmation } from "./DeleteButtonWithConfirmation";
 
 const useStyles = makeStyles((theme: Theme) => ({
   titleInput: {
@@ -113,6 +116,20 @@ export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
   const user = useUser();
   const [ideaExpanded, setIdeaExpanded] = useState(false);
   const addComment = useDispatcher(addCommentAction);
+  const addCommentFromText = useCallback(
+    (text: string) => {
+      return addComment({
+        wishListId: wishList.id,
+        ideaId: idea.id,
+        text,
+      });
+    },
+    [addComment, idea.id, wishList.id]
+  );
+  const deleteIdea = useDispatcher(deleteIdeaAction);
+  const onDelete = useCallback(() => {
+    return deleteIdea({ wishListId: wishList.id, ideaId: idea.id });
+  }, [deleteIdea, idea.id, wishList.id]);
   const markIdea = useDispatcher(markIdeaAction);
   const [markLoading, setMarkLoading] = useState(false);
   const currentMarkStatus = idea.mark?.status ?? IdeaMarkStatus.Incomplete;
@@ -169,6 +186,9 @@ export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
             wishListId={wishList.id}
             fieldName="description"
           />
+          {idea.author.uid === user?.uid && (
+            <DeleteButtonWithConfirmation onDelete={onDelete} itemName="Idea" />
+          )}
           <Flex flexDirection="column" pt="16px">
             <Typography variant="overline">Comments</Typography>
             {_.map(_.values(idea.comments), (comment) => (
@@ -180,17 +200,10 @@ export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
               />
             ))}
           </Flex>
-          <Button
-            onClick={() =>
-              addComment({
-                wishListId: wishList.id,
-                ideaId: idea.id,
-                text: "",
-              })
-            }
-          >
-            Add Comment
-          </Button>
+          <AddButtonWithText
+            commitText={addCommentFromText}
+            buttonText="Add Comment"
+          />
         </Flex>
       </AccordionDetails>
     </Accordion>

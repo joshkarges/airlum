@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import _ from "lodash";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { WishList } from "../models/functions";
 import { User } from "../models/User";
 import { useUser } from "../redux/selectors";
@@ -19,6 +19,7 @@ import {
   updateWishListMetadataAction,
 } from "../redux/slices/wishLists";
 import { useDispatcher } from "../utils/fetchers";
+import { AddButtonWithText } from "./AddButtonWithText";
 import { Flex } from "./Flex";
 import { IdeaCard } from "./IdeaCard";
 
@@ -88,6 +89,15 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
   const classes = useStyles();
   const [listExpanded, setListExpanded] = useState(true);
   const addIdea = useDispatcher(addIdeaAction);
+  const addIdeaFromTitle = useCallback(
+    (title: string) => {
+      return addIdea({
+        wishListId: list.id,
+        idea: { title, description: "" },
+      });
+    },
+    [addIdea, list.id]
+  );
   return (
     <Accordion
       expanded={listExpanded}
@@ -102,18 +112,10 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
         {_.map(list.ideas, (idea, id) => {
           return <IdeaCard idea={idea} wishList={list} key={id} />;
         })}
-        <Flex justifyContent="center">
-          <Button
-            onClick={() => {
-              addIdea({
-                wishListId: list.id,
-                idea: { title: "", description: "" },
-              });
-            }}
-          >
-            Add Idea
-          </Button>
-        </Flex>
+        <AddButtonWithText
+          commitText={addIdeaFromTitle}
+          buttonText="Add Idea"
+        />
       </AccordionDetails>
     </Accordion>
   );
