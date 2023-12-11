@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
-import * as EasyForm from "jk-form";
 import PageWrapper from "./pages/PageWrapper";
 import HomePage from "./pages/HomePage";
 import { TattooPage } from "./components/Tattoo";

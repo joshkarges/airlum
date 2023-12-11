@@ -1,21 +1,19 @@
-import { EditOutlined, ExpandMore } from "@mui/icons-material";
+import { ExpandMore } from "@mui/icons-material";
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
   Button,
-  Card,
-  IconButton,
   TextField,
   Theme,
   Typography,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import _ from "lodash";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { WishList } from "../models/functions";
 import { User } from "../models/User";
-import { useExchangeEvent, useUser } from "../redux/selectors";
+import { useUser } from "../redux/selectors";
 import {
   addIdeaAction,
   updateWishListMetadataAction,
@@ -23,7 +21,6 @@ import {
 import { useDispatcher } from "../utils/fetchers";
 import { Flex } from "./Flex";
 import { IdeaCard } from "./IdeaCard";
-import { ModalContext, ModalType } from "./modals/ModalContext";
 
 const useStyles = makeStyles((theme: Theme) => ({
   titleInput: {
@@ -33,6 +30,9 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   notesInput: {
     ...theme.typography.subtitle1,
+  },
+  wishListContainer: {
+    maxWidth: 400,
   },
 }));
 
@@ -85,24 +85,23 @@ type WishListCardProps = {
   user: User;
 };
 export const WishListCard = ({ list, user }: WishListCardProps) => {
-  const [listExpanded, setListExpanded] = useState(false);
+  const classes = useStyles();
+  const [listExpanded, setListExpanded] = useState(true);
   const addIdea = useDispatcher(addIdeaAction);
   return (
     <Accordion
       expanded={listExpanded}
       onChange={(evt, expanded) => setListExpanded(expanded)}
+      className={classes.wishListContainer}
     >
       <AccordionSummary expandIcon={<ExpandMore />}>
         <EditableField list={list} canEdit={listExpanded} fieldName="title" />
       </AccordionSummary>
       <AccordionDetails>
         <EditableField list={list} canEdit={listExpanded} fieldName="notes" />
-        {_.map(
-          _.orderBy(_.values(list.ideas), "updatedAt", "desc"),
-          (idea, id) => {
-            return <IdeaCard idea={idea} wishListId={list.id} key={id} />;
-          }
-        )}
+        {_.map(list.ideas, (idea, id) => {
+          return <IdeaCard idea={idea} wishList={list} key={id} />;
+        })}
         <Flex justifyContent="center">
           <Button
             onClick={() => {

@@ -1,37 +1,27 @@
-import { Button, Card, IconButton, Typography } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import moment from "moment";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import firebase from "firebase/compat/app";
 import { Flex } from "../components/Flex";
-import { ModalContext, ModalType } from "../components/modals/ModalContext";
+import { ModalContext } from "../components/modals/ModalContext";
 import { SignIn } from "../components/SignIn";
 import { setUser } from "../redux/slices/user";
-import { useExchangeEvent, useUser, useWishLists } from "../redux/selectors";
+import { useUser } from "../redux/selectors";
 import { User } from "../models/User";
 import { useParams } from "react-router-dom";
-import {
-  checkHealth,
-  getAllWishListsFromServer,
-  getExchangeEventFromServer,
-} from "../api/ChristmasListApi";
-import {
-  exchangeEvent,
-  getExchangeEventAction,
-} from "../redux/slices/exchangeEvent";
+import { getExchangeEventAction } from "../redux/slices/exchangeEvent";
 import {
   createWishListAction,
   getAllWishListsAction /* setWishLists */,
 } from "../redux/slices/wishLists";
 import { EditMyList } from "../components/modals/EditMyList";
-import { EditOutlined } from "@mui/icons-material";
 import { WishListCard } from "../components/WishListCard";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 import { anyIsIdle, useDispatcher, useReduxState } from "../utils/fetchers";
 import _ from "lodash";
 
 export const ChristmasListPage = () => {
-  const { setModal } = useContext(ModalContext);
   const dispatch = useDispatch();
   const user = useUser();
   const { exchangeEvent: exchangeEventUrlParam } = useParams<{
@@ -126,16 +116,13 @@ export const ChristmasListPage = () => {
                   </Button>
                 </Flex>
                 <Flex gap="32px" flexWrap="wrap">
-                  {_.map(
-                    _.orderBy(_.values(data), "updatedAt", "desc"),
-                    (list) => {
-                      return (
-                        <div>
-                          <WishListCard list={list} user={user} key={list.id} />
-                        </div>
-                      );
-                    }
-                  )}
+                  {_.map(_.values(data), (list) => {
+                    return (
+                      <div>
+                        <WishListCard list={list} user={user} key={list.id} />
+                      </div>
+                    );
+                  })}
                 </Flex>
               </Flex>
             )}

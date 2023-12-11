@@ -75,50 +75,50 @@ const makeFunctionsCall = <Req, Res>(name: string) => {
 export const createWishListOnServer = makeFunctionsCall<
   CreateWishListRequest,
   CreateWishListResponse
->("createWishList");
+>("createwishlist");
 export const deleteExtraWishListOnServer = makeFunctionsCall<
   DeleteExtraWishListRequest,
   DeleteExtraWishListResponse
->("deleteExtraWishList");
+>("deleteextrawishlist");
 export const updateWishListMetadataOnServer = makeFunctionsCall<
   UpdateWishListMetadataRequest,
   UpdateWishListMetadataResponse
->("updateWishListMetadata");
+>("updatewishlistmetadata");
 export const addIdeaOnServer = makeFunctionsCall<
   AddIdeaRequest,
   AddIdeaResponse
->("addIdea");
+>("addidea");
 export const deleteIdeaOnServer = makeFunctionsCall<
   DeleteIdeaRequest,
   DeleteIdeaResponse
->("deleteIdea");
+>("deleteidea");
 export const markIdeaOnServer = makeFunctionsCall<
   MarkIdeaRequest,
   MarkIdeaResponse
->("markIdea");
+>("markidea");
 export const updateIdeaMetadataOnServer = makeFunctionsCall<
   UpdateIdeaMetadataRequest,
   UpdateIdeaMetadataResponse
->("updateIdeaMetadata");
+>("updateideametadata");
 export const addCommentOnServer = makeFunctionsCall<
   AddCommentRequest,
   AddCommentResponse
->("addComment");
+>("addcomment");
 export const deleteCommentOnServer = makeFunctionsCall<
   DeleteCommentRequest,
   DeleteCommentResponse
->("deleteComment");
+>("deletecomment");
 export const updateCommentOnServer = makeFunctionsCall<
   UpdateCommentRequest,
   UpdateCommentResponse
->("updateComment");
+>("updatecomment");
 
 export const getExchangeEventFromServer = makeFunctionsCall<
   GetExchangeEventRequest,
   GetExchangeEventResponse
->("getExchangeEvent");
+>("getexchangeevent");
 
 export const getAllWishListsFromServer = makeFunctionsCall<
   GetAllWishListsRequest,
   GetAllWishListsResponse
->("getAllWishLists");
+>("getallwishlists");

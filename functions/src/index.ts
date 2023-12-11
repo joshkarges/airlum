@@ -96,7 +96,7 @@ const runWishListTransaction = async <T>(
   }
 };
 
-exports.createWishList = onCall<
+exports.createwishlist = onCall<
   CreateWishListRequest,
   Promise<CreateWishListResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
@@ -124,7 +124,7 @@ exports.createWishList = onCall<
   return { wishList: newData };
 });
 
-exports.deleteExtraWishList = onCall<
+exports.deleteextrawishlist = onCall<
   DeleteExtraWishListRequest,
   Promise<DeleteExtraWishListResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
@@ -146,7 +146,7 @@ exports.deleteExtraWishList = onCall<
   );
 });
 
-exports.updateWishListMetadata = onCall<
+exports.updatewishlistmetadata = onCall<
   UpdateWishListMetadataRequest,
   Promise<UpdateWishListMetadataResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
@@ -160,7 +160,7 @@ exports.updateWishListMetadata = onCall<
     data.id,
     async (transaction, doc, wishListData) => {
       if (wishListData.author.uid !== user.uid) {
-        throw "Only the author can edit their list descriptions";
+        throw "Only the author can edit their list metadata";
       }
       const newData = {
         ...data,
@@ -173,7 +173,7 @@ exports.updateWishListMetadata = onCall<
   );
 });
 
-exports.addIdea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
+exports.addidea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
   async (req): Promise<AddIdeaResponse> => {
     const data = req.data;
@@ -202,7 +202,7 @@ exports.addIdea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
   }
 );
 
-exports.deleteIdea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
+exports.deleteidea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
   async (req) => {
     const data = req.data;
@@ -235,7 +235,7 @@ exports.deleteIdea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
   }
 );
 
-exports.markIdea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
+exports.markidea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
   async (req) => {
     const data = req.data;
@@ -253,7 +253,7 @@ exports.markIdea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
           throw "Idea not found";
         }
         const wishListUser = wishListData.author;
-        if (wishListUser.uid === user.uid) {
+        if (wishListUser.uid === user.uid && !wishListData.isExtra) {
           throw "You are not allowed to mark your own ideas";
         }
 
@@ -273,7 +273,7 @@ exports.markIdea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
   }
 );
 
-exports.updateIdeaMetadata = onCall<
+exports.updateideametadata = onCall<
   UpdateIdeaMetadataRequest,
   Promise<UpdateIdeaMetadataResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
@@ -314,7 +314,7 @@ exports.updateIdeaMetadata = onCall<
   );
 });
 
-exports.addComment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
+exports.addcomment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
   async (req) => {
     const data = req.data;
@@ -350,7 +350,7 @@ exports.addComment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
   }
 );
 
-exports.deleteComment = onCall<
+exports.deletecomment = onCall<
   DeleteCommentRequest,
   Promise<DeleteCommentResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
@@ -387,7 +387,7 @@ exports.deleteComment = onCall<
   );
 });
 
-exports.updateComment = onCall<
+exports.updatecomment = onCall<
   UpdateCommentRequest,
   Promise<UpdateCommentResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
@@ -432,7 +432,7 @@ exports.updateComment = onCall<
   );
 });
 
-exports.getExchangeEvent = onCall<
+exports.getexchangeevent = onCall<
   GetExchangeEventRequest,
   Promise<GetExchangeEventResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
@@ -457,7 +457,7 @@ exports.getExchangeEvent = onCall<
   return event;
 });
 
-exports.getAllWishLists = onCall<
+exports.getallwishlists = onCall<
   GetAllWishListsRequest,
   Promise<GetAllWishListsResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {

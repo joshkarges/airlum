@@ -16,7 +16,9 @@ import { WishList } from "../../models/functions";
 import {
   AnyAction,
   FetchedResource,
+  FetchedStatusString,
   Fetcher,
+  isPendingAction,
   isSuccessAction,
   makeFetchedResourceReducer,
   makeFetchingActionCreator,
@@ -74,13 +76,13 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
       },
     };
   }
-  if (isSuccessAction(action, deleteExtraWishListAction)) {
+  if (isPendingAction(action, deleteExtraWishListAction)) {
     newState = {
       ...newState,
       data: _.omit(newState.data, action.opts.wishListId),
     };
   }
-  if (isSuccessAction(action, updateWishListMetadataAction)) {
+  if (isPendingAction(action, updateWishListMetadataAction)) {
     newState = {
       ...newState,
       data: {
@@ -109,7 +111,7 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
       },
     };
   }
-  if (isSuccessAction(action, deleteIdeaAction)) {
+  if (isPendingAction(action, deleteIdeaAction)) {
     newState = {
       ...newState,
       data: {
@@ -145,9 +147,10 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
           updatedAt: action.timestamp,
         },
       },
+      status: FetchedStatusString.Success,
     };
   }
-  if (isSuccessAction(action, updateIdeaMetadataAction)) {
+  if (isPendingAction(action, updateIdeaMetadataAction)) {
     newState = {
       ...newState,
       data: {
@@ -194,7 +197,7 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
       },
     };
   }
-  if (isSuccessAction(action, deleteCommentAction)) {
+  if (isPendingAction(action, deleteCommentAction)) {
     newState = {
       ...newState,
       data: {
@@ -220,7 +223,7 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
       },
     };
   }
-  if (isSuccessAction(action, updateCommentAction)) {
+  if (isPendingAction(action, updateCommentAction)) {
     newState = {
       ...newState,
       data: {
