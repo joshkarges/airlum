@@ -3,7 +3,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Button,
   TextField,
   Theme,
   Typography,
@@ -16,10 +15,12 @@ import { User } from "../models/User";
 import { useUser } from "../redux/selectors";
 import {
   addIdeaAction,
+  deleteExtraWishListAction,
   updateWishListMetadataAction,
 } from "../redux/slices/wishLists";
 import { useDispatcher } from "../utils/fetchers";
 import { AddButtonWithText } from "./AddButtonWithText";
+import { DeleteButtonWithConfirmation } from "./DeleteButtonWithConfirmation";
 import { Flex } from "./Flex";
 import { IdeaCard } from "./IdeaCard";
 
@@ -34,6 +35,9 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   wishListContainer: {
     maxWidth: 400,
+    backgroundColor: theme.palette.primary.light,
+    borderRadius: 4,
+    color: theme.palette.getContrastText(theme.palette.primary.light),
   },
 }));
 
@@ -88,7 +92,9 @@ type WishListCardProps = {
 export const WishListCard = ({ list, user }: WishListCardProps) => {
   const classes = useStyles();
   const [listExpanded, setListExpanded] = useState(true);
+  const [expandedIdeaId, setExpandedIdeaId] = useState<string | null>(null);
   const addIdea = useDispatcher(addIdeaAction);
+  const deleteExtraWishlist = useDispatcher(deleteExtraWishListAction);
   const addIdeaFromTitle = useCallback(
     (title: string) => {
       return addIdea({
@@ -103,19 +109,39 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
       expanded={listExpanded}
       onChange={(evt, expanded) => setListExpanded(expanded)}
       className={classes.wishListContainer}
+      color="primary"
+      elevation={3}
     >
-      <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionSummary expandIcon={<ExpandMore />} color="primary">
         <EditableField list={list} canEdit={listExpanded} fieldName="title" />
       </AccordionSummary>
       <AccordionDetails>
-        <EditableField list={list} canEdit={listExpanded} fieldName="notes" />
-        {_.map(list.ideas, (idea, id) => {
-          return <IdeaCard idea={idea} wishList={list} key={id} />;
-        })}
-        <AddButtonWithText
-          commitText={addIdeaFromTitle}
-          buttonText="Add Idea"
-        />
+        <Flex flexDirection="column" gap="16px">
+          <EditableField list={list} canEdit={listExpanded} fieldName="notes" />
+          <Flex flexDirection="column">
+            {_.map(list.ideas, (idea, id) => {
+              return (
+                <IdeaCard
+                  idea={idea}
+                  wishList={list}
+                  key={id}
+                  expandedIdeaId={expandedIdeaId}
+                  setExpandedIdeaId={setExpandedIdeaId}
+                />
+              );
+            })}
+            {_.isEmpty(list.ideas) && (
+              <DeleteButtonWithConfirmation
+                onDelete={() => deleteExtraWishlist({ wishListId: list.id })}
+                itemName="Wish List"
+              />
+            )}
+          </Flex>
+          <AddButtonWithText
+            commitText={addIdeaFromTitle}
+            buttonText="Add Idea"
+          />
+        </Flex>
       </AccordionDetails>
     </Accordion>
   );

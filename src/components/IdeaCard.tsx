@@ -2,7 +2,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Button,
   CircularProgress,
   IconButton,
   TextField,
@@ -12,7 +11,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { makeStyles } from "@mui/styles";
 import _ from "lodash";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Idea, IdeaMarkStatus, WishList } from "../models/functions";
 import { useUser } from "../redux/selectors";
 import {
@@ -33,6 +32,9 @@ import { AddButtonWithText } from "./AddButtonWithText";
 import { DeleteButtonWithConfirmation } from "./DeleteButtonWithConfirmation";
 
 const useStyles = makeStyles((theme: Theme) => ({
+  ideaContainer: {
+    borderRadius: 4,
+  },
   titleInput: {
     "&&": {
       ...theme.typography.h6,
@@ -109,12 +111,19 @@ const MarkIconByStatus = {
 type IdeaProps = {
   wishList: WishList;
   idea: Idea;
+  expandedIdeaId: string | null;
+  setExpandedIdeaId: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
+export const IdeaCard = ({
+  idea,
+  wishList,
+  expandedIdeaId,
+  setExpandedIdeaId,
+}: IdeaProps) => {
   const classes = useStyles();
   const user = useUser();
-  const [ideaExpanded, setIdeaExpanded] = useState(false);
+  const ideaExpanded = expandedIdeaId === idea.id;
   const addComment = useDispatcher(addCommentAction);
   const addCommentFromText = useCallback(
     (text: string) => {
@@ -141,23 +150,26 @@ export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
   return (
     <Accordion
       expanded={ideaExpanded}
-      onChange={(evt, expanded) => setIdeaExpanded(expanded)}
+      onChange={(evt, expanded) => setExpandedIdeaId(expanded ? idea.id : null)}
+      elevation={3}
+      className={classes.ideaContainer}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Flex gap="8px" alignItems="center">
           {wishList.author.uid !== user?.uid || wishList.isExtra ? (
-            <div>
+            <Flex flexDirection="column" alignItems="center">
               <IconButton
                 className={classes.noShrink}
                 onClick={async (evt) => {
                   evt.stopPropagation();
                   setMarkLoading(true);
+                  // TODO: Show some indicator when marking fails
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   const { response, error } = await markIdea({
                     wishListId: wishList.id,
                     ideaId: idea.id,
                     status: nextMarkStatus,
                   });
-                  // TODO: Show some indicator when marking fails
                   setMarkLoading(false);
                 }}
                 disabled={markLoading}
@@ -168,7 +180,12 @@ export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
                   <MarkIcon />
                 )}
               </IconButton>
-            </div>
+              {idea.mark && ideaExpanded && (
+                <Typography variant="caption">
+                  {idea.mark.author.displayName.split(/\s+/)[0]}
+                </Typography>
+              )}
+            </Flex>
           ) : null}
           <EditableField
             idea={idea}
@@ -179,7 +196,7 @@ export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
         </Flex>
       </AccordionSummary>
       <AccordionDetails>
-        <Flex flexDirection="column">
+        <Flex flexDirection="column" gap="16px">
           <EditableField
             idea={idea}
             canEdit={ideaExpanded}
@@ -189,7 +206,7 @@ export const IdeaCard = ({ idea, wishList }: IdeaProps) => {
           {idea.author.uid === user?.uid && (
             <DeleteButtonWithConfirmation onDelete={onDelete} itemName="Idea" />
           )}
-          <Flex flexDirection="column" pt="16px">
+          <Flex flexDirection="column">
             <Typography variant="overline">Comments</Typography>
             {_.map(_.values(idea.comments), (comment) => (
               <CommentCard

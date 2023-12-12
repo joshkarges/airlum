@@ -71,7 +71,7 @@ export const wishListToForm = (wishList: WishList): EditMyListFormType => {
 };
 
 /** Create Wish List */
-export type CreateWishListRequest = {
+export type CreateWishListRequest = Partial<WishListMetadata> & {
   exchangeEvent: string;
   isExtra: boolean;
 };

@@ -58,8 +58,9 @@ export const CommentCard = ({
       {isCommentAuthor && (
         <Flex justifyContent="space-evenly">
           <Button
-            variant="text"
             size="small"
+            variant="outlined"
+            color="error"
             onClick={() => {
               deleteComment({
                 wishListId: wishListId,
@@ -71,8 +72,8 @@ export const CommentCard = ({
             Delete
           </Button>
           <Button
-            variant="text"
             size="small"
+            variant="outlined"
             onClick={() => {
               if (isEditing) {
                 // save

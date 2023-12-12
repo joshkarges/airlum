@@ -12,6 +12,7 @@ import { BangForBuckPage } from "./pages/BangForBuckPage";
 import { ModalContextProvider } from "./components/modals/ModalContext";
 import { ChristmasListPage } from "./pages/ChristmasListPage";
 import firebase from "firebase/compat/app";
+import { blue } from "@mui/material/colors";
 
 // var firebaseConfig = {
 //   apiKey: "AIzaSyAzSO8pByh5RcpfmwksHOHdh-IMjFetutQ",
@@ -30,7 +31,17 @@ export const muiCache = createCache({
   prepend: true,
 });
 
-const theme = createTheme({});
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: blue[500],
+    },
+    tonalOffset: {
+      light: 0.9,
+      dark: 0.2,
+    },
+  },
+});
 function App() {
   return (
     <Provider store={store}>

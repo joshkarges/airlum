@@ -110,10 +110,9 @@ exports.createwishlist = onCall<
   const newDoc = wishListCollection.doc();
   const newData: WishList = {
     title: data.isExtra ? "Extra List" : user.displayName,
+    ...data,
     notes: "",
     ideas: {},
-    exchangeEvent: data.exchangeEvent,
-    isExtra: data.isExtra,
     author: user,
     createdAt: Date.now(),
     updatedAt: Date.now(),

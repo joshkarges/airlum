@@ -1,10 +1,9 @@
 import { Button, Typography } from "@mui/material";
 import moment from "moment";
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import firebase from "firebase/compat/app";
 import { Flex } from "../components/Flex";
-import { ModalContext } from "../components/modals/ModalContext";
 import { SignIn } from "../components/SignIn";
 import { setUser } from "../redux/slices/user";
 import { useUser } from "../redux/selectors";
@@ -20,6 +19,7 @@ import { WishListCard } from "../components/WishListCard";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 import { anyIsIdle, useDispatcher, useReduxState } from "../utils/fetchers";
 import _ from "lodash";
+import { AddButtonWithText } from "../components/AddButtonWithText";
 
 export const ChristmasListPage = () => {
   const dispatch = useDispatch();
@@ -103,26 +103,29 @@ export const ChristmasListPage = () => {
                       Start My List
                     </Button>
                   ) : null}
-                  <Button
-                    variant="contained"
-                    onClick={() =>
-                      createNewWishList({
-                        exchangeEvent: exchangeEventUrlParam,
-                        isExtra: true,
-                      })
-                    }
-                  >
-                    Create List For Someone Else
-                  </Button>
                 </Flex>
                 <Flex gap="32px" flexWrap="wrap">
-                  {_.map(_.values(data), (list) => {
+                  {_.map(_.sortBy(_.values(data), "createdAt"), (list) => {
                     return (
-                      <div>
-                        <WishListCard list={list} user={user} key={list.id} />
+                      <div key={list.id}>
+                        <WishListCard list={list} user={user} />
                       </div>
                     );
                   })}
+                  <Flex alignItems="center">
+                    <AddButtonWithText
+                      commitText={(text) => {
+                        return createNewWishList({
+                          title: text,
+                          exchangeEvent: exchangeEventUrlParam,
+                          isExtra: true,
+                        });
+                      }}
+                      buttonText="Create List For Someone Else"
+                      initialText="Extra List"
+                      size="large"
+                    />
+                  </Flex>
                 </Flex>
               </Flex>
             )}
