@@ -13,6 +13,7 @@ import { ModalContextProvider } from "./components/modals/ModalContext";
 import { ChristmasListPage } from "./pages/ChristmasListPage";
 import firebase from "firebase/compat/app";
 import { blue } from "@mui/material/colors";
+import { ExchangeEventListPage } from "./pages/ExchangeEventListPage";
 
 // var firebaseConfig = {
 //   apiKey: "AIzaSyAzSO8pByh5RcpfmwksHOHdh-IMjFetutQ",
@@ -63,6 +64,9 @@ function App() {
                     </Route>
                     <Route path="/christmas-list/:exchangeEvent">
                       <ChristmasListPage />
+                    </Route>
+                    <Route path="/exchange-events">
+                      <ExchangeEventListPage />
                     </Route>
                     <Route path="/">
                       <HomePage />

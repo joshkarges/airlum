@@ -10,8 +10,7 @@ import {
 import { makeStyles } from "@mui/styles";
 import _ from "lodash";
 import { useCallback, useState } from "react";
-import { WishList } from "../models/functions";
-import { User } from "../models/User";
+import { WishList, User } from "../models/functions";
 import { useUser } from "../redux/selectors";
 import {
   addIdeaAction,

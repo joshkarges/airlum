@@ -47,6 +47,14 @@ import {
   UpdateCommentResponse,
   DeleteCommentRequest,
   DeleteCommentResponse,
+  GetAllExchangeEventsResponse,
+  GetAllExchangeEventsRequest,
+  CreateExchangeEventRequest,
+  CreateExchangeEventResponse,
+  UpdateExchangeEventRequest,
+  UpdateExchangeEventResponse,
+  DeleteExchangeEventRequest,
+  DeleteExchangeEventResponse,
 } from "./models";
 import _ = require("lodash");
 import { AuthData } from "firebase-functions/lib/common/providers/https";
@@ -450,7 +458,7 @@ exports.getexchangeevent = onCall<
 
   const event = result.data() as ExchangeEvent;
 
-  if (!event.users.find((u) => u.email === user.email)) {
+  if (!event.users[user.email]) {
     throw "User not in event";
   }
   return event;
@@ -474,7 +482,7 @@ exports.getallwishlists = onCall<
     throw "No event found";
   }
   const exchangeEvent = exchangeEventDoc.data() as ExchangeEvent;
-  if (!exchangeEvent.users.find((u) => u.email === user.email)) {
+  if (!exchangeEvent.users[user.email]) {
     throw "User not in event";
   }
 
@@ -506,4 +514,67 @@ exports.getallwishlists = onCall<
     }),
     "id"
   );
+});
+
+// Get's all the exchange events for which the user is the author.
+exports.getallexchangeevents = onCall<
+  GetAllExchangeEventsRequest,
+  Promise<GetAllExchangeEventsResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const user = getUserFromAuth(req.auth);
+  if (!user) {
+    throw "No user found";
+  }
+  const db = getFirestore();
+  const exchangeEvents = await db
+    .collection("exchangeEvent")
+    .where("author.uid", "==", user.uid)
+    .get();
+  return _.keyBy(
+    _.invokeMap(exchangeEvents.docs, "data"),
+    "id"
+  ) as GetAllExchangeEventsResponse;
+});
+
+exports.createexchangeevent = onCall<
+  CreateExchangeEventRequest,
+  Promise<CreateExchangeEventResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const data = req.data;
+  const user = getUserFromAuth(req.auth);
+  console.log("createExchangeEvent user ", user?.email);
+  if (!user) {
+    throw "No user found";
+  }
+  const exchangeEventCollection = getFirestore().collection("exchangeEvent");
+  const newDoc = exchangeEventCollection.doc();
+  const newData: ExchangeEvent = {
+    ...data,
+    author: user,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    id: newDoc.id,
+  };
+  console.log("createExchangeEvent newData", newData);
+  await newDoc.set(newData);
+  return newData;
+});
+
+exports.updateexchangeevent = onCall<
+  UpdateExchangeEventRequest,
+  Promise<UpdateExchangeEventResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const { id, ...newMetadata } = req.data;
+  const exchangeEventDoc = getFirestore().collection("exchangeEvent").doc(id);
+  exchangeEventDoc.update(newMetadata);
+  return null;
+});
+
+exports.deleteexchangeevent = onCall<
+  DeleteExchangeEventRequest,
+  Promise<DeleteExchangeEventResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const { exchangeEventId } = req.data;
+  getFirestore().collection("exchangeEvent").doc(exchangeEventId).delete();
+  return null;
 });

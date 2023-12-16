@@ -5,16 +5,21 @@ type UserCreatedAsset = {
   author: User;
 };
 
-export type ExchangeEvent = UserCreatedAsset & {
+export type ExchangeEventMetadata = {
   name: string;
   description: string;
   date: number;
-  users: {
-    email: string;
-    joinedAt: number;
-    uid: string;
-  }[];
+  users: Record<
+    string,
+    {
+      email: string;
+      joinedAt: number;
+      uid: string;
+    }
+  >;
 };
+
+export type ExchangeEvent = UserCreatedAsset & ExchangeEventMetadata;
 
 export type User = {
   email: string;
@@ -168,3 +173,28 @@ export type GetExchangeEventResponse = ExchangeEvent;
 export type GetAllWishListsRequest = { exchangeEvent: string };
 
 export type GetAllWishListsResponse = Record<string, WishList>;
+
+/** Get All Exchange Events */
+export type GetAllExchangeEventsRequest = {
+  uid: string;
+};
+
+export type GetAllExchangeEventsResponse = Record<string, ExchangeEvent>;
+
+/** Create Exchange Event */
+export type CreateExchangeEventRequest = ExchangeEventMetadata;
+
+export type CreateExchangeEventResponse = ExchangeEvent;
+
+/** Update Exchange Event */
+export type UpdateExchangeEventRequest = Partial<ExchangeEventMetadata> & {
+  id: string;
+};
+
+export type UpdateExchangeEventResponse = null;
+
+export type DeleteExchangeEventRequest = {
+  exchangeEventId: string;
+};
+
+export type DeleteExchangeEventResponse = null;

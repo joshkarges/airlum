@@ -1,5 +1,6 @@
 import firebase from "firebase/compat/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { GetAllExchangeEventsRequest } from "../../functions/src/models";
 import {
   GetExchangeEventRequest,
   GetExchangeEventResponse,
@@ -25,6 +26,13 @@ import {
   UpdateIdeaMetadataResponse,
   UpdateWishListMetadataRequest,
   UpdateWishListMetadataResponse,
+  GetAllExchangeEventsResponse,
+  CreateExchangeEventRequest,
+  CreateExchangeEventResponse,
+  UpdateExchangeEventRequest,
+  UpdateExchangeEventResponse,
+  DeleteExchangeEventRequest,
+  DeleteExchangeEventResponse,
 } from "../models/functions";
 
 var firebaseConfig = {
@@ -122,3 +130,23 @@ export const getAllWishListsFromServer = makeFunctionsCall<
   GetAllWishListsRequest,
   GetAllWishListsResponse
 >("getallwishlists");
+
+export const getAllExchangeEvents = makeFunctionsCall<
+  GetAllExchangeEventsRequest,
+  GetAllExchangeEventsResponse
+>("getallexchangeevents");
+
+export const createExchangeEvent = makeFunctionsCall<
+  CreateExchangeEventRequest,
+  CreateExchangeEventResponse
+>("createexchangeevent");
+
+export const updateExchangeEvent = makeFunctionsCall<
+  UpdateExchangeEventRequest,
+  UpdateExchangeEventResponse
+>("updateexchangeevent");
+
+export const deleteExchangeEvent = makeFunctionsCall<
+  DeleteExchangeEventRequest,
+  DeleteExchangeEventResponse
+>("deleteexchangeevent");

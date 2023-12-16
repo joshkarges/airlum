@@ -7,7 +7,7 @@ import { Flex } from "../components/Flex";
 import { SignIn } from "../components/SignIn";
 import { setUser } from "../redux/slices/user";
 import { useUser } from "../redux/selectors";
-import { User } from "../models/User";
+import { User } from "../models/functions";
 import { useParams } from "react-router-dom";
 import { getExchangeEventAction } from "../redux/slices/exchangeEvent";
 import {
@@ -69,7 +69,7 @@ export const ChristmasListPage = () => {
     <Flex flexDirection="column" p={3}>
       {!!user ? (
         <Flex flexDirection="column">
-          <FetchedComponent resource={exchangeEvent}>
+          <FetchedComponent resource={exchangeEvent.data[exchangeEventUrlParam]}>
             {(data) => (
               <Flex
                 flexDirection="column"
