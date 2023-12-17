@@ -8,7 +8,6 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { makeStyles } from "@mui/styles";
 import _ from "lodash";
 import React, { useCallback, useState } from "react";
@@ -27,6 +26,7 @@ import {
   CheckCircle,
   RadioButtonUnchecked,
   RemoveCircle,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { AddButtonWithText } from "./AddButtonWithText";
 import { DeleteButtonWithConfirmation } from "./DeleteButtonWithConfirmation";

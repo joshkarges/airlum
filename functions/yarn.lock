@@ -573,6 +573,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/lodash@npm:^4.14.202":
+  version: 4.14.202
+  resolution: "@types/lodash@npm:4.14.202"
+  checksum: a91acf3564a568c6f199912f3eb2c76c99c5a0d7e219394294213b3f2d54f672619f0fde4da22b29dc5d4c31457cd799acc2e5cb6bd90f9af04a1578483b6ff7
+  languageName: node
+  linkType: hard
+
 "@types/long@npm:^4.0.0":
   version: 4.0.2
   resolution: "@types/long@npm:4.0.2"
@@ -2156,6 +2163,7 @@ __metadata:
   resolution: "functions@workspace:."
   dependencies:
     "@google-cloud/functions-framework": ^3.3.0
+    "@types/lodash": ^4.14.202
     "@types/uuid": ^9.0.7
     "@typescript-eslint/eslint-plugin": ^5.12.0
     "@typescript-eslint/parser": ^5.12.0
@@ -2167,6 +2175,7 @@ __metadata:
     firebase-admin: ^11.8.0
     firebase-functions: ^4.3.1
     firebase-functions-test: ^3.1.0
+    lodash: ^4.17.21
     typescript: ^4.9.0
     uuid: ^9.0.1
   languageName: unknown

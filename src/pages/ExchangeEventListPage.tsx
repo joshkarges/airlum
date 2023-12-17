@@ -18,6 +18,7 @@ import {
   CardActions,
   CardContent,
   Chip,
+  IconButton,
   TextField,
   Theme,
   Typography,
@@ -27,7 +28,7 @@ import moment from "moment";
 import { makeStyles } from "@mui/styles";
 import { MultiTextField } from "../components/inputs/MultiTextField";
 import { Formik, useField } from "formik";
-import { AddBox, ExpandMore } from "@mui/icons-material";
+import { AddBox, ArrowForward, ExpandMore } from "@mui/icons-material";
 import {
   createExchangeEventAction,
   deleteExchangeEventAction,
@@ -166,31 +167,42 @@ export const ExchangeEventCard = ({
         eventName: Yup.string().required("Required"),
         description: Yup.string(),
         date: Yup.number(),
-        users: Yup.array().of(
-          Yup.string().test({
-            name: "validate-email",
-            test: (value, context) => {
-              if (!Yup.string().email().isValidSync(value)) {
-                return context.createError({
-                  message: `${value} is not a valid email address`,
-                });
-              }
-              return true;
-            },
-          })
-        ),
+        users: Yup.array()
+          .of(
+            Yup.string().test({
+              name: "validate-email",
+              test: (value, context) => {
+                if (!Yup.string().email().isValidSync(value)) {
+                  return context.createError({
+                    message: `${value} is not a valid email address`,
+                  });
+                }
+                return true;
+              },
+            })
+          )
+          .max(50, "Max 50 users"),
       })}
     >
       {(props) => (
         <Card className={classes.card} elevation={3}>
           <CardContent>
             <Flex flexDirection="column" gap="16px">
-              <EditableField
-                variant="h5"
-                fieldName="eventName"
-                canEdit={editMode}
-                label="Event Name"
-              />
+              <Flex justifyContent="space-between" alignItems="center">
+                <EditableField
+                  variant="h5"
+                  fieldName="eventName"
+                  canEdit={editMode}
+                  label="Event Name"
+                />
+                {!editMode && (
+                  <a href={`/christmas-list/${id}`}>
+                    <IconButton>
+                      <ArrowForward />
+                    </IconButton>
+                  </a>
+                )}
+              </Flex>
               <EditableField
                 variant="subtitle1"
                 fieldName="description"
@@ -230,7 +242,7 @@ export const ExchangeEventCard = ({
                   ) : (
                     <Flex gap="8px" flexWrap="wrap">
                       {_.map(users, (user) => (
-                        <Chip label={user.email} />
+                        <Chip label={user.email} key={user.email} />
                       ))}
                     </Flex>
                   )}
@@ -360,7 +372,10 @@ export const ExchangeEventListPage = () => {
               exchangeEventsMap,
               (exchangeEventResource, exchangeEventId) => {
                 return (
-                  <FetchedComponent resource={exchangeEventResource}>
+                  <FetchedComponent
+                    resource={exchangeEventResource}
+                    key={exchangeEventId}
+                  >
                     {(exchangeEvent) => (
                       <ExchangeEventCard
                         exchangeEvent={exchangeEvent}
