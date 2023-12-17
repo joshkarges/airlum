@@ -14,7 +14,6 @@ import {
   createWishListAction,
   getAllWishListsAction /* setWishLists */,
 } from "../redux/slices/wishLists";
-import { EditMyList } from "../components/modals/EditMyList";
 import { WishListCard } from "../components/WishListCard";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 import { anyIsIdle, useDispatcher, useReduxState } from "../utils/fetchers";
@@ -69,7 +68,9 @@ export const ChristmasListPage = () => {
     <Flex flexDirection="column" p={3}>
       {!!user ? (
         <Flex flexDirection="column">
-          <FetchedComponent resource={exchangeEvent.data[exchangeEventUrlParam]}>
+          <FetchedComponent
+            resource={exchangeEvent.data[exchangeEventUrlParam]}
+          >
             {(data) => (
               <Flex
                 flexDirection="column"
@@ -136,7 +137,6 @@ export const ChristmasListPage = () => {
           <SignIn signInSuccessUrl={window.location.href} />
         </Flex>
       )}
-      <EditMyList />
     </Flex>
   );
 };

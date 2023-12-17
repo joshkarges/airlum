@@ -1,16 +1,10 @@
-import {
-  ExchangeEvent,
-  User,
-} from "../models/functions";
+import * as Yup from "yup";
+import { ExchangeEvent, User } from "../models/functions";
 import firebase from "firebase/compat/app";
 import { useDispatch } from "react-redux";
 import { useUser } from "../redux/selectors";
 import { setUser } from "../redux/slices/user";
-import {
-  anyIsIdle,
-  useDispatcher,
-  useReduxState,
-} from "../utils/fetchers";
+import { anyIsIdle, useDispatcher, useReduxState } from "../utils/fetchers";
 import { useEffect, useMemo, useState } from "react";
 import { Flex } from "../components/Flex";
 import _ from "lodash";
@@ -33,9 +27,14 @@ import moment from "moment";
 import { makeStyles } from "@mui/styles";
 import { MultiTextField } from "../components/inputs/MultiTextField";
 import { Formik, useField } from "formik";
-import { ExpandMore } from "@mui/icons-material";
-import { validateEmail } from "../utils/utils";
-import { deleteExchangeEventAction, getAllExchangeEventsAction, updateExchangeEventAction } from "../redux/slices/exchangeEvent";
+import { AddBox, ExpandMore } from "@mui/icons-material";
+import {
+  createExchangeEventAction,
+  deleteExchangeEventAction,
+  getAllExchangeEventsAction,
+  updateExchangeEventAction,
+} from "../redux/slices/exchangeEvent";
+import classNames from "classnames";
 
 const useStyles = makeStyles((theme: Theme) => ({
   h5: {
@@ -47,7 +46,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     ...theme.typography.subtitle1,
   },
   card: {
-    maxWidth: 400,
+    width: 400,
+    minHeight: 300,
+  },
+  createCard: {
+    height: 300,
   },
 }));
 
@@ -92,6 +95,7 @@ const EditableField = ({
       {...inputProps}
       value={toInputValue(inputProps.value)}
       error={!!metadata.error}
+      helperText={metadata.error ? metadata.error : undefined}
     />
   ) : (
     <Typography variant={variant}>
@@ -106,52 +110,90 @@ const formatTimestampMMDDYYYY = (timestamp: number) =>
 const formatTimestampYYYY_MM_DD = (timestamp: number) =>
   moment(timestamp).format("YYYY-MM-DD");
 
+type ExchangeEventCardProps = {
+  exchangeEvent: Pick<
+    ExchangeEvent,
+    "name" | "description" | "users" | "date" | "id" | "updatedAt"
+  >;
+  initialEditMode?: boolean;
+  onCancel?: () => void;
+  onSave?: () => void;
+};
+
 export const ExchangeEventCard = ({
-  name,
-  description,
-  users,
-  date,
-  updatedAt,
-  id,
-}: ExchangeEvent) => {
+  initialEditMode = false,
+  onCancel = _.noop,
+  onSave = _.noop,
+  exchangeEvent: { updatedAt, id, ...exchangeMetadata },
+}: ExchangeEventCardProps) => {
   const classes = useStyles();
-  const [editMode, setEditMode] = useState(false);
+  const { name, description, users, date } = exchangeMetadata;
+  const [editMode, setEditMode] = useState(initialEditMode);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const userEmails = useMemo(() => _.keys(users), [users]);
   const [expandUsers, setExpandUsers] = useState(false);
   const updateExchangeEvent = useDispatcher(updateExchangeEventAction);
+  const createExchangeEvent = useDispatcher(createExchangeEventAction);
   const deleteExchangeEvent = useDispatcher(deleteExchangeEventAction);
+  const eventMetadataFormValues = useMemo(
+    () => ({
+      eventName: name,
+      description,
+      date,
+      users: userEmails,
+    }),
+    [name, description, date, userEmails]
+  );
   return (
     <Formik
-      initialValues={{
-        name,
-        description,
-        date,
-        users: userEmails,
-      }}
-      onSubmit={({name, description, date, users: userValues}) => {
-        updateExchangeEvent({
+      initialValues={eventMetadataFormValues}
+      onSubmit={({ eventName: name, description, date, users: userValues }) => {
+        const upsertFn: any = id ? updateExchangeEvent : createExchangeEvent;
+        upsertFn({
           name,
           description,
           date,
-          users: _.mapValues(_.keyBy(userValues), email => ({email, joinedAt: users[email]?.joinedAt ?? 0, uid: '' })),
-          id
+          users: _.mapValues(_.keyBy(userValues), (email) => ({
+            email,
+            joinedAt: users[email]?.joinedAt ?? 0,
+            uid: "",
+          })),
+          ...(id ? { id } : {}),
         });
         setEditMode(false);
       }}
+      validationSchema={Yup.object({
+        eventName: Yup.string().required("Required"),
+        description: Yup.string(),
+        date: Yup.number(),
+        users: Yup.array().of(
+          Yup.string().test({
+            name: "validate-email",
+            test: (value, context) => {
+              if (!Yup.string().email().isValidSync(value)) {
+                return context.createError({
+                  message: `${value} is not a valid email address`,
+                });
+              }
+              return true;
+            },
+          })
+        ),
+      })}
     >
       {(props) => (
-        <Card className={classes.card}>
+        <Card className={classes.card} elevation={3}>
           <CardContent>
             <Flex flexDirection="column" gap="16px">
               <EditableField
                 variant="h5"
-                fieldName="name"
+                fieldName="eventName"
                 canEdit={editMode}
                 label="Event Name"
               />
               <EditableField
                 variant="subtitle1"
-                fieldName={"description"}
+                fieldName="description"
                 canEdit={editMode}
                 multiline
                 label="Description"
@@ -166,8 +208,8 @@ export const ExchangeEventCard = ({
                 <AccordionDetails>
                   {editMode ? (
                     <MultiTextField
-                    label="Users"
-                    placeholder="Enter an email..."
+                      label="Users"
+                      placeholder="Enter an email..."
                       value={props.values.users}
                       onChange={(e, newValue) => {
                         props.setFieldValue("users", newValue);
@@ -176,13 +218,14 @@ export const ExchangeEventCard = ({
                       freeSolo
                       confirmKeys={[",", "Space"]}
                       helperText={
-                        props.values.users.every(validateEmail)
-                          ? "Enter user email addresses"
-                          : `${props.values.users.find(
-                              (email) => !validateEmail(email)
-                            )} is not a valid email address`
+                        props.errors.users
+                          ? props.errors.users
+                              .toString()
+                              .split(",")
+                              .filter(Boolean)[0]
+                          : "Enter user email addresses"
                       }
-                      error={!props.values.users.every(validateEmail)}
+                      error={!!props.errors.users}
                     />
                   ) : (
                     <Flex gap="8px" flexWrap="wrap">
@@ -201,22 +244,67 @@ export const ExchangeEventCard = ({
                 toDisplayValue={formatTimestampMMDDYYYY}
                 type="date"
               />
-              <Typography>{`Last updated: ${moment(updatedAt).format(
-                "MM/DD/YYYY h:mm a"
-              )}`}</Typography>
+              <Typography>{`Last updated: ${moment(
+                updatedAt
+              ).calendar()}`}</Typography>
             </Flex>
           </CardContent>
-            <CardActions>
+          <CardActions>
+            <Flex justifyContent="space-between" flexGrow={1}>
               {editMode ? (
-                <Flex justifyContent="space-between" flexGrow={1}>
-                  <Button type="submit" variant="contained" onClick={props.submitForm}>Save</Button>
-                  <Button onClick={() => {
-                    setEditMode(false);
-                  }} variant="outlined">Cancel</Button>
-                </Flex>
+                <>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    onClick={() => {
+                      props.submitForm();
+                      onSave();
+                    }}
+                    disabled={
+                      !_.isEmpty(props.errors) ||
+                      _.isEqual(props.values, eventMetadataFormValues)
+                    }
+                  >
+                    {id ? "Save" : "Create"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (id) setEditMode(false);
+                      onCancel();
+                    }}
+                    variant="outlined"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : confirmingDelete && id ? (
+                <>
+                  <Button
+                    color="error"
+                    variant="contained"
+                    onClick={() => deleteExchangeEvent({ exchangeEventId: id })}
+                  >
+                    Delete
+                  </Button>
+                  <Typography>Are you sure?</Typography>
+                  <Button
+                    onClick={() => {
+                      setConfirmingDelete(false);
+                    }}
+                    variant="outlined"
+                  >
+                    Cancel
+                  </Button>
+                </>
               ) : (
-                <Flex justifyContent="space-between" flexGrow={1}>
-                  <Button color="error" variant="outlined" onClick={() => deleteExchangeEvent({exchangeEventId: id})}>Delete</Button>
+                <>
+                  <Button
+                    color="error"
+                    variant="outlined"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    Delete
+                  </Button>
                   <Button
                     onClick={() => {
                       setEditMode(true);
@@ -226,9 +314,10 @@ export const ExchangeEventCard = ({
                   >
                     Edit
                   </Button>
-                </Flex>
+                </>
               )}
-            </CardActions>
+            </Flex>
+          </CardActions>
         </Card>
       )}
     </Formik>
@@ -236,9 +325,14 @@ export const ExchangeEventCard = ({
 };
 
 export const ExchangeEventListPage = () => {
+  const classes = useStyles();
   const dispatch = useDispatch();
   const user = useUser();
-  const [exchangeEventsResource, fetchExchangeEvents] = useReduxState('exchangeEvent', getAllExchangeEventsAction);
+  const [exchangeEventsResource, fetchExchangeEvents] = useReduxState(
+    "exchangeEvent",
+    getAllExchangeEventsAction
+  );
+  const [creatingEvent, setCreatingEvent] = useState(false);
 
   useEffect(() => {
     const unregister = firebase.auth().onAuthStateChanged((authUser) => {
@@ -261,14 +355,61 @@ export const ExchangeEventListPage = () => {
     <FetchedComponent resource={exchangeEventsResource}>
       {(exchangeEventsMap) => {
         return (
-          <Flex flexWrap="wrap" gap="32px" p="32px">
-            {_.map(exchangeEventsMap, (exchangeEventResource, exchangeEventId) => {
-              return (
-                <FetchedComponent resource={exchangeEventResource}>
-                  {exchangeEvent => <ExchangeEventCard {...exchangeEvent} key={exchangeEventId} />}
-                </FetchedComponent>
-              );
-            })}
+          <Flex flexWrap="wrap" gap="32px" p="32px" alignItems="flex-start">
+            {_.map(
+              exchangeEventsMap,
+              (exchangeEventResource, exchangeEventId) => {
+                return (
+                  <FetchedComponent resource={exchangeEventResource}>
+                    {(exchangeEvent) => (
+                      <ExchangeEventCard
+                        exchangeEvent={exchangeEvent}
+                        key={exchangeEventId}
+                      />
+                    )}
+                  </FetchedComponent>
+                );
+              }
+            )}
+            {creatingEvent ? (
+              <ExchangeEventCard
+                exchangeEvent={{
+                  name: "",
+                  description: "",
+                  date: moment().add(1, "w").toDate().getTime(),
+                  users: {},
+                  id: "",
+                  updatedAt: Date.now(),
+                }}
+                initialEditMode={true}
+                onCancel={() => setCreatingEvent(false)}
+                onSave={() => setCreatingEvent(false)}
+              />
+            ) : (
+              <Card
+                className={classNames(classes.card, classes.createCard)}
+                elevation={3}
+              >
+                <Flex gap="16px" height="100%" alignItems="stretch">
+                  <Button
+                    onClick={() => {
+                      setCreatingEvent(true);
+                    }}
+                    fullWidth
+                  >
+                    <Flex
+                      flexDirection="column"
+                      alignItems="center"
+                      justifyContent="center"
+                      flexGrow={1}
+                    >
+                      <AddBox />
+                      <Typography variant="h5">Create new event</Typography>
+                    </Flex>
+                  </Button>
+                </Flex>
+              </Card>
+            )}
           </Flex>
         );
       }}

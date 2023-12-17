@@ -11,21 +11,8 @@ import { CacheProvider } from "@emotion/react";
 import { BangForBuckPage } from "./pages/BangForBuckPage";
 import { ModalContextProvider } from "./components/modals/ModalContext";
 import { ChristmasListPage } from "./pages/ChristmasListPage";
-import firebase from "firebase/compat/app";
 import { blue } from "@mui/material/colors";
 import { ExchangeEventListPage } from "./pages/ExchangeEventListPage";
-
-// var firebaseConfig = {
-//   apiKey: "AIzaSyAzSO8pByh5RcpfmwksHOHdh-IMjFetutQ",
-//   authDomain: "airlum.firebaseapp.com",
-//   projectId: "airlum",
-//   storageBucket: "airlum.appspot.com",
-//   messagingSenderId: "1002201936954",
-//   appId: "1:1002201936954:web:a17f309ae03b868557f103",
-//   measurementId: "G-FZ88CGSCH7"
-// };
-// // Initialize Firebase
-// firebase.initializeApp(firebaseConfig);
 
 export const muiCache = createCache({
   key: "mui",

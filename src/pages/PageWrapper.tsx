@@ -1,8 +1,7 @@
 import { AppBar, Button, Toolbar, Typography } from "@mui/material";
 import React, { PropsWithChildren } from "react";
-import { Route, Router, Switch } from "react-router-dom";
+import { Route, Switch } from "react-router-dom";
 import { Flex } from "../components/Flex";
-import { EditMyList } from "../components/modals/EditMyList";
 import firebase from "firebase/compat/app";
 
 const PageWrapper = ({ children }: PropsWithChildren) => {
@@ -24,6 +23,9 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
             </Route>
             <Route path="/tattoo">
               <Typography variant="h6">Tattoo</Typography>
+            </Route>
+            <Route path="/exchange-events">
+              <Typography variant="h6">Exchange Events</Typography>
             </Route>
             <Route path="/">
               <Typography variant="h6">AirLum</Typography>

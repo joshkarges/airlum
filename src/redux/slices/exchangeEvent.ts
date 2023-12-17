@@ -93,10 +93,13 @@ export const exchangeEvent: UnsureReducer<MultiSingleState<ExchangeEvent>> = (
   if (isSuccessAction(action, createExchangeEventAction)) {
     return {
       ...newState,
-      [action.data.id]: {
-        status: FetchedStatusString.Success,
-        data: action.data,
-        timestampe: action.timestamp,
+      data: {
+        ...newState.data,
+        [action.data.id]: {
+          status: FetchedStatusString.Success,
+          data: action.data,
+          timestamp: action.timestamp,
+        },
       },
     };
   }

@@ -566,7 +566,10 @@ exports.updateexchangeevent = onCall<
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const { id, ...newMetadata } = req.data;
   const exchangeEventDoc = getFirestore().collection("exchangeEvent").doc(id);
-  exchangeEventDoc.update(newMetadata);
+  exchangeEventDoc.update({
+    ...newMetadata,
+    updatedAt: Date.now(),
+  });
   return null;
 });
 

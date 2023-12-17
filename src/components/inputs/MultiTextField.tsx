@@ -3,11 +3,9 @@ import {
   Chip,
   TextField,
   AutocompleteProps,
-  FormHelperText,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import { ReactNode, useCallback, useMemo } from "react";
-
 
 const useStyles = makeStyles(
   (theme) => ({
@@ -56,57 +54,63 @@ export const MultiTextField = (props: MultiTextFieldProps) => {
     [freeSolo, optionsSet, onChange, value]
   );
   return (
-    <div>
-      <Autocomplete
-        className={classes.autocomplete}
-        multiple
-        id="multi-text-field"
-        renderTags={(value: readonly string[], getTagProps) =>
-          value.map((option: string, index: number) => (
-            <Chip
-              variant="outlined"
-              label={option}
-              {...getTagProps({ index })}
-            />
-          ))
-        }
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label={label}
-            placeholder={placeholder}
-            variant="filled"
-            helperText={helperText}
-            error={!!error}
-            onKeyDown={(evt) => {
-              // Tab and Enter always comfirm the current input if it's non-empty.
-              const newValue = (evt.target as HTMLInputElement).value;
-              if (["Tab", "Enter"].includes(evt.key) && newValue) {
-                addValue(evt, newValue);
-                params.inputProps.onChange?.({ target: { value: "" } } as any);
-                // Prevent blur on Tab and submit the form on Enter, since we're
-                // using these keys to confirm the input.
-                evt.preventDefault();
-              }
-            }}
-            onKeyUp={(evt) => {
-              if (confirmKeys.includes(evt.key)) {
-                const target = evt.target as HTMLInputElement;
-                // Remove key up value if it's a single character instead of something like 'Tab'
-                const newValueEl =
-                  evt.key.length === 1
-                    ? target.value.slice(0, -1)
-                    : target.value;
-                addValue(evt, newValueEl);
-                params.inputProps.onChange?.({ target: { value: "" } } as any);
-              }
-            }}
+    <Autocomplete
+      className={classes.autocomplete}
+      multiple
+      id="multi-text-field"
+      renderTags={(value: readonly string[], getTagProps) =>
+        value.map((option: string, index: number) => (
+          <Chip
+            label={option}
+            color="primary"
+            size="small"
+            {...getTagProps({ index })}
           />
-        )}
-        options={props.options ?? []}
-        {...props}
-      />
-      <FormHelperText>{}</FormHelperText>
-    </div>
+        ))
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={label}
+          placeholder={placeholder}
+          variant="filled"
+          helperText={helperText}
+          error={!!error}
+          onKeyDown={(evt) => {
+            // Tab and Enter always comfirm the current input if it's non-empty.
+            const newValue = (evt.target as HTMLInputElement).value;
+            if (["Tab", "Enter"].includes(evt.key) && newValue) {
+              addValue(evt, newValue);
+              params.inputProps.onChange?.({ target: { value: "" } } as any);
+              // Prevent blur on Tab and submit the form on Enter, since we're
+              // using these keys to confirm the input.
+              evt.preventDefault();
+            }
+          }}
+          onKeyUp={(evt) => {
+            if (confirmKeys.includes(evt.key)) {
+              const target = evt.target as HTMLInputElement;
+              // Remove key up value if it's a single character instead of something like 'Tab'
+              const newValueEl =
+                evt.key.length === 1 ? target.value.slice(0, -1) : target.value;
+              if (!newValueEl) {
+                return;
+              }
+              addValue(evt, newValueEl);
+              params.inputProps.onChange?.({ target: { value: "" } } as any);
+            }
+          }}
+          onBlur={(evt) => {
+            const newValue = (evt.target as HTMLInputElement).value;
+            if (newValue) {
+              addValue(evt, newValue);
+              params.inputProps.onChange?.({ target: { value: "" } } as any);
+            }
+          }}
+        />
+      )}
+      options={props.options ?? []}
+      {...props}
+    />
   );
 };
