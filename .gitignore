@@ -110,3 +110,5 @@ dist
 functions/local-emulator-data
 
 .firebase/
+
+firestore-coverage.html

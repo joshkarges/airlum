@@ -114,20 +114,24 @@ exports.createwishlist = onCall<
     throw new HttpsError("unauthenticated", "No user found");
   }
   const wishListCollection = getFirestore().collection("wishList");
-  const newDoc = wishListCollection.doc();
-  const newData: WishList = {
+  const now = Date.now();
+  const newData: Omit<WishList, "id"> = {
     title: data.isExtra ? "Extra List" : user.displayName,
     ...data,
     notes: "",
     ideas: {},
     author: user,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    id: newDoc.id,
+    createdAt: now,
+    updatedAt: now,
   };
   console.log("createWishList newData", newData);
-  await newDoc.set(newData);
-  return { wishList: newData };
+  const result = await wishListCollection.add(newData);
+  return {
+    wishList: {
+      ...newData,
+      id: result.id,
+    },
+  };
 });
 
 exports.deleteextrawishlist = onCall<
@@ -567,17 +571,27 @@ exports.createexchangeevent = onCall<
     throw new HttpsError("unauthenticated", "No user found");
   }
   const exchangeEventCollection = getFirestore().collection("exchangeEvent");
-  const newDoc = exchangeEventCollection.doc();
-  const newData: ExchangeEvent = {
+  const now = Date.now();
+  const newData: Omit<ExchangeEvent, "id"> = {
     ...data,
+    users: {
+      ...data.users,
+      [user.email]: {
+        email: user.email,
+        joinedAt: now,
+        uid: user.uid,
+      },
+    },
     author: user,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    id: newDoc.id,
+    createdAt: now,
+    updatedAt: now,
   };
   console.log("createExchangeEvent newData", newData);
-  await newDoc.set(newData);
-  return newData;
+  const result = await exchangeEventCollection.add(newData);
+  return {
+    ...newData,
+    id: result.id,
+  };
 });
 
 exports.updateexchangeevent = onCall<

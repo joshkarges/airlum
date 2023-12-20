@@ -55,7 +55,7 @@ const functions = isDev
 
 const getHealth = httpsCallable<undefined, "OK">(
   functions,
-  `${isDev ? "airlum/us-central1/" : ""}getHealth`
+  `${isDev ? "airlum/us-central1/" : ""}health`
 );
 
 export const checkHealth = async () => {

@@ -189,6 +189,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@firebase/rules-unit-testing@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "@firebase/rules-unit-testing@npm:3.0.1"
+  dependencies:
+    node-fetch: 2.6.7
+  peerDependencies:
+    firebase: ^10.0.0
+  checksum: 795b9fd1c2ce6d1cdfb99153e062364cc0706649c037eaf5e4cdb56064cf88d3e9380381601de5dd1e989dc35e8f09d88ef4b683bc767e07cac6acbceffe81c1
+  languageName: node
+  linkType: hard
+
 "@firebase/util@npm:1.9.3":
   version: 1.9.3
   resolution: "@firebase/util@npm:1.9.3"
@@ -2162,6 +2173,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "functions@workspace:."
   dependencies:
+    "@firebase/rules-unit-testing": ^3.0.1
     "@google-cloud/functions-framework": ^3.3.0
     "@types/lodash": ^4.14.202
     "@types/uuid": ^9.0.7
@@ -3358,6 +3370,20 @@ __metadata:
   version: 0.6.3
   resolution: "negotiator@npm:0.6.3"
   checksum: b8ffeb1e262eff7968fc90a2b6767b04cfd9842582a9d0ece0af7049537266e7b2506dfb1d107a32f06dd849ab2aea834d5830f7f4d0e5cb7d36e1ae55d021d9
+  languageName: node
+  linkType: hard
+
+"node-fetch@npm:2.6.7":
+  version: 2.6.7
+  resolution: "node-fetch@npm:2.6.7"
+  dependencies:
+    whatwg-url: ^5.0.0
+  peerDependencies:
+    encoding: ^0.1.0
+  peerDependenciesMeta:
+    encoding:
+      optional: true
+  checksum: 8d816ffd1ee22cab8301c7756ef04f3437f18dace86a1dae22cf81db8ef29c0bf6655f3215cb0cdb22b420b6fe141e64b26905e7f33f9377a7fa59135ea3e10b
   languageName: node
   linkType: hard
 

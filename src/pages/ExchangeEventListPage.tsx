@@ -1,4 +1,5 @@
 import * as Yup from "yup";
+import { checkHealth } from "../api/ChristmasListApi";
 import { ExchangeEvent, User } from "../models/functions";
 import firebase from "firebase/compat/app";
 import { useDispatch } from "react-redux";
@@ -64,6 +65,7 @@ type TitleInputProps = {
   type?: React.HTMLInputTypeAttribute;
   toInputValue?: (value: any) => string | number;
   toDisplayValue?: (value: any) => string | number;
+  fromInputValue?: (value: string | number) => any;
 };
 
 const EditableField = ({
@@ -75,9 +77,10 @@ const EditableField = ({
   type,
   toInputValue = _.identity,
   toDisplayValue = _.identity,
+  fromInputValue = _.identity,
 }: TitleInputProps) => {
   const classes = useStyles();
-  const [inputProps, metadata] = useField(fieldName);
+  const [inputProps, metadata, helpers] = useField(fieldName);
   return canEdit ? (
     <TextField
       inputProps={
@@ -94,6 +97,12 @@ const EditableField = ({
       variant="standard"
       type={type}
       {...inputProps}
+      {...(fromInputValue
+        ? {
+            onChange: (evt) =>
+              helpers.setValue(fromInputValue(evt.target.value)),
+          }
+        : {})}
       value={toInputValue(inputProps.value)}
       error={!!metadata.error}
       helperText={metadata.error ? metadata.error : undefined}
@@ -254,6 +263,7 @@ export const ExchangeEventCard = ({
                 label="Event date"
                 toInputValue={formatTimestampYYYY_MM_DD}
                 toDisplayValue={formatTimestampMMDDYYYY}
+                fromInputValue={(dateStr) => moment(dateStr).toDate().getTime()}
                 type="date"
               />
               <Typography>{`Last updated: ${moment(
@@ -363,75 +373,94 @@ export const ExchangeEventListPage = () => {
     }
   }, [exchangeEventsResource, fetchExchangeEvents, user]);
 
-  return !!user ? (
-    <FetchedComponent resource={exchangeEventsResource}>
-      {(exchangeEventsMap) => {
-        return (
-          <Flex flexWrap="wrap" gap="32px" p="32px" alignItems="flex-start">
-            {_.map(
-              exchangeEventsMap,
-              (exchangeEventResource, exchangeEventId) => {
-                return (
-                  <FetchedComponent
-                    resource={exchangeEventResource}
-                    key={exchangeEventId}
-                  >
-                    {(exchangeEvent) => (
-                      <ExchangeEventCard
-                        exchangeEvent={exchangeEvent}
-                        key={exchangeEventId}
-                      />
-                    )}
-                  </FetchedComponent>
-                );
-              }
-            )}
-            {creatingEvent ? (
-              <ExchangeEventCard
-                exchangeEvent={{
-                  name: "",
-                  description: "",
-                  date: moment().add(1, "w").toDate().getTime(),
-                  users: {},
-                  id: "",
-                  updatedAt: Date.now(),
-                }}
-                initialEditMode={true}
-                onCancel={() => setCreatingEvent(false)}
-                onSave={() => setCreatingEvent(false)}
-              />
-            ) : (
-              <Card
-                className={classNames(classes.card, classes.createCard)}
-                elevation={3}
-              >
-                <Flex gap="16px" height="100%" alignItems="stretch">
-                  <Button
-                    onClick={() => {
-                      setCreatingEvent(true);
-                    }}
-                    fullWidth
-                  >
-                    <Flex
-                      flexDirection="column"
-                      alignItems="center"
-                      justifyContent="center"
-                      flexGrow={1}
-                    >
-                      <AddBox />
-                      <Typography variant="h5">Create new event</Typography>
-                    </Flex>
-                  </Button>
-                </Flex>
-              </Card>
-            )}
-          </Flex>
-        );
-      }}
-    </FetchedComponent>
-  ) : (
+  return (
     <Flex>
-      <SignIn signInSuccessUrl={window.location.href} />
+      {!!user ? (
+        <FetchedComponent resource={exchangeEventsResource}>
+          {(exchangeEventsMap) => {
+            return (
+              <Flex flexWrap="wrap" gap="32px" p="32px" alignItems="flex-start">
+                {_.map(
+                  exchangeEventsMap,
+                  (exchangeEventResource, exchangeEventId) => {
+                    return (
+                      <FetchedComponent
+                        resource={exchangeEventResource}
+                        key={exchangeEventId}
+                      >
+                        {(exchangeEvent) => (
+                          <ExchangeEventCard
+                            exchangeEvent={exchangeEvent}
+                            key={exchangeEventId}
+                          />
+                        )}
+                      </FetchedComponent>
+                    );
+                  }
+                )}
+                {creatingEvent ? (
+                  <ExchangeEventCard
+                    exchangeEvent={{
+                      name: "",
+                      description: "",
+                      date: moment().add(1, "w").toDate().getTime(),
+                      users: {},
+                      id: "",
+                      updatedAt: Date.now(),
+                    }}
+                    initialEditMode={true}
+                    onCancel={() => setCreatingEvent(false)}
+                    onSave={() => setCreatingEvent(false)}
+                  />
+                ) : (
+                  <Card
+                    className={classNames(classes.card, classes.createCard)}
+                    elevation={3}
+                  >
+                    <Flex gap="16px" height="100%" alignItems="stretch">
+                      <Button
+                        onClick={() => {
+                          setCreatingEvent(true);
+                        }}
+                        fullWidth
+                      >
+                        <Flex
+                          flexDirection="column"
+                          alignItems="center"
+                          justifyContent="center"
+                          flexGrow={1}
+                        >
+                          <AddBox />
+                          <Typography variant="h5">Create new event</Typography>
+                        </Flex>
+                      </Button>
+                    </Flex>
+                  </Card>
+                )}
+              </Flex>
+            );
+          }}
+        </FetchedComponent>
+      ) : (
+        <Flex>
+          <SignIn signInSuccessUrl={window.location.href} />
+        </Flex>
+      )}
+      <Button
+        variant="contained"
+        onClick={async () => {
+          let result: any = null;
+          try {
+            result = await checkHealth();
+            console.log(`Health: ${result}`);
+          } catch (e) {
+            console.error(`Health error: ${e}`);
+          }
+          return result;
+        }}
+      >
+        Health
+      </Button>
     </Flex>
   );
 };
