@@ -1,8 +1,8 @@
-import { AppBar, Button, Toolbar, Typography } from "@mui/material";
-import React, { PropsWithChildren } from "react";
+import { AppBar, Toolbar, Typography } from "@mui/material";
+import { PropsWithChildren } from "react";
 import { Route, Switch } from "react-router-dom";
 import { Flex } from "../components/Flex";
-import firebase from "firebase/compat/app";
+import { SignIn } from "../components/SignIn";
 
 const PageWrapper = ({ children }: PropsWithChildren) => {
   return (
@@ -14,18 +14,19 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
               <Typography variant="h6">Splendor</Typography>
             </Route>
             <Route path="/christmas-list">
-              <Flex justifyContent="space-between">
+              <Flex justifyContent="space-between" flexGrow={1}>
                 <Typography variant="h6">Christmas List</Typography>
-                <Button onClick={() => firebase.auth().signOut()}>
-                  Sign Out
-                </Button>
+                <SignIn />
               </Flex>
             </Route>
             <Route path="/tattoo">
               <Typography variant="h6">Tattoo</Typography>
             </Route>
             <Route path="/exchange-events">
-              <Typography variant="h6">Exchange Events</Typography>
+              <Flex justifyContent="space-between" flexGrow={1}>
+                <Typography variant="h6">Exchange Events</Typography>
+                <SignIn />
+              </Flex>
             </Route>
             <Route path="/">
               <Typography variant="h6">AirLum</Typography>

@@ -1,42 +1,76 @@
-import StyledFirebaseAuth from "react-firebaseui/StyledFirebaseAuth";
 import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { userAuthChange, userAuthPending } from "../redux/slices/user";
+import { User } from "../models/functions";
+import { Button, Theme } from "@mui/material";
+import { FetchedComponent } from "./fetchers/FetchedComponent";
+import { State } from "../redux/rootReducer";
+import { makeStyles } from "@mui/styles";
 
-// Configure FirebaseUI.
-const initialUiConfig: firebaseui.auth.Config = {
-  // Popup signin flow rather than redirect flow.
-  signInFlow: "popup",
-  // Redirect to /signedIn after sign in is successful. Alternatively you can provide a callbacks.signInSuccess function.
-  signInSuccessUrl: "/christmas-list",
-  // We will display Google as an auth provider.
-  signInOptions: [firebase.auth.GoogleAuthProvider.PROVIDER_ID],
+const useStyles = makeStyles((theme: Theme) => ({
+  signInContainer: {
+    "& svg": {
+      color: theme.palette.primary.contrastText,
+    },
+  },
+}));
+
+var provider = new firebase.auth.GoogleAuthProvider();
+
+const GoogleSignInButton = ({ userExists }: { userExists?: boolean }) => {
+  const dispatch = useDispatch();
+  return userExists ? (
+    <Button
+      onClick={() => {
+        try {
+          dispatch(userAuthPending());
+          firebase.auth().signOut();
+        } catch (error) {
+          console.error("Log out error: ", error);
+        }
+      }}
+      color="inherit"
+    >
+      Sign Out
+    </Button>
+  ) : (
+    <Button
+      color="inherit"
+      onClick={() => {
+        try {
+          dispatch(userAuthPending());
+          firebase.auth().signInWithPopup(provider);
+        } catch (error) {
+          console.error("Log in error: ", error);
+        }
+      }}
+    >
+      Sign In
+    </Button>
+  );
 };
 
-type SignInProps = {
-  signInSuccessUrl: string;
-};
-
-export const SignIn = ({ signInSuccessUrl }: SignInProps) => {
-  const uiConfig = useMemo(() => {
-    return {
-      ...initialUiConfig,
-      signInSuccessUrl,
-    };
-  }, [signInSuccessUrl]);
-  const firbaseAuth = firebase.auth();
-
-  const [widget, setWidget] = useState<ReactNode>(null);
-
+export const SignIn = () => {
+  const classes = useStyles();
+  const user = useSelector((state: State) => state.user);
+  const dispatch = useDispatch();
   useEffect(() => {
-    setWidget(
-      <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firbaseAuth} />
-    );
-  }, [uiConfig, firbaseAuth]);
+    firebase.auth().onAuthStateChanged((authUser) => {
+      dispatch(userAuthChange((authUser?.toJSON() ?? null) as User | null));
+    });
+  }, [dispatch]);
   return (
     <div>
-      <p>Please sign-in:</p>
-      {widget}
+      <FetchedComponent
+        resource={user}
+        IdleComponent={GoogleSignInButton as any}
+        circularLoading
+        loadingClassName={classes.signInContainer}
+      >
+        {(data) => <GoogleSignInButton userExists={!!data} />}
+      </FetchedComponent>
     </div>
   );
 };

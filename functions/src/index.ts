@@ -61,8 +61,18 @@ import {
   DeleteExchangeEventResponse,
 } from "./models";
 import * as _ from "lodash";
+import { log } from "firebase-functions/logger";
 
-admin.initializeApp();
+const oldConsoleLog = console.log;
+console.log = (...args) => {
+  oldConsoleLog(...args);
+  log(...args);
+};
+
+admin.initializeApp({
+  projectId: "airlum",
+  storageBucket: "airlum.appspot.com",
+});
 
 exports.health = onCall(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
@@ -515,29 +525,27 @@ exports.getallwishlists = onCall<
     .where("exchangeEvent", "==", req.data.exchangeEvent)
     .get();
 
-  return _.keyBy(
-    wishLists.docs.map((d) => {
-      const wishList = d.data() as WishList;
-      if (wishList.author.uid === user.uid && !wishList.isExtra) {
-        return {
-          ...wishList,
-          ideas: _.mapValues(
-            _.pickBy(wishList.ideas, (idea) => idea.author.uid === user.uid),
-            (idea) => ({
-              ...idea,
-              mark: null,
-              comments: _.pickBy(idea.comments, (comment) => {
-                return comment.author.uid === user.uid;
-              }),
-            })
-          ),
-        };
-      } else {
-        return wishList;
-      }
-    }),
-    "id"
-  );
+  return _.mapValues(_.keyBy(wishLists.docs, "id"), (d, id) => {
+    const wishList = d.data() as WishList;
+    if (wishList.author.uid === user.uid && !wishList.isExtra) {
+      return {
+        ...wishList,
+        ideas: _.mapValues(
+          _.pickBy(wishList.ideas, (idea) => idea.author.uid === user.uid),
+          (idea) => ({
+            ...idea,
+            mark: null,
+            comments: _.pickBy(idea.comments, (comment) => {
+              return comment.author.uid === user.uid;
+            }),
+          })
+        ),
+        id,
+      };
+    } else {
+      return wishList;
+    }
+  });
 });
 
 // Get's all the exchange events for which the user is the author.
@@ -545,19 +553,33 @@ exports.getallexchangeevents = onCall<
   GetAllExchangeEventsRequest,
   Promise<GetAllExchangeEventsResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  console.log("Reached getallexchangeevents");
   const user = getUserFromAuth(req.auth);
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  const db = getFirestore();
-  const exchangeEvents = await db
-    .collection("exchangeEvent")
-    .where("author.uid", "==", user.uid)
-    .get();
-  return _.keyBy(
-    _.invokeMap(exchangeEvents.docs, "data"),
-    "id"
-  ) as GetAllExchangeEventsResponse;
+  console.log("Checked auth getallexchangeevents");
+  try {
+    const db = getFirestore();
+    const exchangeEvents = await db
+      .collection("exchangeEvent")
+      .where("author.uid", "==", user.uid)
+      .get();
+    console.log("Got docs getallexchangeevents");
+    return _.mapValues(
+      _.keyBy(exchangeEvents.docs, "id"),
+      (doc, id) =>
+        ({
+          ...doc.data(),
+          id,
+        } as ExchangeEvent)
+    );
+  } catch (e) {
+    throw new HttpsError(
+      _.get(e, "code", "internal"),
+      _.get(e, "message", "unknown message")
+    );
+  }
 });
 
 exports.createexchangeevent = onCall<

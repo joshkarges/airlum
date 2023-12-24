@@ -2,15 +2,11 @@ import { Button, Typography } from "@mui/material";
 import moment from "moment";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import firebase from "firebase/compat/app";
 import { Flex } from "../components/Flex";
-import { SignIn } from "../components/SignIn";
-import { setUser } from "../redux/slices/user";
 import { useUser } from "../redux/selectors";
 import {
   ExchangeEvent,
   GetExchangeEventRequest,
-  User,
   GetExchangeEventResponse,
 } from "../models/functions";
 import { useParams } from "react-router-dom";
@@ -54,17 +50,7 @@ export const ChristmasListPage = () => {
   );
   const createNewWishList = useDispatcher(createWishListAction);
 
-  useEffect(() => {
-    const unregister = firebase.auth().onAuthStateChanged((authUser) => {
-      if (!!authUser) {
-        dispatch(setUser(authUser.toJSON() as User));
-      }
-    });
-    return () => {
-      unregister();
-    };
-  }, [dispatch]);
-
+  // Fetch exchange event.
   useEffect(() => {
     if (!user) return;
     if (!exchangeEventUrlParam) return;
@@ -76,6 +62,7 @@ export const ChristmasListPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exchangeEvent, exchangeEventUrlParam, fetchExchangeEvent, user]);
 
+  // Fetch Wish Lists.
   useEffect(() => {
     if (!user) return;
     if (!exchangeEventUrlParam) return;
@@ -156,11 +143,7 @@ export const ChristmasListPage = () => {
             )}
           </FetchedComponent>
         </Flex>
-      ) : (
-        <Flex>
-          <SignIn signInSuccessUrl={window.location.href} />
-        </Flex>
-      )}
+      ) : null}
     </Flex>
   );
 };

@@ -1,15 +1,29 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { User } from "../../models/functions";
+import {
+  FetchedStatusString,
+  makeIdleFetchedResource,
+} from "../../utils/fetchers";
 
 const userSlice = createSlice({
   name: "user",
-  initialState: null as User | null,
+  initialState: makeIdleFetchedResource(null as User | null),
   reducers: {
-    setUser: (state, action: PayloadAction<User>) => {
-      return action.payload;
+    userAuthChange: (state, action: PayloadAction<User | null>) => {
+      return {
+        ...state,
+        data: action.payload,
+        status: FetchedStatusString.Success,
+      };
+    },
+    userAuthPending: (state, action: PayloadAction<void>) => {
+      return {
+        ...state,
+        status: FetchedStatusString.Pending,
+      };
     },
   },
 });
 
-export const { setUser } = userSlice.actions;
+export const { userAuthChange, userAuthPending } = userSlice.actions;
 export const user = userSlice.reducer;

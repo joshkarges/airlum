@@ -1,10 +1,7 @@
 import * as Yup from "yup";
 import { checkHealth } from "../api/ChristmasListApi";
-import { ExchangeEvent, User } from "../models/functions";
-import firebase from "firebase/compat/app";
-import { useDispatch } from "react-redux";
+import { ExchangeEvent } from "../models/functions";
 import { useUser } from "../redux/selectors";
-import { setUser } from "../redux/slices/user";
 import { anyIsIdle, useDispatcher, useReduxState } from "../utils/fetchers";
 import { useEffect, useMemo, useState } from "react";
 import { Flex } from "../components/Flex";
@@ -24,7 +21,6 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
-import { SignIn } from "../components/SignIn";
 import moment from "moment";
 import { makeStyles } from "@mui/styles";
 import { MultiTextField } from "../components/inputs/MultiTextField";
@@ -37,6 +33,7 @@ import {
   updateExchangeEventAction,
 } from "../redux/slices/exchangeEvent";
 import classNames from "classnames";
+import { useQuery } from "../utils/routing";
 
 const useStyles = makeStyles((theme: Theme) => ({
   h5: {
@@ -348,25 +345,15 @@ export const ExchangeEventCard = ({
 
 export const ExchangeEventListPage = () => {
   const classes = useStyles();
-  const dispatch = useDispatch();
   const user = useUser();
+  const queryParams = useQuery();
   const [exchangeEventsResource, fetchExchangeEvents] = useReduxState(
     "exchangeEvent",
     getAllExchangeEventsAction
   );
   const [creatingEvent, setCreatingEvent] = useState(false);
 
-  useEffect(() => {
-    const unregister = firebase.auth().onAuthStateChanged((authUser) => {
-      if (!!authUser) {
-        dispatch(setUser(authUser.toJSON() as User));
-      }
-    });
-    return () => {
-      unregister();
-    };
-  }, [dispatch]);
-
+  // Fetch exchange events.
   useEffect(() => {
     if (user?.uid && anyIsIdle(exchangeEventsResource)) {
       fetchExchangeEvents({ uid: user.uid });
@@ -441,26 +428,24 @@ export const ExchangeEventListPage = () => {
             );
           }}
         </FetchedComponent>
-      ) : (
-        <Flex>
-          <SignIn signInSuccessUrl={window.location.href} />
-        </Flex>
+      ) : null}
+      {queryParams.get("debug") && (
+        <Button
+          variant="contained"
+          onClick={async () => {
+            let result: any = null;
+            try {
+              result = await checkHealth();
+              console.log(`Health: ${result}`);
+            } catch (e) {
+              console.error(`Health error: ${e}`);
+            }
+            return result;
+          }}
+        >
+          Health
+        </Button>
       )}
-      <Button
-        variant="contained"
-        onClick={async () => {
-          let result: any = null;
-          try {
-            result = await checkHealth();
-            console.log(`Health: ${result}`);
-          } catch (e) {
-            console.error(`Health error: ${e}`);
-          }
-          return result;
-        }}
-      >
-        Health
-      </Button>
     </Flex>
   );
 };
