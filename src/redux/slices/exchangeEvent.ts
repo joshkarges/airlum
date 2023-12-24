@@ -57,7 +57,10 @@ const emptyExchangeEvent: ExchangeEvent = {
 export const exchangeEventGetter = makeSingleMultiReducer(
   getExchangeEventAction.type,
   getAllExchangeEventsAction.type,
-  emptyExchangeEvent
+  emptyExchangeEvent,
+  {
+    getSingleElementPath: (action) => action.opts.exchangeEvent,
+  }
 );
 
 export const exchangeEvent: UnsureReducer<MultiSingleState<ExchangeEvent>> = (
@@ -67,24 +70,29 @@ export const exchangeEvent: UnsureReducer<MultiSingleState<ExchangeEvent>> = (
   const newState = exchangeEventGetter(state, action);
   if (isPendingAction(action, updateExchangeEventAction)) {
     const { id, ...newData } = action.opts;
-    return _.mergeWith({}, newState, {
-      data: {
-        [id]: {
-          data: {
-            ...newData,
-            updatedAt: action.timestamp,
+    return _.mergeWith(
+      {},
+      newState,
+      {
+        data: {
+          [id]: {
+            data: {
+              ...newData,
+              updatedAt: action.timestamp,
+            },
           },
         },
       },
-    }, (objValue, srcValue, key) => {
-      if (key === "users") {
-        return srcValue;
+      (objValue, srcValue, key) => {
+        if (key === "users") {
+          return srcValue;
+        }
       }
-    });
+    );
   }
   if (isPendingAction(action, deleteExchangeEventAction)) {
     const { exchangeEventId } = action.opts;
-    const { [exchangeEventId]: _, ...newData } = newState.data;  
+    const { [exchangeEventId]: _, ...newData } = newState.data;
     return {
       ...newState,
       data: newData,

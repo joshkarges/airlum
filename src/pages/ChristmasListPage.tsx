@@ -27,8 +27,16 @@ import {
 } from "../utils/fetchers";
 import _ from "lodash";
 import { AddButtonWithText } from "../components/AddButtonWithText";
+import { makeStyles } from "@mui/styles";
+
+const useStyles = makeStyles({
+  title: {
+    wordBreak: "break-word",
+  },
+});
 
 export const ChristmasListPage = () => {
+  const classes = useStyles();
   const dispatch = useDispatch();
   const user = useUser();
   const { exchangeEvent: exchangeEventUrlParam } = useParams<{
@@ -85,11 +93,12 @@ export const ChristmasListPage = () => {
             {(data) => (
               <Flex
                 flexDirection="column"
-                p={3}
                 justifyContent="center"
-                gap="16px"
+                overflow="hidden"
               >
-                <Typography variant="h2">{data.name}</Typography>
+                <Typography variant="h2" className={classes.title}>
+                  {data.name}
+                </Typography>
                 <Typography variant="subtitle1">{data.description}</Typography>
                 <Typography variant="subtitle1">
                   {moment(data.date).format("dddd, MMMM Do YYYY")}
