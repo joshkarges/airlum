@@ -582,6 +582,16 @@ exports.getallexchangeevents = onCall<
   }
 });
 
+const generateSixDigitAlphaNumericCode = () => {
+  const chars =
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+  for (let i = 6; i > 0; --i) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result;
+};
+
 exports.createexchangeevent = onCall<
   CreateExchangeEventRequest,
   Promise<CreateExchangeEventResponse>
@@ -593,8 +603,21 @@ exports.createexchangeevent = onCall<
     throw new HttpsError("unauthenticated", "No user found");
   }
   const exchangeEventCollection = getFirestore().collection("exchangeEvent");
+  let docRef = exchangeEventCollection.doc(_.kebabCase(data.name));
+  let doc = await docRef.get();
+  let tries = 3;
+  while (doc.exists) {
+    if (tries-- === 0) {
+      docRef = exchangeEventCollection.doc();
+      break;
+    }
+    docRef = exchangeEventCollection.doc(
+      `${_.kebabCase(data.name)}_${generateSixDigitAlphaNumericCode()}`
+    );
+    doc = await docRef.get();
+  }
   const now = Date.now();
-  const newData: Omit<ExchangeEvent, "id"> = {
+  const newData: ExchangeEvent = {
     ...data,
     users: {
       ...data.users,
@@ -604,16 +627,14 @@ exports.createexchangeevent = onCall<
         uid: user.uid,
       },
     },
+    id: doc.id,
     author: user,
     createdAt: now,
     updatedAt: now,
   };
   console.log("createExchangeEvent newData", newData);
-  const result = await exchangeEventCollection.add(newData);
-  return {
-    ...newData,
-    id: result.id,
-  };
+  await docRef.set(newData);
+  return newData;
 });
 
 exports.updateexchangeevent = onCall<

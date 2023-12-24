@@ -55,7 +55,7 @@
     "eject": "react-scripts eject",
     "format": "prettier --write src/**/*.ts{,x}",
     "lint": "tsc --noEmit && eslint src/**/*.ts{,x}",
-    "test-firestore": "jest --forceExit test/firestore.spec.ts"
+    "test-rules": "firebase emulators:exec --project=fakeproject 'jest --forceExit test/firestore.spec.ts'"
   },
   "eslintConfig": {
     "extends": [

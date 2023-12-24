@@ -14,7 +14,11 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
               <Typography variant="h6">Splendor</Typography>
             </Route>
             <Route path="/christmas-list">
-              <Flex justifyContent="space-between" flexGrow={1}>
+              <Flex
+                justifyContent="space-between"
+                flexGrow={1}
+                alignItems="center"
+              >
                 <Typography variant="h6">Christmas List</Typography>
                 <SignIn />
               </Flex>
@@ -23,7 +27,11 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
               <Typography variant="h6">Tattoo</Typography>
             </Route>
             <Route path="/exchange-events">
-              <Flex justifyContent="space-between" flexGrow={1}>
+              <Flex
+                justifyContent="space-between"
+                flexGrow={1}
+                alignItems="center"
+              >
                 <Typography variant="h6">Exchange Events</Typography>
                 <SignIn />
               </Flex>
