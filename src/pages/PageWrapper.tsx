@@ -13,7 +13,7 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
             <Route path="/splendor">
               <Typography variant="h6">Splendor</Typography>
             </Route>
-            <Route path="/christmas-list">
+            <Route path="/gift-exchange-event">
               <Flex
                 justifyContent="space-between"
                 flexGrow={1}

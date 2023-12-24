@@ -35,7 +35,7 @@ const useStyles = makeStyles({
   },
 });
 
-export const ChristmasListPage = () => {
+export const GiftExchangeEventPage = () => {
   const classes = useStyles();
   const dispatch = useDispatch();
   const user = useUser();
@@ -88,7 +88,7 @@ export const ChristmasListPage = () => {
   return (
     <Flex flexDirection="column" p={3}>
       {!!user ? (
-        <Flex flexDirection="column">
+        <Flex flexDirection="column" gap="32px">
           <FetchedComponent resource={exchangeEvent}>
             {(data) => (
               <Flex
@@ -109,7 +109,7 @@ export const ChristmasListPage = () => {
           </FetchedComponent>
           <FetchedComponent resource={wishLists}>
             {(data) => (
-              <Flex flexDirection="column" p={3}>
+              <Flex flexDirection="column">
                 <Flex justifyContent="flex-end">
                   {!_.find(data, (list) => list.author.uid === user.uid) ? (
                     <Button

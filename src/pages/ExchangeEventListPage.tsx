@@ -202,7 +202,7 @@ export const ExchangeEventCard = ({
                   label="Event Name"
                 />
                 {!editMode && (
-                  <a href={`/christmas-list/${id}`}>
+                  <a href={`/gift-exchange-event/${id}`}>
                     <IconButton>
                       <ArrowForward />
                     </IconButton>

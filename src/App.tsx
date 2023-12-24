@@ -10,7 +10,7 @@ import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 import { BangForBuckPage } from "./pages/BangForBuckPage";
 import { ModalContextProvider } from "./components/modals/ModalContext";
-import { ChristmasListPage } from "./pages/ChristmasListPage";
+import { GiftExchangeEventPage } from "./pages/GiftExchangeEventPage";
 import { blue } from "@mui/material/colors";
 import { ExchangeEventListPage } from "./pages/ExchangeEventListPage";
 
@@ -49,8 +49,8 @@ function App() {
                     <Route path="/tattoo">
                       <TattooPage />
                     </Route>
-                    <Route path="/christmas-list/:exchangeEvent">
-                      <ChristmasListPage />
+                    <Route path="/gift-exchange-event/:exchangeEvent">
+                      <GiftExchangeEventPage />
                     </Route>
                     <Route path="/exchange-events">
                       <ExchangeEventListPage />
