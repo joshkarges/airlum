@@ -3,11 +3,13 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  colors,
   TextField,
   Theme,
   Typography,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
+import classNames from "classnames";
 import _ from "lodash";
 import { useCallback, useState } from "react";
 import { WishList, User } from "../models/functions";
@@ -37,6 +39,12 @@ const useStyles = makeStyles((theme: Theme) => ({
     backgroundColor: theme.palette.primary.light,
     borderRadius: 4,
     color: theme.palette.getContrastText(theme.palette.primary.light),
+  },
+  extraWishListContainer: {
+    backgroundColor: colors.purple[50],
+  },
+  ownWishListContainer: {
+    backgroundColor: colors.amber[50],
   },
 }));
 
@@ -107,7 +115,11 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
     <Accordion
       expanded={listExpanded}
       onChange={(evt, expanded) => setListExpanded(expanded)}
-      className={classes.wishListContainer}
+      className={classNames(classes.wishListContainer, {
+        [classes.extraWishListContainer]: list.isExtra,
+        [classes.ownWishListContainer]:
+          list.author.uid === user?.uid && !list.isExtra,
+      })}
       color="primary"
       elevation={3}
     >
