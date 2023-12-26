@@ -141,12 +141,14 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
                 />
               );
             })}
-            {_.isEmpty(list.ideas) && (
-              <DeleteButtonWithConfirmation
-                onDelete={() => deleteExtraWishlist({ wishListId: list.id })}
-                itemName="Wish List"
-              />
-            )}
+            {_.isEmpty(list.ideas) &&
+              list.isExtra &&
+              list.author.uid === user.uid && (
+                <DeleteButtonWithConfirmation
+                  onDelete={() => deleteExtraWishlist({ wishListId: list.id })}
+                  itemName="Wish List"
+                />
+              )}
           </Flex>
           <AddButtonWithText
             commitText={addIdeaFromTitle}

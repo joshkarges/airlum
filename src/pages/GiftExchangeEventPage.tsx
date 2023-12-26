@@ -1,6 +1,6 @@
 import { Button, Typography } from "@mui/material";
 import moment from "moment";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useDispatch } from "react-redux";
 import { Flex } from "../components/Flex";
 import { useUser } from "../redux/selectors";
@@ -13,6 +13,7 @@ import { useParams } from "react-router-dom";
 import { getExchangeEventAction } from "../redux/slices/exchangeEvent";
 import {
   createWishListAction,
+  CREATING_WISHLIST_ID,
   getAllWishListsAction /* setWishLists */,
 } from "../redux/slices/wishLists";
 import { WishListCard } from "../components/WishListCard";
@@ -85,6 +86,33 @@ export const GiftExchangeEventPage = () => {
     wishLists.status,
   ]);
 
+  const listsInOrder = useMemo(() => {
+    const { extraLists, userLists, ownList } = _.groupBy(
+      wishLists.data,
+      (list) =>
+        list.isExtra
+          ? "extraLists"
+          : list.author.uid === user?.uid
+          ? "ownList"
+          : "userLists"
+    );
+    return [
+      ...ownList,
+      ..._.orderBy(userLists, "createdAt", "desc"),
+      ..._.orderBy(extraLists, "createdAt", "asc"),
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, wishLists.data]);
+
+  const hasOwnList = useMemo(() => {
+    return !!_.find(
+      wishLists.data,
+      (list) =>
+        list.author.uid === user?.uid || list.id === CREATING_WISHLIST_ID
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, wishLists.data]);
+
   return (
     <Flex flexDirection="column" p={3}>
       {!!user ? (
@@ -111,7 +139,7 @@ export const GiftExchangeEventPage = () => {
             {(data) => (
               <Flex flexDirection="column">
                 <Flex justifyContent="flex-end">
-                  {!_.find(data, (list) => list.author.uid === user.uid) ? (
+                  {!hasOwnList ? (
                     <Button
                       variant="contained"
                       onClick={() =>
@@ -126,7 +154,7 @@ export const GiftExchangeEventPage = () => {
                   ) : null}
                 </Flex>
                 <Flex gap="32px" flexWrap="wrap">
-                  {_.map(_.sortBy(_.values(data), "createdAt"), (list) => {
+                  {listsInOrder.map((list) => {
                     return (
                       <div key={list.id}>
                         <WishListCard list={list} user={user} />
@@ -134,18 +162,20 @@ export const GiftExchangeEventPage = () => {
                     );
                   })}
                   <Flex alignItems="center">
-                    <AddButtonWithText
-                      commitText={(text) => {
-                        return createNewWishList({
-                          title: text,
-                          exchangeEvent: exchangeEventUrlParam,
-                          isExtra: true,
-                        });
-                      }}
-                      buttonText="Create List For Someone Else"
-                      initialText="Extra List"
-                      size="large"
-                    />
+                    {hasOwnList && (
+                      <AddButtonWithText
+                        commitText={(text) => {
+                          return createNewWishList({
+                            title: text,
+                            exchangeEvent: exchangeEventUrlParam,
+                            isExtra: true,
+                          });
+                        }}
+                        buttonText="Create List For Someone Else"
+                        initialText="Extra List"
+                        size="large"
+                      />
+                    )}
                   </Flex>
                 </Flex>
               </Flex>

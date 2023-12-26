@@ -62,16 +62,42 @@ const wishListsGetAllReducer = makeFetchedResourceReducer(
   initialState
 );
 
+export const CREATING_WISHLIST_ID = "CREATING_WISHLIST_ID";
+
 export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
   state = makeIdleFetchedResource(initialState),
   action: AnyAction
 ) => {
   let newState = wishListsGetAllReducer(state, action);
-  if (isSuccessAction(action, createWishListAction)) {
+  if (isPendingAction(action, createWishListAction)) {
     newState = {
       ...newState,
       data: {
         ...newState.data,
+        [CREATING_WISHLIST_ID]: {
+          id: CREATING_WISHLIST_ID,
+          createdAt: action.timestamp,
+          updatedAt: action.timestamp,
+          author: {
+            uid: "temp-creator-id",
+            displayName: "temp-creator-name",
+            email: "temp-creator-email",
+          },
+          ideas: {},
+          notes: "",
+          title: "",
+          ...action.opts,
+        },
+      },
+    };
+  }
+  if (isSuccessAction(action, createWishListAction)) {
+    const { [CREATING_WISHLIST_ID]: _unused, ...dataWithoutTempList } =
+      newState.data;
+    newState = {
+      ...newState,
+      data: {
+        ...dataWithoutTempList,
         [action.data.wishList.id]: action.data.wishList,
       },
     };
