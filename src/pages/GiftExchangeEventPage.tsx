@@ -87,14 +87,16 @@ export const GiftExchangeEventPage = () => {
   ]);
 
   const listsInOrder = useMemo(() => {
-    const { extraLists, userLists, ownList } = _.groupBy(
-      wishLists.data,
-      (list) =>
-        list.isExtra
-          ? "extraLists"
-          : list.author.uid === user?.uid
-          ? "ownList"
-          : "userLists"
+    const {
+      extraLists = [],
+      userLists = [],
+      ownList = [],
+    } = _.groupBy(wishLists.data, (list) =>
+      list.isExtra
+        ? "extraLists"
+        : list.author.uid === user?.uid
+        ? "ownList"
+        : "userLists"
     );
     return [
       ...ownList,
