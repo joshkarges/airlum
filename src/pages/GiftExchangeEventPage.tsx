@@ -158,9 +158,7 @@ export const GiftExchangeEventPage = () => {
                 <Flex gap="32px" flexWrap="wrap">
                   {listsInOrder.map((list) => {
                     return (
-                      <div key={list.id}>
-                        <WishListCard list={list} user={user} />
-                      </div>
+                      <WishListCard list={list} user={user} key={list.id} />
                     );
                   })}
                   <Flex alignItems="center">

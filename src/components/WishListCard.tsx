@@ -35,7 +35,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     ...theme.typography.subtitle1,
   },
   wishListContainer: {
-    maxWidth: 400,
+    width: 400,
     backgroundColor: theme.palette.primary.light,
     borderRadius: 4,
     color: theme.palette.getContrastText(theme.palette.primary.light),
@@ -122,6 +122,7 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
       })}
       color="primary"
       elevation={3}
+      disableGutters
     >
       <AccordionSummary expandIcon={<ExpandMore />} color="primary">
         <EditableField list={list} canEdit={listExpanded} fieldName="title" />
