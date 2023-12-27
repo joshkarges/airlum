@@ -1,3 +1,4 @@
+import { produce } from "immer";
 import _ from "lodash";
 import {
   createExchangeEvent,
@@ -11,12 +12,15 @@ import {
   FetchedStatusString,
   Fetcher,
   isPendingAction,
+  isSettingAction,
   isSuccessAction,
   makeFetchingActionCreator,
+  makeIdleFetchedResource,
   makeSingleMultiReducer,
   MultiSingleState,
   UnsureReducer,
 } from "../../utils/fetchers";
+import { clearAllAction } from "./user";
 
 const makeExchangeEventAction = <Req, Res>(fn: Fetcher<Res, [Req]>) => {
   return makeFetchingActionCreator(
@@ -63,53 +67,30 @@ export const exchangeEventGetter = makeSingleMultiReducer(
   }
 );
 
-export const exchangeEvent: UnsureReducer<MultiSingleState<ExchangeEvent>> = (
-  state,
-  action
-) => {
-  const newState = exchangeEventGetter(state, action);
-  if (isPendingAction(action, updateExchangeEventAction)) {
-    const { id, ...newData } = action.opts;
-    return _.mergeWith(
-      {},
-      newState,
-      {
-        data: {
-          [id]: {
-            data: {
-              ...newData,
-              updatedAt: action.timestamp,
-            },
-          },
-        },
-      },
-      (objValue, srcValue, key) => {
-        if (key === "users") {
-          return srcValue;
-        }
-      }
-    );
-  }
-  if (isPendingAction(action, deleteExchangeEventAction)) {
-    const { exchangeEventId } = action.opts;
-    const { [exchangeEventId]: _, ...newData } = newState.data;
-    return {
-      ...newState,
-      data: newData,
-    };
-  }
-  if (isSuccessAction(action, createExchangeEventAction)) {
-    return {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.data.id]: {
-          status: FetchedStatusString.Success,
-          data: action.data,
-          timestamp: action.timestamp,
-        },
-      },
-    };
-  }
-  return newState;
-};
+export const exchangeEvent: UnsureReducer<MultiSingleState<ExchangeEvent>> =
+  produce((state, action) => {
+    const newState = exchangeEventGetter(state, action);
+    if (isPendingAction(action, updateExchangeEventAction)) {
+      const { id, ...newData } = action.opts;
+      newState.data[id].data = {
+        ...newState.data[id].data,
+        ...newData,
+        updatedAt: action.timestamp,
+      };
+    }
+    if (isPendingAction(action, deleteExchangeEventAction)) {
+      const { exchangeEventId } = action.opts;
+      delete newState.data[exchangeEventId];
+    }
+    if (isSuccessAction(action, createExchangeEventAction)) {
+      newState.data[action.data.id] = {
+        status: FetchedStatusString.Success,
+        data: action.data,
+        timestamp: action.timestamp,
+      };
+    }
+    if (isSettingAction(action, clearAllAction)) {
+      return makeIdleFetchedResource({});
+    }
+    return newState;
+  });

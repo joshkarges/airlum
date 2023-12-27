@@ -1,3 +1,4 @@
+import { produce } from "immer";
 import _ from "lodash";
 import {
   addCommentOnServer,
@@ -19,12 +20,14 @@ import {
   FetchedStatusString,
   Fetcher,
   isPendingAction,
+  isSettingAction,
   isSuccessAction,
   makeFetchedResourceReducer,
   makeFetchingActionCreator,
   makeIdleFetchedResource,
   UnsureReducer,
 } from "../../utils/fetchers";
+import { clearAllAction } from "./user";
 
 const initialState = {} as Record<string, WishList>;
 
@@ -64,17 +67,27 @@ const wishListsGetAllReducer = makeFetchedResourceReducer(
 
 export const CREATING_WISHLIST_ID = "CREATING_WISHLIST_ID";
 
-export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
-  state = makeIdleFetchedResource(initialState),
-  action: AnyAction
+const updateUpdatedAt = (
+  wishList: WishList,
+  timestamp: number,
+  ideaId?: string,
+  commentId?: string
 ) => {
-  let newState = wishListsGetAllReducer(state, action);
-  if (isPendingAction(action, createWishListAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [CREATING_WISHLIST_ID]: {
+  wishList.updatedAt = timestamp;
+  if (ideaId) {
+    wishList.ideas[ideaId].updatedAt = timestamp;
+    if (commentId) {
+      wishList.ideas[ideaId].comments[commentId].updatedAt = timestamp;
+    }
+  }
+};
+
+export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> =
+  produce(
+    (state = makeIdleFetchedResource(initialState), action: AnyAction) => {
+      let newState = wishListsGetAllReducer(state, action);
+      if (isPendingAction(action, createWishListAction)) {
+        newState.data[CREATING_WISHLIST_ID] = {
           id: CREATING_WISHLIST_ID,
           createdAt: action.timestamp,
           updatedAt: action.timestamp,
@@ -87,201 +100,72 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> = (
           notes: "",
           title: "",
           ...action.opts,
-        },
-      },
-    };
-  }
-  if (isSuccessAction(action, createWishListAction)) {
-    const { [CREATING_WISHLIST_ID]: _unused, ...dataWithoutTempList } =
-      newState.data;
-    newState = {
-      ...newState,
-      data: {
-        ...dataWithoutTempList,
-        [action.data.wishList.id]: action.data.wishList,
-      },
-    };
-  }
-  if (isPendingAction(action, deleteExtraWishListAction)) {
-    newState = {
-      ...newState,
-      data: _.omit(newState.data, action.opts.wishListId),
-    };
-  }
-  if (isPendingAction(action, updateWishListMetadataAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.id]: {
+        };
+      }
+      if (isSuccessAction(action, createWishListAction)) {
+        delete newState.data[CREATING_WISHLIST_ID];
+        newState.data[action.data.wishList.id] = action.data.wishList;
+      }
+      if (isPendingAction(action, deleteExtraWishListAction)) {
+        delete newState.data[action.opts.wishListId];
+      }
+      if (isPendingAction(action, updateWishListMetadataAction)) {
+        newState.data[action.opts.id] = {
           ...newState.data[action.opts.id],
           ...action.opts,
           updatedAt: action.timestamp,
-        },
-      },
-    };
-  }
-  if (isSuccessAction(action, addIdeaAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.wishListId]: {
-          ...newState.data[action.opts.wishListId],
-          ideas: {
-            ...newState.data[action.opts.wishListId].ideas,
-            [action.data.idea.id]: action.data.idea,
-          },
-          updatedAt: action.timestamp,
-        },
-      },
-    };
-  }
-  if (isPendingAction(action, deleteIdeaAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.wishListId]: {
-          ...newState.data[action.opts.wishListId],
-          ideas: _.omit(
-            newState.data[action.opts.wishListId].ideas,
-            action.opts.ideaId
-          ),
-          updatedAt: action.timestamp,
-        },
-      },
-    };
-  }
-  if (isSuccessAction(action, markIdeaAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.wishListId]: {
-          ...newState.data[action.opts.wishListId],
-          ideas: {
-            ...newState.data[action.opts.wishListId].ideas,
-            [action.opts.ideaId]: {
-              ...newState.data[action.opts.wishListId].ideas[
-                action.opts.ideaId
-              ],
-              mark: action.data.mark,
-              updatedAt: action.timestamp,
-            },
-          },
-          updatedAt: action.timestamp,
-        },
-      },
-      status: FetchedStatusString.Success,
-    };
-  }
-  if (isPendingAction(action, updateIdeaMetadataAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.wishListId]: {
-          ...newState.data[action.opts.wishListId],
-          ideas: {
-            ...newState.data[action.opts.wishListId].ideas,
-            [action.opts.ideaId]: {
-              ...newState.data[action.opts.wishListId].ideas[
-                action.opts.ideaId
-              ],
-              ..._.pick(action.opts, "title", "description"),
-              updatedAt: action.timestamp,
-            },
-          },
-          updatedAt: action.timestamp,
-        },
-      },
-    };
-  }
-  if (isSuccessAction(action, addCommentAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.wishListId]: {
-          ...newState.data[action.opts.wishListId],
-          ideas: {
-            ...newState.data[action.opts.wishListId].ideas,
-            [action.opts.ideaId]: {
-              ...newState.data[action.opts.wishListId].ideas[
-                action.opts.ideaId
-              ],
-              comments: {
-                ...newState.data[action.opts.wishListId].ideas[
-                  action.opts.ideaId
-                ].comments,
-                [action.data.comment.id]: action.data.comment,
-              },
-            },
-          },
-        },
-      },
-    };
-  }
-  if (isPendingAction(action, deleteCommentAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.wishListId]: {
-          ...newState.data[action.opts.wishListId],
-          ideas: {
-            ...newState.data[action.opts.wishListId].ideas,
-            [action.opts.ideaId]: {
-              ...newState.data[action.opts.wishListId].ideas[
-                action.opts.ideaId
-              ],
-              comments: _.omit(
-                newState.data[action.opts.wishListId].ideas[action.opts.ideaId]
-                  .comments,
-                action.opts.commentId
-              ),
-              updatedAt: action.timestamp,
-            },
-          },
-          updatedAt: action.timestamp,
-        },
-      },
-    };
-  }
-  if (isPendingAction(action, updateCommentAction)) {
-    newState = {
-      ...newState,
-      data: {
-        ...newState.data,
-        [action.opts.wishListId]: {
-          ...newState.data[action.opts.wishListId],
-          ideas: {
-            ...newState.data[action.opts.wishListId].ideas,
-            [action.opts.ideaId]: {
-              ...newState.data[action.opts.wishListId].ideas[
-                action.opts.ideaId
-              ],
-              comments: {
-                ...newState.data[action.opts.wishListId].ideas[
-                  action.opts.ideaId
-                ].comments,
-                [action.opts.commentId]: {
-                  ...newState.data[action.opts.wishListId].ideas[
-                    action.opts.ideaId
-                  ].comments[action.opts.commentId],
-                  ..._.pick(action.opts, "text"),
-                  updatedAt: action.timestamp,
-                },
-              },
-              updatedAt: action.timestamp,
-            },
-          },
-          updatedAt: action.timestamp,
-        },
-      },
-    };
-  }
+        };
+      }
+      if (isSuccessAction(action, addIdeaAction)) {
+        const { wishListId } = action.opts;
+        newState.data[wishListId].ideas[action.data.idea.id] = action.data.idea;
+        updateUpdatedAt(newState.data[wishListId], action.timestamp);
+      }
+      if (isPendingAction(action, deleteIdeaAction)) {
+        const { wishListId, ideaId } = action.opts;
+        delete newState.data[wishListId].ideas[ideaId];
+        updateUpdatedAt(newState.data[wishListId], action.timestamp);
+      }
+      if (isSuccessAction(action, markIdeaAction)) {
+        const { wishListId, ideaId } = action.opts;
+        newState.data[wishListId].ideas[ideaId].mark = action.data.mark;
+        updateUpdatedAt(newState.data[wishListId], action.timestamp, ideaId);
+      }
+      if (isPendingAction(action, updateIdeaMetadataAction)) {
+        const { wishListId, ideaId } = action.opts;
+        newState.data[wishListId].ideas[ideaId] = {
+          ...newState.data[wishListId].ideas[ideaId],
+          ..._.pick(action.opts, "title", "description"),
+        };
+        updateUpdatedAt(newState.data[wishListId], action.timestamp, ideaId);
+      }
+      if (isSuccessAction(action, addCommentAction)) {
+        const { wishListId, ideaId } = action.opts;
+        newState.data[wishListId].ideas[ideaId].comments[
+          action.data.comment.id
+        ] = action.data.comment;
+        updateUpdatedAt(newState.data[wishListId], action.timestamp, ideaId);
+      }
+      if (isPendingAction(action, deleteCommentAction)) {
+        const { wishListId, ideaId, commentId } = action.opts;
+        delete newState.data[wishListId].ideas[ideaId].comments[commentId];
+        updateUpdatedAt(newState.data[wishListId], action.timestamp, ideaId);
+      }
+      if (isPendingAction(action, updateCommentAction)) {
+        const { wishListId, ideaId, commentId } = action.opts;
+        newState.data[wishListId].ideas[ideaId].comments[commentId].text =
+          action.opts.text;
+        updateUpdatedAt(
+          newState.data[wishListId],
+          action.timestamp,
+          ideaId,
+          commentId
+        );
+      }
+      if (isSettingAction(action, clearAllAction)) {
+        return makeIdleFetchedResource({});
+      }
 
-  return newState;
-};
+      return newState;
+    }
+  );

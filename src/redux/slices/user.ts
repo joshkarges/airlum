@@ -3,7 +3,10 @@ import { User } from "../../models/functions";
 import {
   FetchedStatusString,
   makeIdleFetchedResource,
+  makeSimpleSettingActionCreator,
 } from "../../utils/fetchers";
+
+export const clearAllAction = makeSimpleSettingActionCreator("user/clearAll");
 
 const userSlice = createSlice({
   name: "user",

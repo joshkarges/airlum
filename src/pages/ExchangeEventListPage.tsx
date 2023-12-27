@@ -163,7 +163,7 @@ export const ExchangeEventCard = ({
           users: _.mapValues(_.keyBy(userValues), (email) => ({
             email,
             joinedAt: users[email]?.joinedAt ?? 0,
-            uid: "",
+            uid: users[email]?.uid ?? "",
           })),
           ...(id ? { id } : {}),
         });
