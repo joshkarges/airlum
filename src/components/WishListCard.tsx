@@ -35,7 +35,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     ...theme.typography.subtitle1,
   },
   wishListContainer: {
-    width: 400,
     backgroundColor: theme.palette.primary.light,
     borderRadius: 4,
     color: theme.palette.getContrastText(theme.palette.primary.light),

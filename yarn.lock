@@ -4727,6 +4727,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/prismjs@npm:^1.26.3":
+  version: 1.26.3
+  resolution: "@types/prismjs@npm:1.26.3"
+  checksum: c627fa9d9f4277ce413bb8347944152cddfc892702e34ff4b099dc1cf3f00c09514d36349c23529b903b0e57f3b2e0dc91ee66e98af07fbbe1e3fe8346b23370
+  languageName: node
+  linkType: hard
+
 "@types/prop-types@npm:*, @types/prop-types@npm:^15.7.11":
   version: 15.7.11
   resolution: "@types/prop-types@npm:15.7.11"
@@ -5646,6 +5653,7 @@ __metadata:
     "@types/jest": ^26.0.15
     "@types/lodash": ^4.14.182
     "@types/node": ^12.0.0
+    "@types/prismjs": ^1.26.3
     "@types/react": ^18.2.37
     "@types/react-dom": ^18.2.15
     "@types/react-router-dom": ^5.1.8
@@ -5679,6 +5687,7 @@ __metadata:
     moment: ^2.29.4
     mongodb: ^6.2.0
     prettier: ^2.3.2
+    prismjs: ^1.29.0
     react: ^18.2.0
     react-dom: ^18.2.0
     react-firebaseui: ^6.0.0
@@ -14590,6 +14599,13 @@ __metadata:
     ansi-styles: ^5.0.0
     react-is: ^18.0.0
   checksum: 032c1602383e71e9c0c02a01bbd25d6759d60e9c7cf21937dde8357aa753da348fcec5def5d1002c9678a8524d5fe099ad98861286550ef44de8808cc61e43b6
+  languageName: node
+  linkType: hard
+
+"prismjs@npm:^1.29.0":
+  version: 1.29.0
+  resolution: "prismjs@npm:1.29.0"
+  checksum: 007a8869d4456ff8049dc59404e32d5666a07d99c3b0e30a18bd3b7676dfa07d1daae9d0f407f20983865fd8da56de91d09cb08e6aa61f5bc420a27c0beeaf93
   languageName: node
   linkType: hard
 

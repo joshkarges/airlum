@@ -34,6 +34,9 @@ const useStyles = makeStyles({
   title: {
     wordBreak: "break-word",
   },
+  wishListContainer: {
+    width: 400,
+  },
 });
 
 export const GiftExchangeEventPage = () => {
@@ -158,7 +161,9 @@ export const GiftExchangeEventPage = () => {
                 <Flex gap="32px" flexWrap="wrap">
                   {listsInOrder.map((list) => {
                     return (
-                      <WishListCard list={list} user={user} key={list.id} />
+                      <div key={list.id} className={classes.wishListContainer}>
+                        <WishListCard list={list} user={user} />
+                      </div>
                     );
                   })}
                   <Flex alignItems="center">

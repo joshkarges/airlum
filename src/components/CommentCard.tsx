@@ -8,6 +8,7 @@ import {
   deleteCommentAction,
   updateCommentAction,
 } from "../redux/slices/wishLists";
+import { RichText } from "./RichText";
 
 type CommentCardProps = {
   comment: Comment;
@@ -51,7 +52,7 @@ export const CommentCard = ({
             multiline
           />
         ) : (
-          <Typography variant="body1">{text}</Typography>
+          <RichText content={text} />
         )}
       </Flex>
 

@@ -543,7 +543,10 @@ exports.getallwishlists = onCall<
         id,
       };
     } else {
-      return wishList;
+      return {
+        ...wishList,
+        id,
+      };
     }
   });
 });

@@ -30,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import { AddButtonWithText } from "./AddButtonWithText";
 import { DeleteButtonWithConfirmation } from "./DeleteButtonWithConfirmation";
+import { RichText } from "./RichText";
 
 const useStyles = makeStyles((theme: Theme) => ({
   ideaContainer: {
@@ -95,9 +96,10 @@ const EditableField = ({
       variant="standard"
     />
   ) : (
-    <Typography variant={fieldName === "title" ? "h6" : "body1"}>
-      {idea[fieldName]}
-    </Typography>
+    <RichText
+      variant={fieldName === "title" ? "h6" : "body1"}
+      content={idea[fieldName]}
+    />
   );
 };
 
@@ -155,7 +157,7 @@ export const IdeaCard = ({
       className={classes.ideaContainer}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Flex gap="8px" alignItems="center">
+        <Flex gap="8px" alignItems="center" flexGrow={1}>
           {wishList.author.uid !== user?.uid || wishList.isExtra ? (
             <Flex flexDirection="column" alignItems="center">
               <IconButton
