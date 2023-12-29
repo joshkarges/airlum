@@ -149,6 +149,10 @@ export const IdeaCard = ({
     currentMarkStatus === IdeaMarkStatus.Incomplete
       ? IdeaMarkStatus.Completed
       : IdeaMarkStatus.Incomplete;
+  const canMark =
+    !markLoading &&
+    (currentMarkStatus === IdeaMarkStatus.Incomplete ||
+      idea.mark?.author.uid === user?.uid);
   return (
     <Accordion
       expanded={ideaExpanded}
@@ -174,12 +178,12 @@ export const IdeaCard = ({
                   });
                   setMarkLoading(false);
                 }}
-                disabled={markLoading}
+                disabled={!canMark}
               >
                 {markLoading ? (
                   <CircularProgress style={{ width: 24, height: 24 }} />
                 ) : (
-                  <MarkIcon />
+                  <MarkIcon color="success" />
                 )}
               </IconButton>
               {idea.mark && ideaExpanded && (

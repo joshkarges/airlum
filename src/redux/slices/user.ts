@@ -6,7 +6,8 @@ import {
   makeSimpleSettingActionCreator,
 } from "../../utils/fetchers";
 
-export const clearAllAction = makeSimpleSettingActionCreator("user/clearAll");
+export const clearAllAction =
+  makeSimpleSettingActionCreator<void>("user/clearAll");
 
 const userSlice = createSlice({
   name: "user",

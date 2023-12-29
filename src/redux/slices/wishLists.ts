@@ -163,7 +163,7 @@ export const wishLists: UnsureReducer<FetchedResource<typeof initialState>> =
         );
       }
       if (isSettingAction(action, clearAllAction)) {
-        return makeIdleFetchedResource({});
+        return makeIdleFetchedResource(initialState);
       }
 
       return newState;

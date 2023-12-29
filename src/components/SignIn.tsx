@@ -2,7 +2,11 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { userAuthChange, userAuthPending } from "../redux/slices/user";
+import {
+  clearAllAction,
+  userAuthChange,
+  userAuthPending,
+} from "../redux/slices/user";
 import { User } from "../models/functions";
 import { Button, Theme } from "@mui/material";
 import { FetchedComponent } from "./fetchers/FetchedComponent";
@@ -23,10 +27,11 @@ const GoogleSignInButton = ({ userExists }: { userExists?: boolean }) => {
   const dispatch = useDispatch();
   return userExists ? (
     <Button
-      onClick={() => {
+      onClick={async () => {
         try {
           dispatch(userAuthPending());
-          firebase.auth().signOut();
+          await firebase.auth().signOut();
+          dispatch(clearAllAction.creator());
         } catch (error) {
           console.error("Log out error: ", error);
         }
