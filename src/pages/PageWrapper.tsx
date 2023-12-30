@@ -20,7 +20,7 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
                 flexGrow={1}
                 alignItems="center"
               >
-                <Typography variant="h6">Christmas List</Typography>
+                <Typography variant="h6">Gifter</Typography>
                 <SignIn />
               </Flex>
             </Route>
