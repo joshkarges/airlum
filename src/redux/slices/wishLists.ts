@@ -17,7 +17,6 @@ import { WishList } from "../../models/functions";
 import {
   AnyAction,
   FetchedResource,
-  FetchedStatusString,
   Fetcher,
   isPendingAction,
   isSettingAction,

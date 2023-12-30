@@ -1,20 +1,28 @@
-import { createContext, PropsWithChildren, useCallback, useMemo, useState } from "react";
+import {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 
 export enum ModalType {
-  EditMyList,
+  MyClaims,
 }
 
 const initialModalContextValue = {
   modal: null as ModalType | null,
   setModal: (modal: ModalType | null) => {},
-}
+};
 
 export type ModalContextType = typeof initialModalContextValue;
 
 export const ModalContext = createContext(initialModalContextValue);
 
 type ModalContextProviderProps = PropsWithChildren;
-export const ModalContextProvider = ({children}: ModalContextProviderProps) => {
+export const ModalContextProvider = ({
+  children,
+}: ModalContextProviderProps) => {
   const [modal, setModalState] = useState<ModalType | null>(null);
   const setModal = useCallback((modal: ModalType | null) => {
     setModalState(modal);

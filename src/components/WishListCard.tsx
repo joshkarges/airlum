@@ -16,6 +16,7 @@ import { WishList, User } from "../models/functions";
 import { useUser } from "../redux/selectors";
 import {
   addIdeaAction,
+  CREATING_WISHLIST_ID,
   deleteExtraWishListAction,
   updateWishListMetadataAction,
 } from "../redux/slices/wishLists";
@@ -153,6 +154,7 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
           <AddButtonWithText
             commitText={addIdeaFromTitle}
             buttonText="Add Idea"
+            disabled={list.id === CREATING_WISHLIST_ID}
           />
         </Flex>
       </AccordionDetails>

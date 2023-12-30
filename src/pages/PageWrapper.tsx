@@ -2,6 +2,7 @@ import { AppBar, Toolbar, Typography } from "@mui/material";
 import { PropsWithChildren } from "react";
 import { Route, Switch } from "react-router-dom";
 import { Flex } from "../components/Flex";
+import { MyClaimsModal } from "../components/modals/MyClaimsModal";
 import { SignIn } from "../components/SignIn";
 
 const PageWrapper = ({ children }: PropsWithChildren) => {
@@ -43,6 +44,7 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
         </Toolbar>
       </AppBar>
       {children}
+      <MyClaimsModal />
     </div>
   );
 };
