@@ -9,14 +9,7 @@ export type ExchangeEventMetadata = {
   name: string;
   description: string;
   date: number;
-  users: Record<
-    string,
-    {
-      email: string;
-      joinedAt: number;
-      uid: string;
-    }
-  >;
+  users: string[];
 };
 
 export type ExchangeEvent = UserCreatedAsset & ExchangeEventMetadata;

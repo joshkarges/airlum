@@ -12,14 +12,19 @@ import {
   onCall,
   CallableRequest,
 } from "firebase-functions/v2/https";
+import * as admin from "firebase-admin";
+import {
+  getFirestore as getFirestoreAdmin,
+  Filter,
+  FieldValue,
+  UpdateData,
+} from "firebase-admin/firestore";
+import { initializeApp } from "firebase/app";
 import * as uuid from "uuid";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
 
-// The Firebase Admin SDK to access Firestore.
-import * as admin from "firebase-admin";
-import { FieldValue, getFirestore, UpdateData } from "firebase-admin/firestore";
 import {
   User,
   ExchangeEvent,
@@ -69,10 +74,13 @@ console.log = (...args) => {
   log(...args);
 };
 
-admin.initializeApp({
+// Initialize Firebase
+const appAdmin = admin.initializeApp({
   projectId: "airlum",
   storageBucket: "airlum.appspot.com",
 });
+
+const dbAdmin = getFirestoreAdmin(appAdmin);
 
 exports.health = onCall(
   { cors: [/firebase\.com$/, /airlum.web.app/] },
@@ -98,17 +106,16 @@ const runWishListTransaction = async <T>(
     wishList: WishList
   ) => Promise<T>
 ) => {
-  const db = getFirestore();
-  const wishListCollection = db.collection("wishList");
-  const doc = wishListCollection.doc(
+  const wishListCollection = dbAdmin.collection("wishList");
+  const document = wishListCollection.doc(
     wishListId
   ) as admin.firestore.DocumentReference<WishList>;
-  const result = await db.runTransaction(async (transaction) => {
-    const wishListDoc = await transaction.get(doc);
+  const result = await dbAdmin.runTransaction(async (transaction) => {
+    const wishListDoc = await transaction.get(document);
     if (!wishListDoc.exists) {
       throw new HttpsError("not-found", "WishList does not exist");
     }
-    return updateFunction(transaction, doc, wishListDoc.data() as WishList);
+    return updateFunction(transaction, document, wishListDoc.data()!);
   });
   return result;
 };
@@ -123,7 +130,7 @@ exports.createwishlist = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  const wishListCollection = getFirestore().collection("wishList");
+  const wishListCollection = dbAdmin.collection("wishList");
   const now = Date.now();
   const newData: Omit<WishList, "id"> = {
     title: data.isExtra ? "Extra List" : user.displayName,
@@ -134,7 +141,6 @@ exports.createwishlist = onCall<
     createdAt: now,
     updatedAt: now,
   };
-  console.log("createWishList newData", newData);
   const result = await wishListCollection.add(newData);
   return {
     wishList: {
@@ -153,7 +159,6 @@ exports.deleteextrawishlist = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("deleteExtraWishList user ", user.email);
   return runWishListTransaction(
     data.wishListId,
     async (transaction, doc, wishList) => {
@@ -178,7 +183,6 @@ exports.updatewishlistmetadata = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("updateWishListMetadata user ", user.email);
   return runWishListTransaction(
     data.id,
     async (transaction, doc, wishListData) => {
@@ -192,7 +196,6 @@ exports.updatewishlistmetadata = onCall<
         ...data,
         updatedAt: Date.now(),
       };
-      console.log("updateWishListMetadata newData", newData);
       transaction.update(doc, newData);
       return null;
     }
@@ -207,22 +210,21 @@ exports.addidea = onCall<AddIdeaRequest, Promise<AddIdeaResponse>>(
     if (!user) {
       throw new HttpsError("unauthenticated", "No user found");
     }
-    console.log("addIdea user ", user.email);
-    const wishListCollection = getFirestore().collection("wishList");
+    const wishListCollection = dbAdmin.collection("wishList");
     const wishListDoc = wishListCollection.doc(data.wishListId);
+    const now = Date.now();
     const newIdea: Idea = {
       ...data.idea,
       comments: {},
       mark: null,
       author: user,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
       id: uuid.v4(),
     };
-    console.log("addIdea newIdea", newIdea);
     await wishListDoc.update({
       [`ideas.${newIdea.id}`]: newIdea,
-      updatedAt: Date.now(),
+      updatedAt: now,
     });
     return { idea: newIdea };
   }
@@ -236,7 +238,6 @@ exports.deleteidea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
     if (!user) {
       throw new HttpsError("unauthenticated", "No user found");
     }
-    console.log("deleteIdea user ", user.email);
     return runWishListTransaction(
       data.wishListId,
       async (transaction, doc, wishListData) => {
@@ -248,13 +249,11 @@ exports.deleteidea = onCall<DeleteIdeaRequest, Promise<DeleteIdeaResponse>>(
         if (ideaToDelete.author.uid !== user.uid) {
           throw new HttpsError(
             "permission-denied",
-            "You are not allowed to delete this idea"
+            "Only the author can delete their ideas"
           );
         }
 
-        console.log("deleteIdea ideaId", data.ideaId);
         transaction.update(doc, {
-          // Google "How to get the writeResult from a transaction"
           [`ideas.${data.ideaId}`]: FieldValue.delete(),
           updatedAt: Date.now(),
         } as UpdateData<WishList>);
@@ -272,7 +271,6 @@ exports.markidea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
     if (!user) {
       throw new HttpsError("unauthenticated", "No user found");
     }
-    console.log("markIdea user ", user.email);
     return runWishListTransaction(
       data.wishListId,
       async (transaction, wishListDoc, wishListData) => {
@@ -289,15 +287,16 @@ exports.markidea = onCall<MarkIdeaRequest, Promise<MarkIdeaResponse>>(
           );
         }
 
-        console.log("markIdea ideaId", data.ideaId, data.status);
+        const now = Date.now();
         const newMark: Mark = {
           status: data.status,
           author: user,
-          timestamp: Date.now(),
+          timestamp: now,
         };
         transaction.update(wishListDoc, {
           [`ideas.${data.ideaId}.mark`]: newMark,
-          updatedAt: Date.now(),
+          [`ideas.${data.ideaId}.updatedAt`]: now,
+          updatedAt: now,
         } as UpdateData<WishList>);
         return { mark: newMark };
       }
@@ -314,7 +313,6 @@ exports.updateideametadata = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("updateIdeaMetadata user ", user?.email);
   return runWishListTransaction(
     data.wishListId,
     async (transaction, doc, wishListData) => {
@@ -326,16 +324,10 @@ exports.updateideametadata = onCall<
       if (ideaToUpdate.author.uid !== user.uid) {
         throw new HttpsError(
           "permission-denied",
-          "You are not allowed to edit this idea"
+          "Only the author can update the idea metadata"
         );
       }
       const now = Date.now();
-      const newData: Idea = {
-        ...ideaToUpdate,
-        ..._.pick(data, "title", "description"),
-        updatedAt: now,
-      };
-      console.log("updateIdeaMetadata newData", newData);
       transaction.update(doc, {
         ...(data.title ? { [`ideas.${data.ideaId}.title`]: data.title } : {}),
         ...(data.description
@@ -357,7 +349,6 @@ exports.addcomment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
     if (!user) {
       throw new HttpsError("unauthenticated", "No user found");
     }
-    console.log("addComment user ", user.email);
     return runWishListTransaction(
       data.wishListId,
       async (transaction, doc, wishListData) => {
@@ -373,7 +364,6 @@ exports.addcomment = onCall<AddCommentRequest, Promise<AddCommentResponse>>(
           author: user,
           id: uuid.v4(),
         };
-        console.log("addComment newData", newComment);
         transaction.update(doc, {
           [`ideas.${data.ideaId}.comments.${newComment.id}`]: newComment,
           [`ideas.${data.ideaId}.updatedAt`]: Date.now(),
@@ -394,7 +384,6 @@ exports.deletecomment = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("deleteComment user ", user.email);
   return runWishListTransaction(
     data.wishListId,
     async (transaction, doc, wishListData) => {
@@ -410,10 +399,9 @@ exports.deletecomment = onCall<
       if (commentToDelete.author.uid !== user.uid) {
         throw new HttpsError(
           "permission-denied",
-          "You are not allowed to delete this comment"
+          "Only the author can delete the comment."
         );
       }
-      console.log("deleteComment commentId", data.commentId);
       transaction.update(doc, {
         [`ideas.${data.ideaId}.comments.${data.commentId}`]:
           FieldValue.delete(),
@@ -434,7 +422,6 @@ exports.updatecomment = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("updateComment user ", user.email);
   return runWishListTransaction(
     data.wishListId,
     async (transaction, doc, wishListData) => {
@@ -450,15 +437,10 @@ exports.updatecomment = onCall<
       if (commentToUpdate.author.uid !== user.uid) {
         throw new HttpsError(
           "permission-denied",
-          "You are not allowed to edit this comment"
+          "Only the author can edit this comment."
         );
       }
-      const newData = {
-        text: data.text,
-        updatedAt: Date.now(),
-      };
       const now = Date.now();
-      console.log("updateComment newData", newData);
       transaction.update(doc, {
         [`ideas.${data.ideaId}.comments.${data.commentId}.text`]:
           // It doesn't realize that this key is a part of a Comment which is part of a WishList
@@ -481,19 +463,24 @@ exports.getexchangeevent = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("getExchangeEvent user ", user?.email);
-  const result = await getFirestore()
-    .collection("exchangeEvent")
-    .doc(req.data.exchangeEvent)
-    .get();
-  if (!result.exists) {
-    throw new HttpsError("not-found", "No event found");
-  }
+  let event: ExchangeEvent;
+  try {
+    const exchangeEventCollection = dbAdmin.collection("exchangeEvent");
+    const exchangeEventDocRef = exchangeEventCollection.doc(
+      req.data.exchangeEvent
+    );
+    const exchangeEventDoc = await exchangeEventDocRef.get();
+    if (!exchangeEventDoc.exists) {
+      throw new HttpsError("not-found", "No event found");
+    }
 
-  const event = result.data() as ExchangeEvent;
+    event = exchangeEventDoc.data() as ExchangeEvent;
 
-  if (!event.users[user.email]) {
-    throw new HttpsError("permission-denied", "User not in event");
+    if (!event.users.includes(user.email)) {
+      throw new HttpsError("permission-denied", "User not in event");
+    }
+  } catch (err) {
+    throw new HttpsError("unknown", `${err}`);
   }
   return event;
 });
@@ -506,27 +493,36 @@ exports.getallwishlists = onCall<
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("getAllWishLists user ", user.email);
-  const db = getFirestore();
-  const exchangeEventDoc = await db
-    .collection("exchangeEvent")
-    .doc(req.data.exchangeEvent)
-    .get();
-  if (!exchangeEventDoc.exists) {
-    throw new HttpsError("not-found", "No event found");
-  }
-  const exchangeEvent = exchangeEventDoc.data() as ExchangeEvent;
-  if (!exchangeEvent.users[user.email]) {
-    throw new HttpsError("permission-denied", "User not in event");
-  }
+  let wishLists: admin.firestore.QuerySnapshot<WishList>;
+  try {
+    const exchangeEventCollection = dbAdmin.collection("exchangeEvent");
+    const exchangeEventDocRef = exchangeEventCollection.doc(
+      req.data.exchangeEvent
+    );
+    const exchangeEventDoc = await exchangeEventDocRef.get();
+    if (!exchangeEventDoc.exists) {
+      throw new HttpsError("not-found", "No event found");
+    }
+    const exchangeEvent = exchangeEventDoc.data() as ExchangeEvent;
+    if (!exchangeEvent.users.includes(user.email)) {
+      throw new HttpsError("permission-denied", "User not in event");
+    }
 
-  const wishLists = await db
-    .collection("wishList")
-    .where("exchangeEvent", "==", req.data.exchangeEvent)
-    .get();
+    const wishListCollection = dbAdmin.collection(
+      "wishList"
+    ) as admin.firestore.CollectionReference<WishList>;
+    const wishListQuery = wishListCollection.where(
+      "exchangeEvent",
+      "==",
+      req.data.exchangeEvent
+    );
+    wishLists = await wishListQuery.get();
+  } catch (err) {
+    throw new HttpsError("unknown", `${err}`);
+  }
 
   return _.mapValues(_.keyBy(wishLists.docs, "id"), (d, id) => {
-    const wishList = d.data() as WishList;
+    const wishList = d.data();
     if (wishList.author.uid === user.uid && !wishList.isExtra) {
       return {
         ...wishList,
@@ -556,19 +552,20 @@ exports.getallexchangeevents = onCall<
   GetAllExchangeEventsRequest,
   Promise<GetAllExchangeEventsResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
-  console.log("Reached getallexchangeevents");
   const user = getUserFromAuth(req.auth);
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  console.log("Checked auth getallexchangeevents");
   try {
-    const db = getFirestore();
-    const exchangeEvents = await db
+    const exchangeEvents = await dbAdmin
       .collection("exchangeEvent")
-      .where("author.uid", "==", user.uid)
+      .where(
+        Filter.or(
+          Filter.where("users", "array-contains", user.email),
+          Filter.where("author.uid", "==", user.uid)
+        )
+      )
       .get();
-    console.log("Got docs getallexchangeevents");
     return _.mapValues(
       _.keyBy(exchangeEvents.docs, "id"),
       (doc, id) =>
@@ -601,15 +598,15 @@ exports.createexchangeevent = onCall<
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const data = req.data;
   const user = getUserFromAuth(req.auth);
-  console.log("createExchangeEvent user ", user?.email);
   if (!user) {
     throw new HttpsError("unauthenticated", "No user found");
   }
-  const exchangeEventCollection = getFirestore().collection("exchangeEvent");
+  const dbAdmin = getFirestoreAdmin(appAdmin);
+  const exchangeEventCollection = dbAdmin.collection("exchangeEvent");
   let docRef = exchangeEventCollection.doc(_.kebabCase(data.name));
-  let doc = await docRef.get();
+  let document = await docRef.get();
   let tries = 3;
-  while (doc.exists) {
+  while (document.exists) {
     if (tries-- === 0) {
       docRef = exchangeEventCollection.doc();
       break;
@@ -617,27 +614,20 @@ exports.createexchangeevent = onCall<
     docRef = exchangeEventCollection.doc(
       `${_.kebabCase(data.name)}_${generateSixDigitAlphaNumericCode()}`
     );
-    doc = await docRef.get();
+    document = await docRef.get();
   }
   const now = Date.now();
-  const newData: ExchangeEvent = {
+  const newData: Omit<ExchangeEvent, "id"> = {
     ...data,
-    users: {
-      ...data.users,
-      [user.email]: {
-        email: user.email,
-        joinedAt: now,
-        uid: user.uid,
-      },
-    },
-    id: doc.id,
     author: user,
     createdAt: now,
     updatedAt: now,
   };
-  console.log("createExchangeEvent newData", newData);
   await docRef.set(newData);
-  return newData;
+  return {
+    ...newData,
+    id: docRef.id,
+  };
 });
 
 exports.updateexchangeevent = onCall<
@@ -645,7 +635,8 @@ exports.updateexchangeevent = onCall<
   Promise<UpdateExchangeEventResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const { id, ...newMetadata } = req.data;
-  const exchangeEventDoc = getFirestore().collection("exchangeEvent").doc(id);
+  const exchangeEventCollection = dbAdmin.collection("exchangeEvent");
+  const exchangeEventDoc = exchangeEventCollection.doc(id);
   exchangeEventDoc.update({
     ...newMetadata,
     updatedAt: Date.now(),
@@ -658,6 +649,6 @@ exports.deleteexchangeevent = onCall<
   Promise<DeleteExchangeEventResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const { exchangeEventId } = req.data;
-  getFirestore().collection("exchangeEvent").doc(exchangeEventId).delete();
+  dbAdmin.collection("exchangeEvent").doc(exchangeEventId).delete();
   return null;
 });

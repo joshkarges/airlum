@@ -134,10 +134,9 @@ export const ExchangeEventCard = ({
   exchangeEvent: { updatedAt, id, ...exchangeMetadata },
 }: ExchangeEventCardProps) => {
   const classes = useStyles();
-  const { name, description, users, date } = exchangeMetadata;
+  const { name, description, users: userEmails, date } = exchangeMetadata;
   const [editMode, setEditMode] = useState(initialEditMode);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const userEmails = useMemo(() => _.keys(users), [users]);
   const [expandUsers, setExpandUsers] = useState(false);
   const updateExchangeEvent = useDispatcher(updateExchangeEventAction);
   const createExchangeEvent = useDispatcher(createExchangeEventAction);
@@ -154,17 +153,13 @@ export const ExchangeEventCard = ({
   return (
     <Formik
       initialValues={eventMetadataFormValues}
-      onSubmit={({ eventName: name, description, date, users: userValues }) => {
+      onSubmit={({ eventName: name, description, date, users }) => {
         const upsertFn: any = id ? updateExchangeEvent : createExchangeEvent;
         upsertFn({
           name,
           description,
           date,
-          users: _.mapValues(_.keyBy(userValues), (email) => ({
-            email,
-            joinedAt: users[email]?.joinedAt ?? 0,
-            uid: users[email]?.uid ?? "",
-          })),
+          users,
           ...(id ? { id } : {}),
         });
         setEditMode(false);
@@ -247,8 +242,8 @@ export const ExchangeEventCard = ({
                     />
                   ) : (
                     <Flex gap="8px" flexWrap="wrap">
-                      {_.map(users, (user) => (
-                        <Chip label={user.email} key={user.email} />
+                      {_.map(userEmails, (user) => (
+                        <Chip label={user} key={user} />
                       ))}
                     </Flex>
                   )}
@@ -391,7 +386,7 @@ export const ExchangeEventListPage = () => {
                       name: "",
                       description: "",
                       date: moment().add(1, "w").toDate().getTime(),
-                      users: {},
+                      users: [],
                       id: "",
                       updatedAt: Date.now(),
                     }}

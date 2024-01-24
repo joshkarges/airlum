@@ -10,10 +10,9 @@ service cloud.firestore {
 
     match /exchangeEvent/{exchangeEventId} {
       allow get: if request.auth != null && (request.auth.token.email in resource.data.users || resource.data.author.uid == request.auth.uid)
-      // allow get: if request.auth != null && ((request.auth.token.email in resource.data.users))
 
       // User can list exchange events if they're auth'd, and they're querying by author.uid, and that author.uid is equal to the user's uid.
-      allow list: if request.auth != null && resource.data.author.uid == request.auth.uid
+      allow list: if request.auth != null && (request.auth.token.email in resource.data.users || resource.data.author.uid == request.auth.uid)
       
       // User can create an exchangeEvent if the author in the created data is equal to the auth'd user
       allow create: if request.auth != null && request.resource.data.author.uid == request.auth.uid

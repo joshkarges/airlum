@@ -51,7 +51,7 @@ export const MyClaimsModal = () => {
             return (
               <Flex flexDirection="column">
                 <Typography>{`${recipient} (${gifts.length})`}</Typography>
-                <Flex gap="8px">
+                <Flex gap="8px" flexWrap="wrap">
                   {gifts.map((gift) => {
                     return <Chip label={gift.title} />;
                   })}

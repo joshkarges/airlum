@@ -55,7 +55,7 @@ const emptyExchangeEvent: ExchangeEvent = {
     displayName: "",
   },
   date: 0,
-  users: {},
+  users: [],
 };
 
 export const exchangeEventGetter = makeSingleMultiReducer(
