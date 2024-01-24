@@ -650,5 +650,12 @@ exports.deleteexchangeevent = onCall<
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const { exchangeEventId } = req.data;
   dbAdmin.collection("exchangeEvent").doc(exchangeEventId).delete();
+  const wishLists = await dbAdmin
+    .collection("wishList")
+    .where("exchangeEvent", "==", exchangeEventId)
+    .get();
+  wishLists.forEach((doc) => {
+    doc.ref.delete();
+  });
   return null;
 });
