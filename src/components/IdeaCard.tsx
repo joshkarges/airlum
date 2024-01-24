@@ -12,7 +12,7 @@ import { makeStyles } from "@mui/styles";
 import _ from "lodash";
 import React, { useCallback, useState } from "react";
 import { Idea, IdeaMarkStatus, WishList } from "../models/functions";
-import { useUser } from "../redux/selectors";
+import { useGetUserShortName, useUser } from "../redux/selectors";
 import {
   addCommentAction,
   deleteIdeaAction,
@@ -143,6 +143,7 @@ export const IdeaCard = ({
   }, [deleteIdea, idea.id, wishList.id]);
   const markIdea = useDispatcher(markIdeaAction);
   const [markLoading, setMarkLoading] = useState(false);
+  const getShortName = useGetUserShortName();
   const currentMarkStatus = idea.mark?.status ?? IdeaMarkStatus.Incomplete;
   const MarkIcon = MarkIconByStatus[currentMarkStatus];
   const nextMarkStatus =
@@ -188,16 +189,18 @@ export const IdeaCard = ({
               </IconButton>
               {idea.mark && ideaExpanded && (
                 <Typography variant="caption">
-                  {idea.mark.author.displayName.split(/\s+/)[0]}
+                  {getShortName(idea.mark.author.uid)}
                 </Typography>
               )}
             </Flex>
           ) : null}
           <Flex flexDirection="column">
-            {(wishList.isExtra || wishList.author.uid != idea.author.uid) && (
-              <Typography variant="caption">{`${
-                idea.author.displayName.split(/\s+/)[0]
-              } added this`}</Typography>
+            {(wishList.isExtra ||
+              (wishList.author.uid !== user?.uid &&
+                wishList.author.uid !== idea.author.uid)) && (
+              <Typography variant="caption">{`${getShortName(
+                idea.author.uid
+              )} added this`}</Typography>
             )}
             <EditableField
               idea={idea}

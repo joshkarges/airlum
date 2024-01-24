@@ -1,7 +1,7 @@
 import { Button, TextField, Typography } from "@mui/material";
 import { Flex } from "./Flex";
 import { Comment } from "../models/functions";
-import { useUser } from "../redux/selectors";
+import { useGetUserShortName, useUser } from "../redux/selectors";
 import { useState } from "react";
 import { useDispatcher } from "../utils/fetchers";
 import {
@@ -26,7 +26,7 @@ export const CommentCard = ({
   const [text, setText] = useState(comment.text);
   const updateComment = useDispatcher(updateCommentAction);
   const deleteComment = useDispatcher(deleteCommentAction);
-  const authorFirstName = comment.author.displayName.split(" ")[0];
+  const getShortName = useGetUserShortName();
   const isCommentAuthor = comment.author.uid === user?.uid;
   return (
     <Flex flexDirection="column" gap="8px">
@@ -40,7 +40,7 @@ export const CommentCard = ({
               whiteSpace: "pre",
             }}
           >
-            {`${authorFirstName}: `}
+            {`${getShortName(comment.author.uid)}: `}
           </Typography>
         </Flex>
         {isCommentAuthor && isEditing ? (

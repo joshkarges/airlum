@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useSelector } from "react-redux";
 import { State } from "./rootReducer";
 
@@ -18,3 +19,8 @@ export const useWishLists = () =>
   useSelector((state: State) => {
     return state.wishLists;
   });
+
+export const useGetUserShortName = () => {
+  const shortNameMap = useSelector((state: State) => state.userShortNames);
+  return useCallback((uid: string) => shortNameMap[uid], [shortNameMap]);
+};

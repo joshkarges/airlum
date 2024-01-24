@@ -5,6 +5,7 @@ import { gameState } from "./slices/gameState";
 import { user } from "./slices/user";
 import { exchangeEvent } from "./slices/exchangeEvent";
 import { wishLists } from "./slices/wishLists";
+import { userShortNames } from "./slices/userShortNames";
 
 const reducerMap = {
   game,
@@ -13,6 +14,7 @@ const reducerMap = {
   user,
   exchangeEvent,
   wishLists,
+  userShortNames,
 };
 
 export type State = StateFromReducersMapObject<typeof reducerMap>;
