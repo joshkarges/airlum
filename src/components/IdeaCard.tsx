@@ -193,12 +193,19 @@ export const IdeaCard = ({
               )}
             </Flex>
           ) : null}
-          <EditableField
-            idea={idea}
-            canEdit={ideaExpanded}
-            wishListId={wishList.id}
-            fieldName="title"
-          />
+          <Flex flexDirection="column">
+            {(wishList.isExtra || wishList.author.uid != idea.author.uid) && (
+              <Typography variant="caption">{`${
+                idea.author.displayName.split(/\s+/)[0]
+              } added this`}</Typography>
+            )}
+            <EditableField
+              idea={idea}
+              canEdit={ideaExpanded}
+              wishListId={wishList.id}
+              fieldName="title"
+            />
+          </Flex>
         </Flex>
       </AccordionSummary>
       <AccordionDetails>

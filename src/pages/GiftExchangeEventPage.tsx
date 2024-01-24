@@ -92,7 +92,7 @@ export const GiftExchangeEventPage = () => {
     wishLists.status,
   ]);
 
-  const listsInOrder = useMemo(() => {
+  const { listsInOrder, numExtraLists } = useMemo(() => {
     const {
       extraLists = [],
       userLists = [],
@@ -104,11 +104,14 @@ export const GiftExchangeEventPage = () => {
         ? "ownList"
         : "userLists"
     );
-    return [
-      ...ownList,
-      ..._.orderBy(userLists, "createdAt", "desc"),
-      ..._.orderBy(extraLists, "createdAt", "asc"),
-    ];
+    return {
+      listsInOrder: [
+        ...ownList,
+        ..._.orderBy(userLists, "createdAt", "desc"),
+        ..._.orderBy(extraLists, "createdAt", "asc"),
+      ],
+      numExtraLists: extraLists.length,
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid, wishLists.data]);
 
@@ -172,25 +175,33 @@ export const GiftExchangeEventPage = () => {
                   {listsInOrder.map((list) => {
                     return (
                       <div key={list.id} className={classes.wishListContainer}>
-                        <WishListCard list={list} user={user} />
+                        <WishListCard
+                          list={list}
+                          user={user}
+                          event={exchangeEvent.data}
+                        />
                       </div>
                     );
                   })}
                   <Flex alignItems="center">
-                    {hasOwnList && (
-                      <AddButtonWithText
-                        commitText={(text) => {
-                          return createNewWishList({
-                            title: text,
-                            exchangeEvent: exchangeEventUrlParam,
-                            isExtra: true,
-                          });
-                        }}
-                        buttonText="Create List For Someone Else"
-                        initialText="Extra List"
-                        size="large"
-                      />
-                    )}
+                    {exchangeEvent.data.options.extraListsAllowed &&
+                      (hasOwnList ||
+                        !exchangeEvent.data.options.selfListRequired) &&
+                      numExtraLists <=
+                        exchangeEvent.data.options.maxExtraLists && (
+                        <AddButtonWithText
+                          commitText={(text) => {
+                            return createNewWishList({
+                              title: text,
+                              exchangeEvent: exchangeEventUrlParam,
+                              isExtra: true,
+                            });
+                          }}
+                          buttonText="Create List For Someone Else"
+                          initialText="Extra List"
+                          size="large"
+                        />
+                      )}
                   </Flex>
                 </Flex>
               </Flex>

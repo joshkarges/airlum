@@ -5,11 +5,19 @@ type UserCreatedAsset = {
   author: User;
 };
 
+type ExchangeEventOptions = {
+  selfListRequired: boolean;
+  extraListsAllowed: boolean;
+  maxExtraLists: number;
+  maxIdeasPerList: number;
+};
+
 export type ExchangeEventMetadata = {
   name: string;
   description: string;
   date: number;
   users: string[];
+  options: ExchangeEventOptions;
 };
 
 export type ExchangeEvent = UserCreatedAsset & ExchangeEventMetadata;
@@ -56,7 +64,7 @@ export type WishListMetadata = {
 export type WishList = UserCreatedAsset &
   WishListMetadata & {
     ideas: Record<string, Idea>;
-    exchangeEvent: string; // Needs index in firestore
+    exchangeEvent: string;
     isExtra: boolean;
   };
 

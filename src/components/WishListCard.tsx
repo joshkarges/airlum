@@ -12,7 +12,7 @@ import { makeStyles } from "@mui/styles";
 import classNames from "classnames";
 import _ from "lodash";
 import { useCallback, useState } from "react";
-import { WishList, User } from "../models/functions";
+import { WishList, User, ExchangeEvent } from "../models/functions";
 import { useUser } from "../redux/selectors";
 import {
   addIdeaAction,
@@ -93,10 +93,11 @@ const EditableField = ({ list, canEdit, fieldName }: TitleInputProps) => {
 };
 
 type WishListCardProps = {
+  event: ExchangeEvent;
   list: WishList;
   user: User;
 };
-export const WishListCard = ({ list, user }: WishListCardProps) => {
+export const WishListCard = ({ event, list, user }: WishListCardProps) => {
   const classes = useStyles();
   const [listExpanded, setListExpanded] = useState(true);
   const [expandedIdeaId, setExpandedIdeaId] = useState<string | null>(null);
@@ -151,11 +152,13 @@ export const WishListCard = ({ list, user }: WishListCardProps) => {
                 />
               )}
           </Flex>
-          <AddButtonWithText
-            commitText={addIdeaFromTitle}
-            buttonText="Add Idea"
-            disabled={list.id === CREATING_WISHLIST_ID}
-          />
+          {_.size(list.ideas) < event.options.maxIdeasPerList && (
+            <AddButtonWithText
+              commitText={addIdeaFromTitle}
+              buttonText="Add Idea"
+              disabled={list.id === CREATING_WISHLIST_ID}
+            />
+          )}
         </Flex>
       </AccordionDetails>
     </Accordion>

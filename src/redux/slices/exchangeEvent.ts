@@ -56,6 +56,12 @@ const emptyExchangeEvent: ExchangeEvent = {
   },
   date: 0,
   users: [],
+  options: {
+    selfListRequired: true,
+    extraListsAllowed: true,
+    maxExtraLists: 50,
+    maxIdeasPerList: 50,
+  },
 };
 
 export const exchangeEventGetter = makeSingleMultiReducer(
