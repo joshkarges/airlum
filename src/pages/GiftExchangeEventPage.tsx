@@ -20,6 +20,7 @@ import { WishListCard } from "../components/WishListCard";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 import {
   anyIsIdle,
+  anyIsSuccess,
   FetchedResource,
   Fetcher,
   FetchingActionResponse,
@@ -124,6 +125,21 @@ export const GiftExchangeEventPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid, wishLists.data]);
 
+  useEffect(() => {
+    if (
+      anyIsSuccess(wishLists) &&
+      !hasOwnList &&
+      exchangeEvent.data.options.selfListRequired
+    ) {
+      createNewWishList({
+        title: user?.displayName ?? "My List",
+        exchangeEvent: exchangeEventUrlParam,
+        isExtra: false,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wishLists.status, hasOwnList]);
+
   return (
     <Flex flexDirection="column" p={3}>
       {!!user ? (
@@ -157,7 +173,8 @@ export const GiftExchangeEventPage = () => {
             {(data) => (
               <Flex flexDirection="column">
                 <Flex justifyContent="flex-end">
-                  {!hasOwnList ? (
+                  {!hasOwnList &&
+                  !exchangeEvent.data.options.selfListRequired ? (
                     <Button
                       variant="contained"
                       onClick={() =>
