@@ -19,7 +19,6 @@ import {
   FieldValue,
   UpdateData,
 } from "firebase-admin/firestore";
-import { initializeApp } from "firebase/app";
 import * as uuid from "uuid";
 
 // Start writing functions
@@ -116,6 +115,28 @@ const runWishListTransaction = async <T>(
       throw new HttpsError("not-found", "WishList does not exist");
     }
     return updateFunction(transaction, document, wishListDoc.data()!);
+  });
+  return result;
+};
+
+const runExchangeEventTransaction = async <T>(
+  exchangeEventId: string,
+  updateFunction: (
+    transaction: admin.firestore.Transaction,
+    doc: admin.firestore.DocumentReference<ExchangeEvent>,
+    exchangeEvent: ExchangeEvent
+  ) => Promise<T>
+) => {
+  const exchangeEventCollection = dbAdmin.collection("exchangeEvent");
+  const document = exchangeEventCollection.doc(
+    exchangeEventId
+  ) as admin.firestore.DocumentReference<ExchangeEvent>;
+  const result = await dbAdmin.runTransaction(async (transaction) => {
+    const exchangeEventDoc = await transaction.get(document);
+    if (!exchangeEventDoc.exists) {
+      throw new HttpsError("not-found", "ExchangeEvent does not exist");
+    }
+    return updateFunction(transaction, document, exchangeEventDoc.data()!);
   });
   return result;
 };
@@ -504,7 +525,10 @@ exports.getallwishlists = onCall<
       throw new HttpsError("not-found", "No event found");
     }
     const exchangeEvent = exchangeEventDoc.data() as ExchangeEvent;
-    if (!exchangeEvent.users.includes(user.email)) {
+    if (
+      !exchangeEvent.users.includes(user.email) &&
+      exchangeEvent.author.uid !== user.uid
+    ) {
       throw new HttpsError("permission-denied", "User not in event");
     }
 
@@ -634,28 +658,57 @@ exports.updateexchangeevent = onCall<
   UpdateExchangeEventRequest,
   Promise<UpdateExchangeEventResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const user = getUserFromAuth(req.auth);
+  if (!user) {
+    throw new HttpsError("unauthenticated", "No user found");
+  }
   const { id, ...newMetadata } = req.data;
-  const exchangeEventCollection = dbAdmin.collection("exchangeEvent");
-  const exchangeEventDoc = exchangeEventCollection.doc(id);
-  exchangeEventDoc.update({
-    ...newMetadata,
-    updatedAt: Date.now(),
-  });
-  return null;
+  return runExchangeEventTransaction(
+    id,
+    async (transaction, exchangeEventDoc, exchangeEvent) => {
+      if (exchangeEvent.author.uid !== user.uid) {
+        throw new HttpsError(
+          "permission-denied",
+          "Only the author can update the event"
+        );
+      }
+      transaction.update(exchangeEventDoc, {
+        ...newMetadata,
+        updatedAt: Date.now(),
+      });
+      return null;
+    }
+  );
 });
 
 exports.deleteexchangeevent = onCall<
   DeleteExchangeEventRequest,
   Promise<DeleteExchangeEventResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const user = getUserFromAuth(req.auth);
+  if (!user) {
+    throw new HttpsError("unauthenticated", "No user found");
+  }
   const { exchangeEventId } = req.data;
-  dbAdmin.collection("exchangeEvent").doc(exchangeEventId).delete();
-  const wishLists = await dbAdmin
-    .collection("wishList")
-    .where("exchangeEvent", "==", exchangeEventId)
-    .get();
-  wishLists.forEach((doc) => {
-    doc.ref.delete();
-  });
-  return null;
+  return runExchangeEventTransaction(
+    exchangeEventId,
+    async (transaction, exchangeEventDoc, exchangeEvent) => {
+      if (exchangeEvent.author.uid !== user.uid) {
+        throw new HttpsError(
+          "permission-denied",
+          "Only the author can delete the event"
+        );
+      }
+      const wishListsQuery = dbAdmin
+        .collection("wishList")
+        .where("exchangeEvent", "==", exchangeEventId);
+      const wishLists = await transaction.get(wishListsQuery);
+
+      transaction.delete(exchangeEventDoc);
+      wishLists.forEach((wishList) => {
+        transaction.delete(wishList.ref);
+      });
+      return null;
+    }
+  );
 });

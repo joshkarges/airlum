@@ -43,7 +43,7 @@ export const updateExchangeEventAction =
 export const deleteExchangeEventAction =
   makeExchangeEventAction(deleteExchangeEvent);
 
-const emptyExchangeEvent: ExchangeEvent = {
+export const emptyExchangeEvent: ExchangeEvent = {
   id: "",
   createdAt: 0,
   updatedAt: 0,

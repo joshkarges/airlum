@@ -19,5 +19,9 @@
       "@functions/*": ["./functions/src/*"]
     }
   },
-  "include": ["src", "test"]
+  "include": ["src", "test"],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
 }
