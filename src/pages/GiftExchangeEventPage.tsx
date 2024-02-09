@@ -32,6 +32,7 @@ import { AddButtonWithText } from "../components/AddButtonWithText";
 import { makeStyles } from "@mui/styles";
 import { Checklist } from "@mui/icons-material";
 import { ModalContext, ModalType } from "../components/modals/ModalContext";
+import { DocTitle } from "../utils/useDocTitleEffect";
 
 const useStyles = makeStyles({
   title: {
@@ -142,6 +143,7 @@ export const GiftExchangeEventPage = () => {
 
   return (
     <Flex flexDirection="column" p={3}>
+      <DocTitle title={exchangeEvent.data?.name ?? "Gift Exchange Event"} />
       {!!user ? (
         <Flex flexDirection="column" gap="32px">
           <FetchedComponent resource={exchangeEvent}>

@@ -47,6 +47,7 @@ import {
 } from "../redux/slices/exchangeEvent";
 import classNames from "classnames";
 import { useQuery } from "../utils/routing";
+import { DocTitle } from "../utils/useDocTitleEffect";
 
 const useStyles = makeStyles((theme: Theme) => ({
   h5: {
@@ -563,6 +564,7 @@ export const ExchangeEventListPage = () => {
 
   return (
     <Flex>
+      <DocTitle title="Gifter" />
       {!!user ? (
         <FetchedComponent resource={exchangeEventsResource}>
           {(exchangeEventsMap) => {
