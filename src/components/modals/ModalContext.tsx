@@ -8,6 +8,7 @@ import {
 
 export enum ModalType {
   MyClaims,
+  DrawNames,
 }
 
 const initialModalContextValue = {

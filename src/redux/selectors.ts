@@ -1,6 +1,8 @@
 import { useCallback } from "react";
 import { useSelector } from "react-redux";
 import { State } from "./rootReducer";
+import { ExchangeEvent } from "../models/functions";
+import { FetchedResource } from "../utils/fetchers";
 
 export const useActionOnDeck = () =>
   useSelector((state: State) => state.actionOnDeck);
@@ -12,8 +14,16 @@ export const useGameState = () =>
 
 export const useUser = () => useSelector((state: State) => state.user.data);
 
-export const useExchangeEvent = () =>
+export const useExchangeEvents = () =>
   useSelector((state: State) => state.exchangeEvent);
+
+export const useExchangeEvent = (exchangeEventId: string) => {
+  return useSelector((state: State) => {
+    return state.exchangeEvent.data[exchangeEventId] as
+      | FetchedResource<ExchangeEvent>
+      | undefined;
+  });
+};
 
 export const useWishLists = () =>
   useSelector((state: State) => {

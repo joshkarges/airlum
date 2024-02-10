@@ -1,6 +1,13 @@
-import { Button, Typography } from "@mui/material";
+import { Button, IconButton, Menu, MenuItem, Typography } from "@mui/material";
 import moment from "moment";
-import { useContext, useEffect, useMemo } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useDispatch } from "react-redux";
 import { Flex } from "../components/Flex";
 import { useUser } from "../redux/selectors";
@@ -30,9 +37,10 @@ import {
 import _ from "lodash";
 import { AddButtonWithText } from "../components/AddButtonWithText";
 import { makeStyles } from "@mui/styles";
-import { Checklist } from "@mui/icons-material";
+import { Checklist, Settings } from "@mui/icons-material";
 import { ModalContext, ModalType } from "../components/modals/ModalContext";
 import { DocTitle } from "../utils/useDocTitleEffect";
+import { DrawNamesModal } from "../components/modals/DrawNamesModal";
 
 const useStyles = makeStyles({
   title: {
@@ -42,6 +50,39 @@ const useStyles = makeStyles({
     width: 400,
   },
 });
+
+const SettingsMenu = () => {
+  const ref = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const { setModal } = useContext(ModalContext);
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+  return (
+    <>
+      <IconButton ref={ref} onClick={() => setIsOpen(!isOpen)}>
+        <Settings />
+      </IconButton>
+      <Menu
+        open={isOpen}
+        onClose={handleClose}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorEl={ref.current}
+      >
+        <MenuItem onClick={handleClose}>Edit</MenuItem>
+        <MenuItem
+          onClick={() => {
+            setIsOpen(false);
+            setModal(ModalType.DrawNames);
+          }}
+        >
+          Draw Names
+        </MenuItem>
+      </Menu>
+    </>
+  );
+};
 
 export const GiftExchangeEventPage = () => {
   const classes = useStyles();
@@ -143,7 +184,6 @@ export const GiftExchangeEventPage = () => {
 
   return (
     <Flex flexDirection="column" p={3}>
-      <DocTitle title={exchangeEvent.data?.name ?? "Gift Exchange Event"} />
       {!!user ? (
         <Flex flexDirection="column" gap="32px">
           <FetchedComponent resource={exchangeEvent}>
@@ -153,9 +193,13 @@ export const GiftExchangeEventPage = () => {
                 justifyContent="center"
                 overflow="hidden"
               >
-                <Typography variant="h2" className={classes.title}>
-                  {data.name}
-                </Typography>
+                <DocTitle title={data.name} />
+                <Flex>
+                  <Typography variant="h2" className={classes.title}>
+                    {data.name}
+                  </Typography>
+                  <SettingsMenu />
+                </Flex>
                 <Typography variant="subtitle1">{data.description}</Typography>
                 <Typography variant="subtitle1">
                   {moment(data.date).format("dddd, MMMM Do YYYY")}
@@ -228,6 +272,7 @@ export const GiftExchangeEventPage = () => {
           </FetchedComponent>
         </Flex>
       ) : null}
+      <DrawNamesModal />
     </Flex>
   );
 };
