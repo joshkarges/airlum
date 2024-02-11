@@ -194,7 +194,7 @@ export const IdeaCard = ({
               )}
             </Flex>
           ) : null}
-          <Flex flexDirection="column">
+          <Flex flexDirection="column" flexGrow={1}>
             {(wishList.isExtra ||
               (wishList.author.uid !== user?.uid &&
                 wishList.author.uid !== idea.author.uid)) && (
