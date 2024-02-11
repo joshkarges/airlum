@@ -1,5 +1,8 @@
 import * as admin from "firebase-admin";
-import { getFirestore as getFirestoreAdmin } from "firebase-admin/firestore";
+import {
+  FieldValue,
+  getFirestore as getFirestoreAdmin,
+} from "firebase-admin/firestore";
 import { ExchangeEvent } from "../models";
 
 const appAdmin = admin.initializeApp({
@@ -15,7 +18,7 @@ dbAdmin.listCollections().then((collections) => {
   });
 });
 
-type OldExchangeEvent = Omit<ExchangeEvent, "options">;
+type OldExchangeEvent = ExchangeEvent & { matches: admin.firestore.FieldValue };
 
 const migrate = async () => {
   const result = await dbAdmin.runTransaction(async (transaction) => {
@@ -24,10 +27,14 @@ const migrate = async () => {
     ) as admin.firestore.CollectionReference<OldExchangeEvent>;
     const exchangeEvents = await transaction.get(exchangeEventsRef);
     exchangeEvents.forEach((exchangeEvent) => {
-      const newRef =
-        exchangeEvent.ref as unknown as admin.firestore.DocumentReference<ExchangeEvent>;
+      const newRef = exchangeEvent.ref;
       transaction.update(newRef, {
-        matches: {},
+        matches: FieldValue.delete(),
+        drawNames: {
+          matches: {},
+          gifters: [],
+          type: "noTwoWay",
+        },
       });
     });
     return exchangeEvents.docs.map((doc) => doc.id);

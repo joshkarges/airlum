@@ -62,7 +62,11 @@ export const emptyExchangeEvent: ExchangeEvent = {
     maxExtraLists: 50,
     maxIdeasPerList: 50,
   },
-  matches: {},
+  drawNames: {
+    matches: {},
+    gifters: [],
+    type: "noTwoWay",
+  },
 };
 
 export const exchangeEventGetter = makeSingleMultiReducer(

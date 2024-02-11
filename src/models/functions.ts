@@ -18,7 +18,11 @@ export type ExchangeEventMetadata = {
   date: number;
   users: string[];
   options: ExchangeEventOptions;
-  matches: Record<string, string[]>;
+  drawNames: {
+    matches: Record<string, string[]>;
+    gifters: string[][];
+    type: "noTwoWay" | "someTwoWay" | "allTwoWay" | "oneLoop" | "manual";
+  };
 };
 
 export type ExchangeEvent = UserCreatedAsset & ExchangeEventMetadata;
