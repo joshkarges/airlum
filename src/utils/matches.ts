@@ -1,32 +1,19 @@
 import _ from "lodash";
 
-type DLNode = {
-  val: number;
-  next: DLNode | null;
-  prev: DLNode | null;
-};
-
-type Loop = {
+type Node = {
+  root: number;
+  rank: number;
   size: number;
-  root: DLNode;
-  tail: DLNode;
 };
 
-export const find = (
-  i: number,
-  elementMap: { root: number; rank: number }[]
-) => {
+export const find = (i: number, elementMap: Node[]) => {
   if (elementMap[i].root !== i) {
     elementMap[i].root = find(elementMap[i].root, elementMap);
   }
   return elementMap[i].root;
 };
 
-export const union = (
-  i: number,
-  j: number,
-  elementMap: { root: number; rank: number }[]
-) => {
+export const union = (i: number, j: number, elementMap: Node[]) => {
   const iRoot = find(i, elementMap);
   const jRoot = find(j, elementMap);
   if (iRoot === jRoot) {
@@ -34,11 +21,14 @@ export const union = (
   }
   if (elementMap[iRoot].rank < elementMap[jRoot].rank) {
     elementMap[iRoot].root = jRoot;
+    elementMap[jRoot].size += elementMap[iRoot].size;
   } else if (elementMap[iRoot].rank > elementMap[jRoot].rank) {
     elementMap[jRoot].root = iRoot;
+    elementMap[iRoot].size += elementMap[jRoot].size;
   } else {
     elementMap[jRoot].root = iRoot;
     elementMap[iRoot].rank++;
+    elementMap[iRoot].size += elementMap[jRoot].size;
   }
 };
 
@@ -56,17 +46,29 @@ export const generateMatches = (
   if (numParticipants === 2) {
     return [1, 0];
   }
-  const participants = _.range(numParticipants);
-  const matches = participants.map(() => -1);
-  const parents = participants.map(() => -1);
-  const elementMap = participants.map((_, i) => ({ root: i, rank: 1 }));
-  const bowlOfIndices = new Set(participants);
-  for (let i = 0; i < participants.length; i++) {
+  const bowlOfIndices = _.range(numParticipants);
+  const matches = bowlOfIndices.map(() => -1);
+  const parents = bowlOfIndices.map(() => -1);
+  const elementMap = bowlOfIndices.map((_, i) => ({
+    root: i,
+    rank: 1,
+    size: 1,
+  }));
+  let bowlSize = bowlOfIndices.length;
+  const bowlWithoutSelf = [] as number[];
+  for (let i = 0; i < bowlOfIndices.length; i++) {
     // The choices for participant i are all participants except for i that haven't been taken yet
-    const secretSantaIndex = parents[i];
-    const bowlWithoutSelf = Array.from(bowlOfIndices).filter(
-      (index) => index !== i && (twoWaysAllowed || index !== secretSantaIndex)
-    );
+    const parentIndex = parents[i];
+    bowlWithoutSelf.length = 0;
+    for (let b = 0; b < bowlSize; b++) {
+      const participant = bowlOfIndices[b];
+      if (
+        participant !== i &&
+        (twoWaysAllowed || participant !== parentIndex)
+      ) {
+        bowlWithoutSelf.push(participant);
+      }
+    }
     if (bowlWithoutSelf.length === 0) {
       // We could have gotten here if there are only two participants left and they are each other's only choice
       // Or if there's just 1 participant left.
@@ -74,22 +76,53 @@ export const generateMatches = (
       // Find the smallest disjoint set.  At this point, all of the disjoint sets should be complete.
       let smallestSet = Infinity;
       let smallestSetIndex = -1;
+      const minimumSetSize = twoWaysAllowed ? 2 : 3;
       for (let j = 0; j < elementMap.length; j++) {
         if (
           elementMap[j].root === j &&
-          elementMap[j].rank < smallestSet &&
-          elementMap[j].rank > 1
+          elementMap[j].size < smallestSet &&
+          elementMap[j].size >= minimumSetSize
         ) {
-          smallestSet = elementMap[j].rank;
+          smallestSet = elementMap[j].size;
           smallestSetIndex = j;
-          if (smallestSet === 2) {
+          if (smallestSet === minimumSetSize) {
             break;
           }
         }
       }
+
+      if (
+        parents[smallestSetIndex] === -1 ||
+        _.isUndefined(parents[smallestSetIndex])
+      ) {
+        console.log(
+          "Error: smallestSetIndex has no parent",
+          elementMap,
+          i,
+          smallestSetIndex,
+          matches,
+          parents
+        );
+      }
+
       matches[i] = smallestSetIndex;
 
       matches[parents[smallestSetIndex]] = parents[i] !== -1 ? parents[i] : i;
+      if (_.uniq(matches).length !== i + 1) {
+        console.log(`${_.uniq(matches)}.length !== ${i + 1}`);
+        console.log(
+          "Error: matches is not unique",
+          matches,
+          i,
+          parents[smallestSetIndex],
+          bowlWithoutSelf,
+          bowlOfIndices,
+          parents,
+          elementMap,
+          bowlSize,
+          numParticipants
+        );
+      }
       break;
     }
     const j = Math.floor(Math.random() * bowlWithoutSelf.length);
@@ -97,8 +130,29 @@ export const generateMatches = (
     union(i, bowlWithoutSelf[j], elementMap);
 
     matches[i] = bowlWithoutSelf[j];
+    if (_.uniq(matches).length !== Math.min(matches.length, i + 2)) {
+      console.log(
+        "Error: matches is not unique",
+        matches,
+        i,
+        j,
+        bowlWithoutSelf,
+        bowlOfIndices,
+        parents,
+        elementMap,
+        bowlSize,
+        numParticipants
+      );
+    }
     parents[bowlWithoutSelf[j]] = i;
-    bowlOfIndices.delete(bowlWithoutSelf[j]);
+    for (let b = 0; b < bowlSize; b++) {
+      if (bowlOfIndices[b] === bowlWithoutSelf[j]) {
+        bowlOfIndices[b] = bowlOfIndices[bowlSize - 1];
+        bowlOfIndices[bowlSize - 1] = bowlWithoutSelf[j];
+        break;
+      }
+    }
+    bowlSize--;
   }
   return matches;
 };

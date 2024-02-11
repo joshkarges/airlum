@@ -7,81 +7,164 @@ import {
   union,
 } from "./matches";
 
-const areValidMatches = (matches: number[], twoWaysAllowed = false) => {
+const debug = false;
+
+const oldConsoleLog = console.log;
+console.log = (...args: any[]) => {
+  if (debug) {
+    oldConsoleLog(...args);
+  }
+};
+
+const areValidMatches = (matches: number[]) => {
+  const zeroToN = _.range(matches.length);
+  const uniqueMatches = _.uniq(matches);
+  // All elements should be numeric, unique, and contain all integers starting from 0.
+  const isNumeric = uniqueMatches.every((val) => !isNaN(val));
+  const isUniqueAndContinuous = _.isEqual(uniqueMatches.sort(), zeroToN);
+  // The indices should be continuous starting at 0.
+  const indicesAreContinuous = _.isEqual(_.keys(matches).map(Number), zeroToN);
+  // No element should be equal to its index.
+  const noSelfMatches = matches.every((val, index) => val !== index);
+  return (
+    isNumeric && isUniqueAndContinuous && indicesAreContinuous && noSelfMatches
+  );
+};
+
+const noSelfOrTwoWayMatches = (matches: number[], twoWaysAllowed = false) => {
+  if (!areValidMatches(matches)) {
+    return false;
+  }
+  if (twoWaysAllowed) return true;
   // Make sure that no element matches[i] is equal to i
   const parents = _.invert(matches);
   for (let i = 0; i < matches.length; i++) {
-    if (matches[i] === i || (!twoWaysAllowed && matches[i] === +parents[i])) {
+    if (matches[i] === +parents[i]) {
       return false;
     }
   }
   return true;
 };
 
+const repeatTest = (
+  testName: string,
+  numRepeat: number,
+  fn: () => any,
+  assertFn: (result: any) => void
+) => {
+  for (let i = 0; i < numRepeat; i++) {
+    let result;
+    try {
+      result = fn();
+      assertFn(result);
+    } catch (e) {
+      console.log(testName, e, result);
+      throw e;
+    }
+  }
+};
+
 describe("generateMatches", () => {
   it("should fail to generate matches for 1 or 2 participants.", () => {
-    // Test case 3
+    // Test case 1
     const result1 = generateMatches(1);
-    console.log(result1);
-    const areValid1 = areValidMatches(result1);
+    console.log("test1", result1);
+    const areValid1 = noSelfOrTwoWayMatches(result1);
     expect(areValid1).toBe(false);
 
-    // Test case 4
+    // Test case 2
     const result2 = generateMatches(2);
-    console.log(result2);
-    const areValid2 = areValidMatches(result2);
+    console.log("test2", result2);
+    const areValid2 = noSelfOrTwoWayMatches(result2);
     expect(areValid2).toBe(false);
   });
 
   it("should return an array of matches where there are no bidrectional matches and no self-matches", () => {
-    // Test case 1
-    const result3 = generateMatches(3);
-    console.log(result3);
-    const areValid3 = areValidMatches(result3);
-    expect(areValid3).toBe(true);
+    repeatTest(
+      "test3",
+      10,
+      () => {
+        const result = generateMatches(3);
+        return noSelfOrTwoWayMatches(result);
+      },
+      (result) => expect(result).toBe(true)
+    );
 
     // Test case 2
-    const result4 = generateMatches(5);
-    console.log(result4);
-    const areValid4 = areValidMatches(result4);
-    expect(areValid4).toBe(true);
+    repeatTest(
+      "test4",
+      10,
+      () => {
+        const result4 = generateMatches(5);
+        return noSelfOrTwoWayMatches(result4);
+      },
+      (result) => expect(result).toBe(true)
+    );
 
     // Test case 3
-    const result5 = generateMatches(10);
-    console.log(result5);
-    const areValid5 = areValidMatches(result5);
-    expect(areValid5).toBe(true);
+    repeatTest(
+      "test5",
+      10,
+      () => {
+        const result5 = generateMatches(10);
+        return noSelfOrTwoWayMatches(result5);
+      },
+      (result) => expect(result).toBe(true)
+    );
   });
 
   it("should return an array of matches where there are no self-matches, but bidirectional matches are allowed", () => {
-    // Test case 1
-    const result1 = generateMatches(2, true);
-    console.log(result1);
-    const areValid1 = areValidMatches(result1, true);
-    expect(areValid1).toBe(true);
+    repeatTest(
+      "test6",
+      10,
+      () => {
+        const result = generateMatches(2, true);
+        return noSelfOrTwoWayMatches(result, true);
+      },
+      (result) => expect(result).toBe(true)
+    );
 
-    // Test case 2
-    const result2 = generateMatches(3, true);
-    console.log(result2);
-    const areValid2 = areValidMatches(result2, true);
-    expect(areValid2).toBe(true);
+    repeatTest(
+      "test7",
+      10,
+      () => {
+        const result = generateMatches(3, true);
+        return noSelfOrTwoWayMatches(result, true);
+      },
+      (result) => expect(result).toBe(true)
+    );
 
-    // Test case 3
-    const result3 = generateMatches(5, true);
-    console.log(result3);
-    const areValid3 = areValidMatches(result3, true);
-    expect(areValid3).toBe(true);
+    repeatTest(
+      "test8",
+      10,
+      () => {
+        const result = generateMatches(5, true);
+        return noSelfOrTwoWayMatches(result, true);
+      },
+      (result) => expect(result).toBe(true)
+    );
 
-    // Test case 4
-    const result4 = generateMatches(10, true);
-    console.log(result4);
-    const areValid4 = areValidMatches(result4, true);
-    expect(areValid4).toBe(true);
+    repeatTest(
+      "test9",
+      10,
+      () => {
+        const result = generateMatches(10, true);
+        return noSelfOrTwoWayMatches(result, true);
+      },
+      (result) => expect(result).toBe(true)
+    );
   });
 });
 
 const isValidLoop = (loop: number[]) => {
-  const elementMap = loop.map((val, index) => ({ root: index, rank: 1 }));
+  if (!areValidMatches(loop)) {
+    return false;
+  }
+  const elementMap = loop.map((val, index) => ({
+    root: index,
+    rank: 1,
+    size: 1,
+  }));
   for (let i = 0; i < loop.length; i++) {
     union(i, loop[i], elementMap);
   }
@@ -95,52 +178,125 @@ const isValidLoop = (loop: number[]) => {
 
 describe("generateLoopMatches", () => {
   it("should return an array of matches where there is only 1 loop", () => {
-    // Test case 1
     const result1 = generateLoopMatches(1);
-    console.log(result1);
+    console.log("test11", result1);
     const isValid1 = isValidLoop(result1);
-    expect(isValid1).toBe(true);
+    expect(isValid1).toBe(false);
 
-    // Test case 2
-    const result2 = generateLoopMatches(3);
-    console.log(result2);
+    const result2 = generateLoopMatches(2);
+    console.log("test12", result2);
     const isValid2 = isValidLoop(result2);
     expect(isValid2).toBe(true);
 
-    // Test case 3
-    const result3 = generateLoopMatches(5);
-    console.log(result3);
-    const isValid3 = isValidLoop(result3);
-    expect(isValid3).toBe(true);
+    repeatTest(
+      "test13",
+      10,
+      () => {
+        const result = generateLoopMatches(3);
+        return isValidLoop(result);
+      },
+      (result) => expect(result).toBe(true)
+    );
 
-    // Test case 4
-    const result4 = generateLoopMatches(10);
-    console.log(result4);
-    const isValid4 = isValidLoop(result4);
-    expect(isValid4).toBe(true);
+    repeatTest(
+      "test14",
+      10,
+      () => {
+        const result = generateLoopMatches(5);
+        return isValidLoop(result);
+      },
+      (result) => expect(result).toBe(true)
+    );
+
+    repeatTest(
+      "test15",
+      10,
+      () => {
+        const result = generateLoopMatches(10);
+        return isValidLoop(result);
+      },
+      (result) => expect(result).toBe(true)
+    );
   });
 });
 
-// const areValidBidirectionalMatches = (matches: number[]) => {};
+const areValidBidirectionalMatches = (matches: number[]) => {
+  if (!areValidMatches(matches)) {
+    return false;
+  }
+  const elementMap = matches.map((val, index) => ({
+    root: index,
+    rank: 1,
+    size: 1,
+  }));
+  for (let i = 0; i < matches.length; i++) {
+    union(i, matches[i], elementMap);
+  }
+  const rootCounts = {} as Record<number, number>;
+  let hasATriplet = false;
+  for (let i = 0; i < matches.length; i++) {
+    const root = find(i, elementMap);
+    const rootCount = (rootCounts[root] || 0) + 1;
+    rootCounts[root] = rootCount;
+    if (rootCount > 2) {
+      if (hasATriplet) {
+        console.log("Triplet found", root, matches, rootCounts, elementMap);
+        return false;
+      }
+      hasATriplet = true;
+    }
+    if (root === i && elementMap[i].rank < 2) {
+      console.log("Rank less than 2", root, matches, rootCounts, elementMap);
+      return false;
+    }
+  }
+  return true;
+};
 
-// describe("generateBidrectionalMatches", () => {
-//   it("should return an array of matches where every match is a bidirectional match", () => {
-//     // Test case 1
-//     const result1 = generateBidrectionalMatches(3);
-//     console.log(result1);
-//     const areValid1 = areValidBidirectionalMatches(result1, true);
-//     expect(areValid1).toBe(true);
+describe("generateBidrectionalMatches", () => {
+  it("should validate the bidirectional validation function", () => {
+    const result1 = areValidBidirectionalMatches([1, 0]);
+    expect(result1).toBe(true);
 
-//     // Test case 2
-//     const result2 = generateBidrectionalMatches(5);
-//     console.log(result2);
-//     const areValid2 = areValidBidirectionalMatches(result2, true);
-//     expect(areValid2).toBe(true);
+    const result2 = areValidBidirectionalMatches([1, 0, 2]);
+    expect(result2).toBe(false);
 
-//     // Test case 3
-//     const result3 = generateBidrectionalMatches(10);
-//     console.log(result3);
-//     const areValid3 = areValidBidirectionalMatches(result3, true);
-//     expect(areValid3).toBe(true);
-//   });
-// });
+    const result3 = areValidBidirectionalMatches([1, 2, 0]);
+    expect(result3).toBe(true);
+
+    const result4 = areValidBidirectionalMatches([1, 0, 3, 2]);
+    expect(result4).toBe(true);
+  });
+
+  it("should return an array of matches where every match is a bidirectional match", () => {
+    repeatTest(
+      "test16",
+      10,
+      () => {
+        const result = generateBidrectionalMatches(3);
+        return areValidBidirectionalMatches(result);
+      },
+      (result) => expect(result).toBe(true)
+    );
+
+    repeatTest(
+      "test17",
+      10,
+      () => {
+        const result = generateBidrectionalMatches(5);
+        return areValidBidirectionalMatches(result);
+      },
+      (result) => expect(result).toBe(true)
+    );
+
+    repeatTest(
+      "test18",
+      10,
+      () => {
+        const result = generateBidrectionalMatches(10);
+        return areValidBidirectionalMatches(result);
+      },
+      (result) => expect(result).toBe(true)
+    );
+  });
+});
