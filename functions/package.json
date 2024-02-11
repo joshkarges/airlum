@@ -10,7 +10,8 @@
     "start": "npm run shell",
     "deploy": "rm -rf node_modules && yarn install && yarn build && yarn delete && firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "delete": "firebase functions:delete health createwishlist deleteextrawishlist updatewishlistmetadata addidea deleteidea markidea updateideametadata addcomment deletecomment updatecomment getexchangeevent getallwishlists getallexchangeevents createexchangeevent updateexchangeevent deleteexchangeevent --force"
+    "delete": "firebase functions:delete health createwishlist deleteextrawishlist updatewishlistmetadata addidea deleteidea markidea updateideametadata addcomment deletecomment updatecomment getexchangeevent getallwishlists getallexchangeevents createexchangeevent updateexchangeevent deleteexchangeevent --force",
+    "migrate": "ts-node $1"
   },
   "engines": {
     "node": "18",

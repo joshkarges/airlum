@@ -18,6 +18,7 @@ export type ExchangeEventMetadata = {
   date: number;
   users: string[];
   options: ExchangeEventOptions;
+  matches: Record<string, string[]>;
 };
 
 export type ExchangeEvent = UserCreatedAsset & ExchangeEventMetadata;
