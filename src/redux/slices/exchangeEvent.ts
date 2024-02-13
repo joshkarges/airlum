@@ -63,7 +63,7 @@ export const emptyExchangeEvent: ExchangeEvent = {
     maxIdeasPerList: 50,
   },
   drawNames: {
-    matches: {},
+    matches: [],
     gifters: [],
     type: "noTwoWay",
   },

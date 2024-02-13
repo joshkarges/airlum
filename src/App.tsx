@@ -11,7 +11,7 @@ import { CacheProvider } from "@emotion/react";
 import { BangForBuckPage } from "./pages/BangForBuckPage";
 import { ModalContextProvider } from "./components/modals/ModalContext";
 import { GiftExchangeEventPage } from "./pages/GiftExchangeEventPage";
-import { blue } from "@mui/material/colors";
+import { amber, blue } from "@mui/material/colors";
 import { ExchangeEventListPage } from "./pages/ExchangeEventListPage";
 
 export const muiCache = createCache({
@@ -23,6 +23,9 @@ const theme = createTheme({
   palette: {
     primary: {
       main: blue[500],
+    },
+    secondary: {
+      main: amber[500],
     },
     tonalOffset: {
       light: 0.9,

@@ -19,8 +19,8 @@ export type ExchangeEventMetadata = {
   users: string[];
   options: ExchangeEventOptions;
   drawNames: {
-    matches: Record<string, string[]>;
-    gifters: string[][];
+    matches: number[];
+    gifters: { emails: string[] }[];
     type: "noTwoWay" | "someTwoWay" | "allTwoWay" | "oneLoop" | "manual";
   };
 };

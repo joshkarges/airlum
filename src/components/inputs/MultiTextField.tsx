@@ -3,6 +3,7 @@ import {
   Chip,
   TextField,
   AutocompleteProps,
+  TextFieldProps,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import { ReactNode, useCallback, useMemo } from "react";
@@ -33,6 +34,7 @@ type MultiTextFieldProps = Partial<
   error?: boolean;
   label?: ReactNode;
   placeholder?: string;
+  variant?: TextFieldProps["variant"];
 };
 
 export const MultiTextField = (props: MultiTextFieldProps) => {
@@ -73,7 +75,7 @@ export const MultiTextField = (props: MultiTextFieldProps) => {
           {...params}
           label={label}
           placeholder={placeholder}
-          variant="filled"
+          variant={props.variant ? props.variant : "filled"}
           helperText={helperText}
           error={!!error}
           onKeyDown={(evt) => {
