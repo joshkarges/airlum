@@ -133,12 +133,14 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         { type: "module" }
       )
     );
-    if (actionOnDeck.type === "takeCoins") {
+    const actionToTake =
+      actionOnDeck.type === "none" && !!aiAction ? aiAction : actionOnDeck;
+    if (actionToTake.type === "takeCoins") {
       const chooseCoins =
-        getNumCoins(player.coins) - getNumCoins(actionOnDeck.coinCost) > 10;
+        getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
       dispatch(
         takeActionAction({
-          ...actionOnDeck,
+          ...actionToTake,
           dontAdvance: chooseCoins,
         })
       );
@@ -146,18 +148,18 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         dispatch(setGameState("chooseCoins"));
       }
     } else if (
-      actionOnDeck.type === "buy" ||
-      actionOnDeck.type === "buyReserve"
+      actionToTake.type === "buy" ||
+      actionToTake.type === "buyReserve"
     ) {
       const playerWithCard = {
         ...player,
-        bought: [...player.bought, actionOnDeck.card],
+        bought: [...player.bought, actionToTake.card],
       } as Player;
       const multipleNobles =
         getAffordableNobles(game, playerWithCard).length > 1;
       dispatch(
         takeActionAction({
-          ...actionOnDeck,
+          ...actionToTake,
           dontAdvance: multipleNobles,
           popNoble: multipleNobles,
         })
@@ -165,12 +167,12 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       if (multipleNobles) {
         dispatch(setGameState("chooseNobles"));
       }
-    } else if (actionOnDeck.type === "reserve") {
+    } else if (actionToTake.type === "reserve") {
       const chooseCoins =
-        getNumCoins(player.coins) - getNumCoins(actionOnDeck.coinCost) > 10;
+        getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
       dispatch(
         takeActionAction({
-          ...actionOnDeck,
+          ...actionToTake,
           dontAdvance: chooseCoins,
         })
       );

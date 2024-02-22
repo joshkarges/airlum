@@ -70,6 +70,7 @@ export const getBuyActions = (
 ) => {
   const gatherBuyActions = (type: "buy" | "buyReserve") => (card: Card) => {
     const action = actionPool.get();
+    if (!action) return;
     const payableCost = canAffordCard(player, card, action.coinCost);
     if (payableCost) {
       action.type = type;
