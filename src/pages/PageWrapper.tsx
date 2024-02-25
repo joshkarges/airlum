@@ -1,13 +1,23 @@
-import { AppBar, Toolbar, Typography } from "@mui/material";
+import { AppBar, Theme, Toolbar, Typography } from "@mui/material";
+import { makeStyles } from "@mui/styles";
 import { PropsWithChildren } from "react";
 import { Route, Switch } from "react-router-dom";
 import { Flex } from "../components/Flex";
 import { MyClaimsModal } from "../components/modals/MyClaimsModal";
 import { SignIn } from "../components/SignIn";
 
+const useStyles = makeStyles((theme: Theme) => ({
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100vh",
+  },
+}));
+
 const PageWrapper = ({ children }: PropsWithChildren) => {
+  const classes = useStyles();
   return (
-    <div>
+    <div className={classes.root}>
       <AppBar position="sticky">
         <Toolbar>
           <Switch>
