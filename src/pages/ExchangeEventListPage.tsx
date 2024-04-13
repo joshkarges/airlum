@@ -181,15 +181,26 @@ export const ExchangeEventCard = ({
   return (
     <Formik
       initialValues={eventMetadataFormValues}
-      onSubmit={({ eventName: name, description, date, users }) => {
-        const upsertFn: any = id ? updateExchangeEvent : createExchangeEvent;
-        upsertFn({
-          name,
-          description,
-          date,
-          users,
-          ...(id ? { id } : {}),
-        });
+      onSubmit={({ eventName: name, description, date, users, options }) => {
+        if (!!id) {
+          updateExchangeEvent({
+            id,
+            name,
+            description,
+            date,
+            users,
+            options,
+          });
+        } else {
+          createExchangeEvent({
+            ..._.cloneDeep(emptyExchangeEvent),
+            name,
+            description,
+            date,
+            users,
+            options,
+          });
+        }
         setEditMode(false);
       }}
       validationSchema={Yup.object({
@@ -598,6 +609,7 @@ export const ExchangeEventListPage = () => {
                       ..._.cloneDeep(emptyExchangeEvent),
                       date: moment().add(1, "w").toDate().getTime(),
                       updatedAt: Date.now(),
+                      author: _.pick(user, ["uid", "email", "displayName"]),
                     }}
                     userOptions={userOptions}
                     initialEditMode={true}
