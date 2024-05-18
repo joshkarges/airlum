@@ -10,6 +10,7 @@ import { ChooseNobleModal } from "../components/splendor/ChooseNobleModal";
 const useStyles = makeStyles()((theme) => ({
   container: {
     height: "calc(100vh - 64px)",
+    maxWidth: 1000,
   },
   tableAndOnDeck: {
     background: "rgb(245, 245, 245)",

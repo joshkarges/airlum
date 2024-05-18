@@ -86,7 +86,9 @@ export const Playermat: VFC<PlayerMatProps> = () => {
   const onCoinClick = (color: Color) => {
     if (gameState !== GameState.chooseCoins) return;
     dispatch(putCoinBack({ color, playerIndex }));
-    if (getNumCoins(player.coins) - 1 <= 10) dispatch(setGameState("play"));
+    if (getNumCoins(player.coins) - 1 <= 10) {
+      dispatch(setGameState("play"));
+    }
   };
 
   const boughtByColor = _.groupBy(player.bought, "color");

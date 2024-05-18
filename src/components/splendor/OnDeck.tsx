@@ -9,7 +9,7 @@ import _ from "lodash";
 import { useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { Color, Player } from "../../models/Splendor";
-import { useActionOnDeck, useGame } from "../../redux/selectors";
+import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
 import {
   actionOnDeckSlice,
   cancel,
@@ -78,6 +78,10 @@ const DisplayAction: VFC<DisplayActionProps> = ({
   onCoinClick,
 }) => {
   const { classes } = useStyles();
+  const gameState = useGameState();
+  if (gameState === "chooseCoins")
+    return <div>You must discard down to 10 coins</div>;
+  if (gameState === "chooseNobles") return <div>Choose a noble</div>;
   if (action.type === "none") return null;
   return (
     <div className={classes.cardAndCoins}>
@@ -118,6 +122,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
   const { classes } = useStyles();
   const actionOnDeck = useActionOnDeck();
   const game = useGame();
+  const gameState = useGameState();
   const [aiAction, setAiAction] = useState<State["actionOnDeck"] | null>(
     actionOnDeckSlice.getInitialState()
   );
@@ -146,14 +151,9 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     setDepth(0);
     setAiAction(null);
     worker.terminate();
-    setWorker(
-      new Worker(
-        new URL("../../webWorkers/getNextAction.worker.ts", import.meta.url),
-        { type: "module" }
-      )
-    );
     const actionToTake =
       actionOnDeck.type === "none" && !!aiAction ? aiAction : actionOnDeck;
+    let nextGameState = gameState;
     if (actionToTake.type === "takeCoins") {
       const chooseCoins =
         getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
@@ -164,7 +164,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         })
       );
       if (chooseCoins) {
-        dispatch(setGameState("chooseCoins"));
+        nextGameState = "chooseCoins";
       }
     } else if (
       actionToTake.type === "buy" ||
@@ -184,7 +184,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         })
       );
       if (multipleNobles) {
-        dispatch(setGameState("chooseNobles"));
+        nextGameState = "chooseNobles";
       }
     } else if (actionToTake.type === "reserve") {
       const chooseCoins =
@@ -196,8 +196,17 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         })
       );
       if (chooseCoins) {
-        dispatch(setGameState("chooseCoins"));
+        nextGameState = "chooseCoins";
       }
+    }
+    dispatch(setGameState(nextGameState));
+    if (nextGameState === "play") {
+      setWorker(
+        new Worker(
+          new URL("../../webWorkers/getNextAction.worker.ts", import.meta.url),
+          { type: "module" }
+        )
+      );
     }
   };
 
@@ -228,6 +237,17 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       setDepth(response.depth);
     };
   }, [worker]);
+
+  useEffect(() => {
+    if (gameState === "play") {
+      setWorker(
+        new Worker(
+          new URL("../../webWorkers/getNextAction.worker.ts", import.meta.url),
+          { type: "module" }
+        )
+      );
+    }
+  }, [gameState]);
 
   if (actionOnDeck.type === "none" && aiAction?.type === "none") return null;
 
