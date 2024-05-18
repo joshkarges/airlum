@@ -12,6 +12,13 @@ import { GameState } from "../../redux/slices/gameState";
 const useStyles = makeStyles()((theme) => ({
   tierRow: {
     display: "flex",
+    gap: 4,
+  },
+  tableCards: {
+    display: "flex",
+    flexDirection: "column",
+    rowGap: 4,
+    margin: 4,
   },
 }));
 
@@ -32,7 +39,7 @@ export const TableCards: VFC<TableCardsProps> = () => {
     const coinCost = canAffordCard(player, card);
     if (coinCost) {
       dispatch(prepBuyCard({ card, coinCost }));
-    } else {
+    } else if (player.reserved.length < 3) {
       dispatch(
         prepReserveCard({ card, takeYellow: !!game.coins[Color.Yellow] })
       );
@@ -43,7 +50,7 @@ export const TableCards: VFC<TableCardsProps> = () => {
   const tier2 = _.filter(game.table, { tier: "tier2" });
   const tier3 = _.filter(game.table, { tier: "tier3" });
   return (
-    <div>
+    <div className={classes.tableCards}>
       <div className={classes.tierRow}>
         {tier3.map((card) => (
           <Card

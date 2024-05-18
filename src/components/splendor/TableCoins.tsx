@@ -12,9 +12,9 @@ import { GameState } from "../../redux/slices/gameState";
 const useStyles = makeStyles()((theme) => ({
   coinsContainer: {
     display: "flex",
-    gap: 8,
+    gap: 6,
     flexDirection: "column",
-    margin: 16,
+    margin: 4,
   },
 }));
 

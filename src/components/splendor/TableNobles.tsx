@@ -1,4 +1,4 @@
-import { makeStyles } from 'tss-react/mui';
+import { makeStyles } from "tss-react/mui";
 import { VFC } from "react";
 import { Game } from "../../models/Splendor";
 import { Noble } from "./Noble";
@@ -7,8 +7,8 @@ const useStyles = makeStyles()((theme) => ({
   noblesContainer: {
     display: "flex",
     flexDirection: "column",
-    gap: 8,
-    margin: 16,
+    gap: 4,
+    margin: 4,
   },
 }));
 

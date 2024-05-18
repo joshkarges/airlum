@@ -10,8 +10,8 @@ import { getPlayerIndex, isLastTurns } from "../../utils/splendor";
 const useStyles = makeStyles()((theme) => ({
   opponentContainer: {
     display: "flex",
-    margin: theme.spacing(2),
-    padding: theme.spacing(1),
+    margin: 4,
+    padding: 4,
     fontSize: 12,
   },
   currentPlayer: {
@@ -101,37 +101,53 @@ const Opponent: VFC<OpponentProp> = ({
       })}
     >
       <div className={classes.fourColorBlock}>
-        <Grid container rowSpacing={1} columnSpacing={0}>
-          <CoinAndCard
-            color={Color.White}
-            cardCount={boughtByColor.white?.length}
-            coinCount={coins.white}
-          />
-          <CoinAndCard
-            color={Color.Blue}
-            cardCount={boughtByColor.blue?.length}
-            coinCount={coins.blue}
-          />
-          <CoinAndCard
-            color={Color.Green}
-            cardCount={boughtByColor.green?.length}
-            coinCount={coins.green}
-          />
-          <CoinAndCard
-            color={Color.Red}
-            cardCount={boughtByColor.red?.length}
-            coinCount={coins.red}
-          />
-          <CoinAndCard
-            color={Color.Black}
-            cardCount={boughtByColor.black?.length}
-            coinCount={coins.black}
-          />
-          <CoinAndCard
-            color={Color.Yellow}
-            cardCount={reserved.length}
-            coinCount={coins.yellow}
-          />
+        <Grid container>
+          <Grid
+            item
+            container
+            columnSpacing={0}
+            direction="row"
+            flexWrap="nowrap"
+          >
+            <CoinAndCard
+              color={Color.White}
+              cardCount={boughtByColor.white?.length}
+              coinCount={coins.white}
+            />
+            <CoinAndCard
+              color={Color.Blue}
+              cardCount={boughtByColor.blue?.length}
+              coinCount={coins.blue}
+            />
+            <CoinAndCard
+              color={Color.Green}
+              cardCount={boughtByColor.green?.length}
+              coinCount={coins.green}
+            />
+          </Grid>
+          <Grid
+            item
+            container
+            columnSpacing={0}
+            direction="row"
+            flexWrap="nowrap"
+          >
+            <CoinAndCard
+              color={Color.Red}
+              cardCount={boughtByColor.red?.length}
+              coinCount={coins.red}
+            />
+            <CoinAndCard
+              color={Color.Black}
+              cardCount={boughtByColor.black?.length}
+              coinCount={coins.black}
+            />
+            <CoinAndCard
+              color={Color.Yellow}
+              cardCount={reserved.length}
+              coinCount={coins.yellow}
+            />
+          </Grid>
         </Grid>
       </div>
       <div className={classes.points}>{points}</div>
@@ -147,7 +163,7 @@ export const Opponents: VFC<OpponentsProps> = () => {
   const lastTurns = isLastTurns(game);
   return (
     <div>
-      <div className={classes.lastTurns}>{lastTurns && "Last Turns"}</div>
+      {lastTurns && <div className={classes.lastTurns}>Last Turns</div>}
       {game.players.map((player, i) => (
         <Opponent key={i} {...player} currentPlayer={playerIndex === i} />
       ))}

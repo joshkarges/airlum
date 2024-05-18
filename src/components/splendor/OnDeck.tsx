@@ -1,5 +1,10 @@
 import { makeStyles } from "tss-react/mui";
-import { Button, ButtonGroup, Card as MuiCard } from "@mui/material";
+import {
+  Button,
+  ButtonGroup,
+  IconButton,
+  Card as MuiCard,
+} from "@mui/material";
 import _ from "lodash";
 import { useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
@@ -8,6 +13,7 @@ import { useActionOnDeck, useGame } from "../../redux/selectors";
 import {
   actionOnDeckSlice,
   cancel,
+  setActionOnDeck,
   unPrepBuyCard,
   unPrepCoin,
   unPrepReserveCard,
@@ -25,12 +31,17 @@ import classNames from "classnames";
 import { setGameState } from "../../redux/slices/gameState";
 import { State } from "../../redux/rootReducer";
 import { actionPool } from "../../utils/memory";
+import { Close } from "@mui/icons-material";
 
 const useStyles = makeStyles()((theme) => ({
   onDeckContainer: {
-    margin: theme.spacing(4),
-    padding: theme.spacing(2),
+    margin: 4,
+    padding: theme.spacing(1),
     height: "fit-content",
+    rowGap: 4,
+    display: "flex",
+    flexDirection: "column",
+    flexShrink: 0,
   },
   cardAndCoins: {
     display: "flex",
@@ -41,10 +52,18 @@ const useStyles = makeStyles()((theme) => ({
     marginBottom: theme.spacing(2),
   },
   reservedCard: {
-    transform: "rotateZ(-90deg)",
+    transform: "rotateZ(-90deg)translateY(13px)",
   },
   aiContainer: {
-    marginTop: theme.spacing(2),
+    cursor: "pointer",
+  },
+  takeActionButton: {
+    textWrap: "nowrap",
+  },
+  cancelActionButton: {
+    border: `1px solid ${theme.palette.primary.main}`,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
   },
 }));
 
@@ -187,6 +206,12 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     dispatch(cancel());
   };
 
+  const onAiActionClick = () => {
+    if (!aiAction) return;
+    if (aiAction.type === "none") return;
+    dispatch(setActionOnDeck(aiAction));
+  };
+
   useEffect(() => {
     if (depth >= 3) return;
     worker.postMessage({ game, depth: depth + 1 });
@@ -215,14 +240,24 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       />
       <div>
         <ButtonGroup>
-          <Button onClick={onTakeActionClick}>Take Action</Button>
-          <Button onClick={onCancelClick}>Cancel</Button>
+          <Button
+            className={classes.takeActionButton}
+            onClick={onTakeActionClick}
+          >
+            End Turn
+          </Button>
+          <IconButton
+            className={classes.cancelActionButton}
+            onClick={onCancelClick}
+          >
+            <Close />
+          </IconButton>
         </ButtonGroup>
       </div>
       {aiAction ? (
-        <div className={classes.aiContainer}>
+        <div className={classes.aiContainer} onClick={onAiActionClick}>
           <DisplayAction action={aiAction} />
-          {depth}
+          {`AI suggestion ${depth}`}
         </div>
       ) : (
         "No AI Action."

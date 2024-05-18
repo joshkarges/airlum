@@ -12,48 +12,56 @@ import { Coin } from "./Coin";
 import { Card as CardModel, Color } from "../../models/Splendor";
 import _ from "lodash";
 import { Card } from "./Card";
-import { Noble } from "./Noble";
+import { NobleCard } from "./Noble";
 import { useDispatch } from "react-redux";
 import { prepBuyReserveCard } from "../../redux/slices/actionOnDeck";
 import { GameState, setGameState } from "../../redux/slices/gameState";
 import { putCoinBack } from "../../redux/slices/game";
+import { Flex } from "../Flex";
 
 const useStyles = makeStyles()((theme) => ({
   card: {
     minWidth: 300,
     "&&": {
-      paddingBottom: 86,
+      width: "100%",
+      boxSizing: "border-box",
     },
-    margin: theme.spacing(4),
-    padding: theme.spacing(2),
-    width: "fit-content",
+    margin: 4,
+    padding: 4,
     display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
   },
   coinCardsContainer: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
   },
-  coinsContainer: {
-    display: "flex",
-    gap: theme.spacing(1),
-  },
   cardsContainer: {
     display: "flex",
-    gap: theme.spacing(1),
+    gap: 4,
   },
-  stackedCardGroup: {
-    margin: theme.spacing(2),
+  miniCard: {
+    width: 24,
+    height: 36,
+    borderRadius: 4,
+    border: "1px solid black",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    color: "white",
+    textShadow: `-1px -1px 0 #000,
+1px -1px 0 #000,
+-1px 1px 0 #000,
+1px 1px 0 #000`,
   },
-  stackedCard: {
-    height: 40,
-    overflow: "hidden",
-    "& > .MuiCard-root": {
-      margin: 0,
-    },
-    "&:last-child": {
-      overflow: "visible",
-    },
+  nobleCard: {
+    padding: 4,
+  },
+  reservedContainer: {
+    display: "flex",
+    gap: 4,
   },
 }));
 
@@ -82,47 +90,58 @@ export const Playermat: VFC<PlayerMatProps> = () => {
   };
 
   const boughtByColor = _.groupBy(player.bought, "color");
+  const coinCount = getNumCoins(player.coins);
 
   return (
-    <MuiCard className={classes.card}>
-      <div>
+    <div className={classes.card}>
+      <Flex alignItems="center" gap="8px">
+        <div>{coinCount} / 10</div>
         <div className={classes.cardsContainer}>
           {_.map(player.coins, (count: number, color: Color) => {
             const cards = boughtByColor[color];
             return (
               <div key={color} className={classes.coinCardsContainer}>
                 {gameState === GameState.chooseCoins && <KeyboardArrowUpIcon />}
-                <Coin count={count} color={color} onClick={onCoinClick} />
-                <div className={classes.stackedCardGroup}>
-                  {cards?.map((card) => (
-                    <div key={card.id} className={classes.stackedCard}>
-                      <Card {...card} />
-                    </div>
-                  ))}
-                </div>
+                <Coin
+                  count={count}
+                  color={color}
+                  onClick={onCoinClick}
+                  size={26}
+                />
+                {cards && (
+                  <div
+                    className={classes.miniCard}
+                    style={{ background: color }}
+                  >
+                    {cards.length}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-      </div>
-      <div>
-        {player.nobles.map((noble) => (
-          <Noble {...noble} />
-        ))}
-      </div>
-      <div>
+      </Flex>
+      <Flex gap="4px">
         {player.reserved.map((card, i) => (
           <Card
             key={card.id}
             {...card}
             onClick={onReservedCardClick}
             placeholder={card.id === actionOnDeck.card?.id}
-            sx={{
-              transform: `rotateZ(-90deg)translate(${34 + 44 * i}px, 10px)`,
-            }}
           />
         ))}
-      </div>
-    </MuiCard>
+      </Flex>
+      <MuiCard className={classes.nobleCard}>
+        {player.nobles.map((noble) => (
+          <Flex gap="4px">
+            {noble.points}
+            {_.map(
+              noble.cards,
+              (cost, color) => !!cost && <NobleCard cost={cost} color={color} />
+            )}
+          </Flex>
+        ))}
+      </MuiCard>
+    </div>
   );
 };

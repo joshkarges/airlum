@@ -12,8 +12,7 @@ const useStyles = makeStyles()((theme) => ({
   cardContainer: {
     border: `1px solid black`,
     borderRadius: "4px",
-    margin: 16,
-    padding: 8,
+    padding: 2,
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -55,9 +54,9 @@ const useStyles = makeStyles()((theme) => ({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "flex-end",
-    height: "calc(2.2em + 16px + 4px + 8px)",
+    height: "calc(2.2em + 14px)",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 1,
   },
   costCoin: {
     padding: 4,

@@ -9,8 +9,8 @@ const useStyles = makeStyles()((theme) => ({
     display: "flex",
     justifyContent: "space-between",
     boxSizing: "border-box",
-    padding: 8,
-    width: 76,
+    padding: 4,
+    width: 54,
     border: `1px solid black`,
     borderRadius: 4,
     flexDirection: "column",
@@ -19,14 +19,14 @@ const useStyles = makeStyles()((theme) => ({
   },
   nobleCardsContainer: {
     display: "flex",
-    gap: 8,
+    gap: 2,
   },
   nobleCard: {
     border: `1px solid black`,
     borderRadius: 4,
-    height: 22,
-    fontSize: 14,
-    width: 14,
+    height: 16,
+    fontSize: 10,
+    width: 11,
     color: "white",
     textShadow: `-1px -1px 0 #000,
 1px -1px 0 #000,
@@ -37,14 +37,14 @@ const useStyles = makeStyles()((theme) => ({
     alignItems: "center",
   },
   points: {
-    fontSize: 24,
+    fontSize: 16,
   },
 }));
 type NobleCardProps = {
   cost: number;
   color: string;
 };
-const NobleCard: VFC<NobleCardProps> = ({ color, cost }) => {
+export const NobleCard: VFC<NobleCardProps> = ({ color, cost }) => {
   const { classes } = useStyles();
   return (
     <div style={{ background: color }} className={classes.nobleCard}>

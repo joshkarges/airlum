@@ -8,7 +8,6 @@ import { TableNobles } from "./TableNobles";
 const useStyles = makeStyles()((theme) => ({
   tableContainer: {
     display: "flex",
-    alignItems: "center",
   },
 }));
 

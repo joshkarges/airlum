@@ -1,23 +1,20 @@
 import { makeStyles } from "tss-react/mui";
-import React, { useEffect, useState /* useRef, useMemo */ } from "react";
 import { OnDeck } from "../components/splendor/OnDeck";
 import { Table } from "../components/splendor/Table";
 import { useGame } from "../redux/selectors";
-import { runGame, setupGame, Strategy } from "../utils/splendor";
 import { Playermat } from "../components/splendor/PlayerMat";
 import { Opponents } from "../components/splendor/Opponents";
 import { EndGameModal } from "../components/splendor/EndGameModal";
-import { useDispatch } from "react-redux";
-import { multipleNoblesTest, useTestGameSetup } from "../utils/tests";
 import { ChooseNobleModal } from "../components/splendor/ChooseNobleModal";
 
 const useStyles = makeStyles()((theme) => ({
   container: {
-    background: "rgb(245, 245, 245)",
     height: "calc(100vh - 64px)",
   },
   tableAndOnDeck: {
+    background: "rgb(245, 245, 245)",
     display: "flex",
+    justifyContent: "space-between",
   },
 }));
 
