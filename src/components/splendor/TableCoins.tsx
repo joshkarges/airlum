@@ -28,8 +28,13 @@ export const TableCoins: VFC<TableCoinsProps> = () => {
 
   const onCoinClick = (color: Color) => {
     if (gameState !== GameState.play) return;
-    if (actionOnDeck.type !== "takeCoins" && actionOnDeck.type !== "none")
+    // if (actionOnDeck.type !== "takeCoins" && actionOnDeck.type !== "none")
+    //   return;
+
+    if (actionOnDeck.type !== "takeCoins") {
+      dispatch(prepCoin(color));
       return;
+    }
 
     // No more that 3 coins.
     const numCoinsOnDeck = -getNumCoins(actionOnDeck.coinCost);

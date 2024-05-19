@@ -18,6 +18,7 @@ import { prepBuyReserveCard } from "../../redux/slices/actionOnDeck";
 import { GameState, setGameState } from "../../redux/slices/gameState";
 import { putCoinBack } from "../../redux/slices/game";
 import { Flex } from "../Flex";
+import { OutlineText } from "../OutlineText";
 
 const useStyles = makeStyles()((theme) => ({
   card: {
@@ -50,11 +51,6 @@ const useStyles = makeStyles()((theme) => ({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    color: "white",
-    textShadow: `-1px -1px 0 #000,
-1px -1px 0 #000,
--1px 1px 0 #000,
-1px 1px 0 #000`,
   },
   nobleCard: {
     padding: 4,
@@ -62,6 +58,9 @@ const useStyles = makeStyles()((theme) => ({
   reservedContainer: {
     display: "flex",
     gap: 4,
+  },
+  coinFraction: {
+    fontFamily: "Arial",
   },
 }));
 
@@ -97,7 +96,7 @@ export const Playermat: VFC<PlayerMatProps> = () => {
   return (
     <div className={classes.card}>
       <Flex alignItems="center" gap="8px">
-        <div>{coinCount} / 10</div>
+        <div className={classes.coinFraction}>{coinCount} / 10</div>
         <div className={classes.cardsContainer}>
           {_.map(player.coins, (count: number, color: Color) => {
             const cards = boughtByColor[color];
@@ -115,7 +114,7 @@ export const Playermat: VFC<PlayerMatProps> = () => {
                     className={classes.miniCard}
                     style={{ background: color }}
                   >
-                    {cards.length}
+                    <OutlineText>{cards.length}</OutlineText>
                   </div>
                 )}
               </div>
@@ -123,27 +122,32 @@ export const Playermat: VFC<PlayerMatProps> = () => {
           })}
         </div>
       </Flex>
-      <Flex gap="4px">
-        {player.reserved.map((card, i) => (
-          <Card
-            key={card.id}
-            {...card}
-            onClick={onReservedCardClick}
-            placeholder={card.id === actionOnDeck.card?.id}
-          />
-        ))}
-      </Flex>
-      <MuiCard className={classes.nobleCard}>
-        {player.nobles.map((noble) => (
-          <Flex gap="4px">
-            {noble.points}
-            {_.map(
-              noble.cards,
-              (cost, color) => !!cost && <NobleCard cost={cost} color={color} />
-            )}
-          </Flex>
-        ))}
-      </MuiCard>
+      {!!player.reserved.length && (
+        <Flex gap="4px">
+          {player.reserved.map((card, i) => (
+            <Card
+              key={card.id}
+              {...card}
+              onClick={onReservedCardClick}
+              placeholder={card.id === actionOnDeck.card?.id}
+            />
+          ))}
+        </Flex>
+      )}
+      {!!player.nobles.length && (
+        <MuiCard className={classes.nobleCard}>
+          {player.nobles.map((noble) => (
+            <Flex gap="4px">
+              {noble.points}
+              {_.map(
+                noble.cards,
+                (cost, color) =>
+                  !!cost && <NobleCard cost={cost} color={color} />
+              )}
+            </Flex>
+          ))}
+        </MuiCard>
+      )}
     </div>
   );
 };

@@ -34,8 +34,8 @@ export const TableCards: VFC<TableCardsProps> = () => {
 
   const onCardClick = (card: CardModel) => {
     if (gameState !== GameState.play) return;
-    if (actionOnDeck.type !== "none") return;
-    if (actionOnDeck.card) return;
+    // if (actionOnDeck.type !== "none") return;
+    // if (actionOnDeck.card) return;
     const coinCost = canAffordCard(player, card);
     if (coinCost) {
       dispatch(prepBuyCard({ card, coinCost }));

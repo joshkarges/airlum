@@ -28,8 +28,14 @@ export const actionOnDeckSlice = createSlice({
   initialState: INITIAL_STATE as ActionOnDeck,
   reducers: {
     prepCoin: (state, action: PayloadAction<Color>) => {
+      if (state.type !== "takeCoins") {
+        // If we're not already taking coins, reset the coinCost.
+        state.coinCost = { ...EMPTY_COINS };
+      }
       state.type = "takeCoins";
       state.coinCost[action.payload]--;
+      state.coinCost[Color.Yellow] = 0;
+      state.card = null;
     },
     unPrepCoin: (state, action: PayloadAction<Color>) => {
       state.coinCost[action.payload as Color]++;

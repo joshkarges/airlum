@@ -3,6 +3,7 @@ import { VFC } from "react";
 import { Card as MuiCard, SxProps } from "@mui/material";
 import { Card as CardModel } from "../../models/Splendor";
 import classNames from "classnames";
+import { OutlineText } from "../OutlineText";
 
 const COIN_WIDTH = "1.1em";
 const COIN_GAP = 8;
@@ -24,7 +25,9 @@ const useStyles = makeStyles()((theme) => ({
     },
   },
   placeholder: {
-    opacity: 0,
+    "&&": {
+      opacity: 0,
+    },
   },
   top: {
     display: "flex",
@@ -45,6 +48,7 @@ const useStyles = makeStyles()((theme) => ({
   points: {
     marginLeft: 16,
     fontSize: 24,
+    fontFamily: "Arial",
   },
   emptyPoints: {
     color: "transparent",
@@ -66,11 +70,6 @@ const useStyles = makeStyles()((theme) => ({
     textAlign: "center",
     border: `1px solid black`,
     borderRadius: 1000,
-    color: "white",
-    textShadow: `-1px -1px 0 #000,
-1px -1px 0 #000,
--1px 1px 0 #000,
-1px 1px 0 #000`,
   },
 }));
 
@@ -82,7 +81,7 @@ export const CostCoin: VFC<CostCoinProps> = ({ cost, color }) => {
   const { classes } = useStyles();
   return (
     <div className={classes.costCoin} style={{ background: color }}>
-      {cost}
+      <OutlineText>{cost}</OutlineText>
     </div>
   );
 };

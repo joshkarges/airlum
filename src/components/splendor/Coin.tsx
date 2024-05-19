@@ -2,6 +2,7 @@ import { makeStyles } from "tss-react/mui";
 import { VFC } from "react";
 import { Color } from "../../models/Splendor";
 import { Card as MuiCard } from "@mui/material";
+import { OutlineText } from "../OutlineText";
 
 const useStyles = makeStyles()((theme) => ({
   coin: {
@@ -12,12 +13,6 @@ const useStyles = makeStyles()((theme) => ({
     borderRadius: "50%",
     width: 36,
     height: 36,
-    fontSize: 20,
-    color: "white",
-    textShadow: `-1px -1px 0 #000,
-1px -1px 0 #000,
--1px 1px 0 #000,
-1px 1px 0 #000`,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -25,8 +20,10 @@ const useStyles = makeStyles()((theme) => ({
     userSelect: "none",
   },
   empty: {
-    pointerEvents: "none",
-    opacity: 0,
+    "&&": {
+      pointerEvents: "none",
+      opacity: 0,
+    },
   },
 }));
 
@@ -44,7 +41,7 @@ export const Coin: VFC<CoinProps> = ({ count, color, onClick, size }) => {
       style={{ background: color, width: size, height: size }}
       onClick={(e) => onClick?.(color, count)}
     >
-      {count}
+      <OutlineText size={26}>{count}</OutlineText>
     </MuiCard>
   );
 };

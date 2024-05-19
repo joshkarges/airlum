@@ -3,6 +3,7 @@ import _ from "lodash";
 import { VFC } from "react";
 import { Noble as NobleModel } from "../../models/Splendor";
 import { Card as MuiCard } from "@mui/material";
+import { OutlineText } from "../OutlineText";
 
 const useStyles = makeStyles()((theme) => ({
   nobleContainer: {
@@ -25,19 +26,14 @@ const useStyles = makeStyles()((theme) => ({
     border: `1px solid black`,
     borderRadius: 4,
     height: 16,
-    fontSize: 10,
     width: 11,
-    color: "white",
-    textShadow: `-1px -1px 0 #000,
-1px -1px 0 #000,
--1px 1px 0 #000,
-1px 1px 0 #000`,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
   },
   points: {
     fontSize: 16,
+    fontFamily: "Arial",
   },
 }));
 type NobleCardProps = {
@@ -48,7 +44,7 @@ export const NobleCard: VFC<NobleCardProps> = ({ color, cost }) => {
   const { classes } = useStyles();
   return (
     <div style={{ background: color }} className={classes.nobleCard}>
-      {cost}
+      <OutlineText>{cost}</OutlineText>
     </div>
   );
 };
