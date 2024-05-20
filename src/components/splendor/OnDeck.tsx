@@ -263,6 +263,16 @@ export const OnDeck: VFC<OnDeckProps> = () => {
           <Button
             className={classes.takeActionButton}
             onClick={onTakeActionClick}
+            disabled={
+              (actionOnDeck.type === "none" && !aiAction) ||
+              gameState !== "play" ||
+              (actionOnDeck.type === "takeCoins" &&
+                -getNumCoins(actionOnDeck.coinCost) <
+                  Math.min(3, _.filter(game.coins, Boolean).length) &&
+                !_.some(actionOnDeck.coinCost, (cost) => {
+                  return -cost >= 2;
+                }))
+            }
           >
             End Turn
           </Button>
