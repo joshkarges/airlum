@@ -1,6 +1,6 @@
 import { Button, ButtonGroup, Dialog, DialogTitle } from "@mui/material";
 import _ from "lodash";
-import { useEffect, useState, VFC } from "react";
+import { useCallback, useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { useGame } from "../../redux/selectors";
 import { setupGameAction } from "../../redux/slices/game";
@@ -25,29 +25,24 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
   );
   const isGameOver = playerIndex === 0 && mostPoints >= 15;
 
+  const closeAndStartNewGame = useCallback(() => {
+    setIsOpen(false);
+    dispatch(setupGameAction(2));
+  }, [dispatch]);
+
   useEffect(() => {
     if (isGameOver) setIsOpen(true);
   }, [isGameOver]);
 
   return (
-    <Dialog open={isOpen && isGameOver} onClose={() => setIsOpen(false)}>
+    <Dialog open={isOpen && isGameOver} onClose={closeAndStartNewGame}>
       <DialogTitle>{`Player${
         playerIndicesWithMostPoints.length > 1 ? "s" : ""
       } ${oxfordCommaList(
         playerIndicesWithMostPoints.map((idx) => `#${idx}`)
       )} Won! (${game.turn / game.players.length} moves)`}</DialogTitle>
       <ButtonGroup>
-        <Button variant="outlined" onClick={() => setIsOpen(false)}>
-          Close
-        </Button>
-        <Button
-          onClick={() => {
-            setIsOpen(false);
-            dispatch(setupGameAction(2));
-          }}
-        >
-          Start New Game
-        </Button>
+        <Button onClick={closeAndStartNewGame}>Start New Game</Button>
       </ButtonGroup>
     </Dialog>
   );
