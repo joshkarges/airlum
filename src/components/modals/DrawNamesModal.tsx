@@ -21,7 +21,7 @@ import { ModalContext, ModalType } from "./ModalContext";
 import { Formik, useFormikContext } from "formik";
 import { MultiTextField } from "../inputs/MultiTextField";
 import { useParams } from "react-router-dom";
-import { ExchangeEvent } from "@functions/models";
+import { ExchangeEvent } from "../../models/functions";
 import {
   generateBidrectionalMatches,
   generateLoopMatches,

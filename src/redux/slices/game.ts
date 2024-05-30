@@ -14,14 +14,13 @@ const gameSlice = createSlice({
   initialState: setupGame(2),
   reducers: {
     setGame: (state, action: PayloadAction<Game>) => action.payload,
-    setupGame: (state, action: PayloadAction<2 | 3 | 4>) =>
-      setupGame(action.payload),
     takeAction: (
       state,
       action: PayloadAction<
         Action & {
           dontAdvance?: boolean;
           popNoble?: boolean;
+          playerIndex: number;
         }
       >
     ) => {
@@ -61,7 +60,6 @@ const gameSlice = createSlice({
 });
 
 export const {
-  setupGame: setupGameAction,
   takeAction: takeActionAction,
   putCoinBack,
   chooseNoble,

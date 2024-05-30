@@ -66,6 +66,7 @@ import {
 } from "./models";
 import * as _ from "lodash";
 import { log } from "firebase-functions/logger";
+import { WriteGameRequest, WriteGameResponse } from "./models/splendor";
 
 const oldConsoleLog = console.log;
 console.log = (...args) => {
@@ -711,4 +712,13 @@ exports.deleteexchangeevent = onCall<
       return null;
     }
   );
+});
+
+exports.writeSplendorGame = onCall<
+  WriteGameRequest,
+  Promise<WriteGameResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const gamesCollection = dbAdmin.collection("splendorGames");
+  const result = await gamesCollection.add(req.data);
+  return result.id;
 });

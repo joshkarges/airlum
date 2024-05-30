@@ -6,6 +6,13 @@ import { Playermat } from "../components/splendor/PlayerMat";
 import { Opponents } from "../components/splendor/Opponents";
 import { EndGameModal } from "../components/splendor/EndGameModal";
 import { ChooseNobleModal } from "../components/splendor/ChooseNobleModal";
+import { useDispatch } from "react-redux";
+import { startGame } from "../redux/slices/gameRecord";
+import { useEffect } from "react";
+import { Button } from "@mui/material";
+import { useFetchedResource, useSelectorWithPrefix } from "../utils/fetchers";
+import { writeSplendorGame } from "../api/SplendorApi";
+import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 
 const useStyles = makeStyles()((theme) => ({
   container: {
@@ -21,18 +28,15 @@ const useStyles = makeStyles()((theme) => ({
 
 export const SplendorPage = () => {
   const { classes } = useStyles();
-  // const ref = useRef([] as string[]);
-  // const [gameLogs, setGameLogs] = useState<string[]>([]);
   const game = useGame();
-  // const gameLogs = useMemo(() => runGame(4), []);
-
-  // useEffect(() => {
-  //   if (!gameLogs.length) {
-  //     setGameLogs(runGame(4, Strategy.AlphaBeta));
-  //   }
-  // }, [gameLogs.length]);
-
-  // useTestGameSetup(multipleNoblesTest);
+  const dispatch = useDispatch();
+  const [writeResponse, sendGameToServer] =
+    useFetchedResource(writeSplendorGame);
+  const gameRecord = useSelectorWithPrefix("gameRecord");
+  useEffect(() => {
+    dispatch(startGame(game));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   return (
     <div className={classes.container}>
@@ -40,16 +44,22 @@ export const SplendorPage = () => {
         <Opponents />
         <Table game={game} />
         <OnDeck />
-        {/* {gameLogs.map((log, i) => (
-        <React.Fragment key={i}>
-          <div>{log}</div>
-          <br />
-        </React.Fragment>
-      ))} */}
       </div>
       <Playermat />
       <EndGameModal />
       <ChooseNobleModal />
+      <Button
+        onClick={() => {
+          sendGameToServer(gameRecord);
+        }}
+      >
+        <FetchedComponent
+          resource={writeResponse}
+          IdleComponent={() => "Send game to server"}
+        >
+          {(data) => <>{`Sent!: ${data}`}</>}
+        </FetchedComponent>
+      </Button>
     </div>
   );
 };

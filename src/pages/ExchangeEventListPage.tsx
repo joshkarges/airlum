@@ -48,6 +48,7 @@ import {
 import classNames from "classnames";
 import { useQuery } from "../utils/routing";
 import { DocTitle } from "../utils/useDocTitleEffect";
+import { SignIn } from "../components/SignIn";
 
 const useStyles = makeStyles((theme: Theme) => ({
   h5: {
@@ -653,7 +654,9 @@ export const ExchangeEventListPage = () => {
             );
           }}
         </FetchedComponent>
-      ) : null}
+      ) : (
+        <SignIn />
+      )}
       {queryParams.get("debug") && (
         <Button
           variant="contained"

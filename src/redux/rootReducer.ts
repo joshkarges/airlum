@@ -1,5 +1,6 @@
 import { combineReducers, StateFromReducersMapObject } from "redux";
 import { game } from "./slices/game";
+import { gameRecord } from "./slices/gameRecord";
 import { actionOnDeck } from "./slices/actionOnDeck";
 import { gameState } from "./slices/gameState";
 import { user } from "./slices/user";
@@ -9,6 +10,7 @@ import { userShortNames } from "./slices/userShortNames";
 
 const reducerMap = {
   game,
+  gameRecord,
   actionOnDeck,
   gameState,
   user,

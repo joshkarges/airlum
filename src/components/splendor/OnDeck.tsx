@@ -161,6 +161,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         takeActionAction({
           ...actionToTake,
           dontAdvance: chooseCoins,
+          playerIndex,
         })
       );
       if (chooseCoins) {
@@ -181,6 +182,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
           ...actionToTake,
           dontAdvance: multipleNobles,
           popNoble: multipleNobles,
+          playerIndex,
         })
       );
       if (multipleNobles) {
@@ -193,6 +195,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         takeActionAction({
           ...actionToTake,
           dontAdvance: chooseCoins,
+          playerIndex,
         })
       );
       if (chooseCoins) {

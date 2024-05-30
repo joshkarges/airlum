@@ -1,9 +1,10 @@
 import firebase from "firebase/compat/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { GetAllExchangeEventsRequest } from "../../functions/src/models";
 import {
   GetExchangeEventRequest,
   GetExchangeEventResponse,
+  GetAllExchangeEventsRequest,
+  GetAllExchangeEventsResponse,
   GetAllWishListsRequest,
   GetAllWishListsResponse,
   AddCommentRequest,
@@ -26,7 +27,6 @@ import {
   UpdateIdeaMetadataResponse,
   UpdateWishListMetadataRequest,
   UpdateWishListMetadataResponse,
-  GetAllExchangeEventsResponse,
   CreateExchangeEventRequest,
   CreateExchangeEventResponse,
   UpdateExchangeEventRequest,
@@ -34,18 +34,7 @@ import {
   DeleteExchangeEventRequest,
   DeleteExchangeEventResponse,
 } from "../models/functions";
-
-var firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: "airlum.firebaseapp.com",
-  projectId: "airlum",
-  storageBucket: "airlum.appspot.com",
-  messagingSenderId: "1002201936954",
-  appId: "1:1002201936954:web:a17f309ae03b868557f103",
-  measurementId: "G-FZ88CGSCH7",
-};
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
+import { app } from "./firebaseApp";
 
 const isDev = process.env.NODE_ENV === "development";
 
