@@ -30,9 +30,6 @@ export const SplendorPage = () => {
   const { classes } = useStyles();
   const game = useGame();
   const dispatch = useDispatch();
-  const [writeResponse, sendGameToServer] =
-    useFetchedResource(writeSplendorGame);
-  const gameRecord = useSelectorWithPrefix("gameRecord");
   useEffect(() => {
     dispatch(startGame(game));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,18 +45,6 @@ export const SplendorPage = () => {
       <Playermat />
       <EndGameModal />
       <ChooseNobleModal />
-      <Button
-        onClick={() => {
-          sendGameToServer(gameRecord);
-        }}
-      >
-        <FetchedComponent
-          resource={writeResponse}
-          IdleComponent={() => "Send game to server"}
-        >
-          {(data) => <>{`Sent!: ${data}`}</>}
-        </FetchedComponent>
-      </Button>
     </div>
   );
 };

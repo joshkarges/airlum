@@ -23,7 +23,6 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
   const gameRecord = useSelectorWithPrefix("gameRecord");
   const [writeResponse, sendGameToServer] =
     useFetchedResource(writeSplendorGame);
-  // game.players[1].points = 16;
   const mostPoints = game.players.reduce((agg, player, i) => {
     if (player.points >= agg) {
       agg = player.points;
@@ -34,6 +33,7 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
     (i) => game.players[i].points === mostPoints
   );
   const isGameOver = playerIndex === 0 && mostPoints >= 15;
+  const [gameEnded, setGameEnded] = useState(false);
 
   const closeAndStartNewGame = useCallback(() => {
     setIsOpen(false);
@@ -45,16 +45,17 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
   useEffect(() => {
     if (isGameOver) {
       setIsOpen(true);
-      sendGameToServer(gameRecord);
       dispatch(endGame(game));
+      setGameEnded(true);
     }
   }, [dispatch, game, gameRecord, isGameOver, sendGameToServer]);
 
   useEffect(() => {
-    if (gameRecord.endTime > 0) {
+    if (gameEnded) {
       sendGameToServer(gameRecord);
+      setGameEnded(false);
     }
-  }, [gameRecord, sendGameToServer]);
+  }, [gameEnded, gameRecord, sendGameToServer]);
 
   return (
     <Dialog open={isOpen && isGameOver} onClose={closeAndStartNewGame}>
