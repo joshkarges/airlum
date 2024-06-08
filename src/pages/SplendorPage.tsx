@@ -8,7 +8,7 @@ import { EndGameModal } from "../components/splendor/EndGameModal";
 import { ChooseNobleModal } from "../components/splendor/ChooseNobleModal";
 import { useDispatch } from "react-redux";
 import { startGame } from "../redux/slices/gameRecord";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@mui/material";
 import { useFetchedResource, useSelectorWithPrefix } from "../utils/fetchers";
 import { writeSplendorGame } from "../api/SplendorApi";
@@ -16,7 +16,7 @@ import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 
 const useStyles = makeStyles()((theme) => ({
   container: {
-    height: "calc(100vh - 64px)",
+    height: "100vh",
     maxWidth: 1000,
   },
   tableAndOnDeck: {
@@ -30,6 +30,7 @@ export const SplendorPage = () => {
   const { classes } = useStyles();
   const game = useGame();
   const dispatch = useDispatch();
+  const [setupOpen, setSetupOpen] = useState(true);
   useEffect(() => {
     dispatch(startGame(game));
     // eslint-disable-next-line react-hooks/exhaustive-deps

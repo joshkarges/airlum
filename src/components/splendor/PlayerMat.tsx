@@ -27,7 +27,6 @@ const useStyles = makeStyles()((theme) => ({
       width: "100%",
       boxSizing: "border-box",
     },
-    margin: 4,
     padding: 4,
     display: "flex",
     justifyContent: "space-between",
@@ -130,6 +129,9 @@ export const Playermat: VFC<PlayerMatProps> = () => {
               {...card}
               onClick={onReservedCardClick}
               placeholder={card.id === actionOnDeck.card?.id}
+              sx={{
+                transform: "scale(0.8)",
+              }}
             />
           ))}
         </Flex>
