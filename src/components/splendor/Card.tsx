@@ -47,7 +47,8 @@ const useStyles = makeStyles()((theme) => ({
   },
   points: {
     marginLeft: 16,
-    fontSize: 24,
+    fontSize: 16,
+    fontWeight: 600,
     fontFamily: "Arial",
   },
   emptyPoints: {

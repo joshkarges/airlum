@@ -16,16 +16,18 @@ const useStyles = makeStyles<Theme, { size?: number }>({
       fontFamily: "Arial",
     },
   },
+  outlineText: {
+    color: "white",
+    textShadow:
+      "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+    fontWeight: 800,
+    fontFamily: "Arial",
+    fontSize: ({ size }) => size ?? 13,
+  },
 });
 
 export const OutlineText = (props: PropsWithChildren<{ size?: number }>) => {
   const { children } = props;
   const classes = useStyles(props);
-  return (
-    <svg viewBox="0 0 50 50" className={classes.svg}>
-      <text y="60%" x="50%" text-anchor="middle" dominant-baseline="middle">
-        {children}
-      </text>
-    </svg>
-  );
+  return <span className={classes.outlineText}>{children}</span>;
 };
