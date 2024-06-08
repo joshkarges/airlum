@@ -7,12 +7,18 @@ import { Opponents } from "../components/splendor/Opponents";
 import { EndGameModal } from "../components/splendor/EndGameModal";
 import { ChooseNobleModal } from "../components/splendor/ChooseNobleModal";
 import { useDispatch } from "react-redux";
-import { startGame } from "../redux/slices/gameRecord";
+import { startGameRecord } from "../redux/slices/gameRecord";
 import { useEffect, useState } from "react";
-import { Button } from "@mui/material";
+import { Button, Dialog, DialogTitle, TextField } from "@mui/material";
 import { useFetchedResource, useSelectorWithPrefix } from "../utils/fetchers";
 import { writeSplendorGame } from "../api/SplendorApi";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
+import { Formik } from "formik";
+import * as Yup from "yup";
+import { setGame } from "../redux/slices/game";
+import { initialSetUpGameForm, setupGame } from "../utils/splendor";
+import { Flex } from "../components/Flex";
+import { setShowGameSetup } from "../redux/slices/showGameSetup";
 
 const useStyles = makeStyles()((theme) => ({
   container: {
@@ -24,20 +30,72 @@ const useStyles = makeStyles()((theme) => ({
     display: "flex",
     justifyContent: "space-between",
   },
+  dialog: {
+    padding: theme.spacing(2),
+  },
 }));
 
 export const SplendorPage = () => {
   const { classes } = useStyles();
   const game = useGame();
   const dispatch = useDispatch();
-  const [setupOpen, setSetupOpen] = useState(true);
+  const showGameSetup = useSelectorWithPrefix("showGameSetup");
   useEffect(() => {
-    dispatch(startGame(game));
+    dispatch(startGameRecord(game));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   return (
     <div className={classes.container}>
+      <Dialog open={showGameSetup}>
+        <DialogTitle>Setup Game</DialogTitle>
+        <Formik
+          initialValues={initialSetUpGameForm}
+          validationSchema={Yup.object({
+            numberOfHumans: Yup.number().required().min(1).max(4),
+            numberOfAi: Yup.number()
+              .required()
+              .min(0)
+              .max(3)
+              .when(["numberOfHumans"], ([numberOfHumans], schema) => {
+                return schema.max(4 - numberOfHumans, "4 Maximum Players");
+              }),
+          })}
+          onSubmit={(values) => {
+            dispatch(setShowGameSetup(false));
+            const newGame = setupGame(values);
+            dispatch(startGameRecord(newGame));
+            dispatch(setGame(newGame));
+          }}
+        >
+          {(props) => (
+            <>
+              <Flex rowGap="8px" flexDirection="column" p="16px" pt={0}>
+                <TextField
+                  label="Number of AI"
+                  value={props.values.numberOfAi}
+                  onChange={props.handleChange("numberOfAi")}
+                  type="number"
+                />
+                <TextField
+                  label="Number of Humans"
+                  value={props.values.numberOfHumans}
+                  onChange={props.handleChange("numberOfHumans")}
+                  type="number"
+                />
+              </Flex>
+              <Button
+                fullWidth
+                type="submit"
+                variant="contained"
+                onClick={() => props.submitForm()}
+              >
+                Start Game
+              </Button>
+            </>
+          )}
+        </Formik>
+      </Dialog>
       <div className={classes.tableAndOnDeck}>
         <Opponents />
         <Table game={game} />

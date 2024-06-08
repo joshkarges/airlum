@@ -251,8 +251,20 @@ export const takeAction = produce((game: Game, action: Action) => {
   return game;
 });
 
-export const setupGame = (numPlayers: number): Game => {
+export const initialSetUpGameForm = {
+  numberOfHumans: 2,
+  numberOfAi: 0,
+};
+
+export type SetupGameForm = typeof initialSetUpGameForm;
+
+export const setupGame = ({
+  numberOfAi,
+  numberOfHumans,
+}: SetupGameForm): Game => {
   const shuffledDeck = _.mapValues(DECK, (cards) => _.shuffle(cards));
+
+  const numPlayers = numberOfAi + numberOfHumans;
 
   const players = _.times(numPlayers, (index) => ({
     id: index,
@@ -261,6 +273,7 @@ export const setupGame = (numPlayers: number): Game => {
     reserved: [],
     nobles: [],
     points: 0,
+    isHuman: index < numberOfHumans,
   }));
 
   const startingCoinsPerStack = numPlayers <= 2 ? 4 : numPlayers <= 3 ? 5 : 7;
@@ -400,7 +413,7 @@ export const runGame = (
   numPlayers: number,
   strat: Strategy = Strategy.Random
 ) => {
-  const game = setupGame(numPlayers);
+  const game = setupGame({ numberOfAi: numPlayers, numberOfHumans: 0 });
   const allActionsTaken: Action[][] = _.times(numPlayers, () => []);
   const getNextAction = getStrategy(strat);
   while (!isTerminal(game)) {

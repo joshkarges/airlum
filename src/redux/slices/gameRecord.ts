@@ -13,7 +13,7 @@ export const gameRecordSlice = createSlice({
     startNobles: [],
   } as GameRecord,
   reducers: {
-    startGame: (state, action: PayloadAction<Game>) => {
+    startGameRecord: (state, action: PayloadAction<Game>) => {
       state.startTime = Date.now();
       state.endTime = 0;
       state.players = action.payload.players.map(() => ({
@@ -27,7 +27,7 @@ export const gameRecordSlice = createSlice({
       state.startCards = action.payload.table.map((card) => card.id);
       state.startNobles = action.payload.nobles.map((noble) => noble.id);
     },
-    endGame: (state, action: PayloadAction<Game>) => {
+    endGameRecord: (state, action: PayloadAction<Game>) => {
       state.endTime = Date.now();
       state.players = action.payload.players.map((player, i) => ({
         ...state.players[i],
@@ -55,5 +55,5 @@ export const gameRecordSlice = createSlice({
   },
 });
 
-export const { startGame, endGame } = gameRecordSlice.actions;
+export const { startGameRecord, endGameRecord } = gameRecordSlice.actions;
 export const gameRecord = gameRecordSlice.reducer;

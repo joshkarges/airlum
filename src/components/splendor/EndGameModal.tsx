@@ -11,8 +11,9 @@ import {
   useSelectorWithPrefix,
 } from "../../utils/fetchers";
 import { writeSplendorGame } from "../../api/SplendorApi";
-import { endGame, startGame } from "../../redux/slices/gameRecord";
+import { endGameRecord, startGameRecord } from "../../redux/slices/gameRecord";
 import { FetchedComponent } from "../fetchers/FetchedComponent";
+import { setShowGameSetup } from "../../redux/slices/showGameSetup";
 
 type EndGameModalProps = {};
 export const EndGameModal: VFC<EndGameModalProps> = () => {
@@ -33,29 +34,27 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
     (i) => game.players[i].points === mostPoints
   );
   const isGameOver = playerIndex === 0 && mostPoints >= 15;
-  const [gameEnded, setGameEnded] = useState(false);
+  const [needToSendRecord, setNeedToSendRecord] = useState(false);
 
   const closeAndStartNewGame = useCallback(() => {
     setIsOpen(false);
-    const newGame = setupGame(2);
-    dispatch(setGame(newGame));
-    dispatch(startGame(newGame));
+    dispatch(setShowGameSetup(true));
   }, [dispatch]);
 
   useEffect(() => {
     if (isGameOver) {
       setIsOpen(true);
-      dispatch(endGame(game));
-      setGameEnded(true);
+      dispatch(endGameRecord(game));
+      setNeedToSendRecord(true);
     }
   }, [dispatch, game, gameRecord, isGameOver, sendGameToServer]);
 
   useEffect(() => {
-    if (gameEnded) {
+    if (needToSendRecord) {
       sendGameToServer(gameRecord);
-      setGameEnded(false);
+      setNeedToSendRecord(false);
     }
-  }, [gameEnded, gameRecord, sendGameToServer]);
+  }, [needToSendRecord, gameRecord, sendGameToServer]);
 
   return (
     <Dialog open={isOpen && isGameOver} onClose={closeAndStartNewGame}>

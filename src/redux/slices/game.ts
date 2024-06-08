@@ -11,7 +11,7 @@ import { original } from "immer";
 
 const gameSlice = createSlice({
   name: "game",
-  initialState: setupGame(2),
+  initialState: setupGame({ numberOfHumans: 2, numberOfAi: 0 }),
   reducers: {
     setGame: (state, action: PayloadAction<Game>) => action.payload,
     takeAction: (
