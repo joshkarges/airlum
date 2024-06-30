@@ -2,7 +2,7 @@ import { makeStyles } from "tss-react/mui";
 import { OnDeck } from "../components/splendor/OnDeck";
 import { Table } from "../components/splendor/Table";
 import { useGame } from "../redux/selectors";
-import { Playermat } from "../components/splendor/PlayerMat";
+import { PlayerMat } from "../components/splendor/PlayerMat";
 import { Opponents } from "../components/splendor/Opponents";
 import { EndGameModal } from "../components/splendor/EndGameModal";
 import { ChooseNobleModal } from "../components/splendor/ChooseNobleModal";
@@ -101,7 +101,7 @@ export const SplendorPage = () => {
         <Table game={game} />
         <OnDeck />
       </div>
-      <Playermat />
+      <PlayerMat />
       <EndGameModal />
       <ChooseNobleModal />
     </div>

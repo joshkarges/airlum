@@ -8,16 +8,25 @@ import classNames from "classnames";
 import { getPlayerIndex, isLastTurns } from "../../utils/splendor";
 import { Flex } from "../Flex";
 import { OutlineText } from "../OutlineText";
+import { amber, pink } from "@mui/material/colors";
+import { Settings } from "@mui/icons-material";
 
 const useStyles = makeStyles()((theme) => ({
   opponentContainer: {
+    position: "relative",
     display: "flex",
     margin: 4,
     padding: 4,
     fontSize: 12,
   },
   currentPlayer: {
-    background: "#ffe6b5",
+    border: "2px solid blue",
+  },
+  humanPlayer: {
+    background: amber[100],
+  },
+  aiPlayer: {
+    background: pink[100],
   },
   fourColorBlock: {},
   cardCoinContainer: {
@@ -54,6 +63,12 @@ const useStyles = makeStyles()((theme) => ({
     textAlign: "center",
     fontSize: 24,
   },
+  aiIcon: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    transform: "scale(0.5)",
+  },
 }));
 
 type CoinAndCardProps = {
@@ -81,6 +96,7 @@ const CoinAndCard: VFC<CoinAndCardProps> = ({
 
 type OpponentProp = Player & {
   currentPlayer: boolean;
+  onlyOneHuman?: boolean;
 };
 const Opponent: VFC<OpponentProp> = ({
   coins,
@@ -88,13 +104,17 @@ const Opponent: VFC<OpponentProp> = ({
   bought,
   reserved,
   currentPlayer,
+  isHuman,
 }) => {
   const { classes } = useStyles();
   const boughtByColor = _.groupBy(bought, "color");
+  if (isHuman && currentPlayer) return null;
   return (
     <MuiCard
       className={classNames(classes.opponentContainer, {
         [classes.currentPlayer]: currentPlayer,
+        [classes.humanPlayer]: isHuman,
+        [classes.aiPlayer]: !isHuman,
       })}
     >
       <Flex rowGap="4px" flexDirection="column">
@@ -134,6 +154,11 @@ const Opponent: VFC<OpponentProp> = ({
         </Flex>
       </Flex>
       <div className={classes.points}>{points}</div>
+      {!isHuman && (
+        <div className={classes.aiIcon}>
+          <Settings />
+        </div>
+      )}
     </MuiCard>
   );
 };
@@ -144,11 +169,17 @@ export const Opponents: VFC<OpponentsProps> = () => {
   const game = useGame();
   const playerIndex = getPlayerIndex(game);
   const lastTurns = isLastTurns(game);
+  const onlyOneHuman = game.players.filter((p) => p.isHuman).length === 1;
   return (
     <div>
       {lastTurns && <div className={classes.lastTurns}>Last Turns</div>}
       {game.players.map((player, i) => (
-        <Opponent key={i} {...player} currentPlayer={playerIndex === i} />
+        <Opponent
+          key={i}
+          {...player}
+          currentPlayer={playerIndex === i}
+          onlyOneHuman={onlyOneHuman}
+        />
       ))}
     </div>
   );

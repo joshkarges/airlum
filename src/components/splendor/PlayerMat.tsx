@@ -19,6 +19,7 @@ import { GameState, setGameState } from "../../redux/slices/gameState";
 import { putCoinBack } from "../../redux/slices/game";
 import { Flex } from "../Flex";
 import { OutlineText } from "../OutlineText";
+import classNames from "classnames";
 
 const useStyles = makeStyles()((theme) => ({
   card: {
@@ -32,6 +33,9 @@ const useStyles = makeStyles()((theme) => ({
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 8,
+  },
+  yourTurn: {
+    border: "2px solid blue",
   },
   coinCardsContainer: {
     display: "flex",
@@ -64,14 +68,23 @@ const useStyles = makeStyles()((theme) => ({
 }));
 
 type PlayerMatProps = {};
-export const Playermat: VFC<PlayerMatProps> = () => {
+export const PlayerMat: VFC<PlayerMatProps> = () => {
   const { classes } = useStyles();
   const actionOnDeck = useActionOnDeck();
   const game = useGame();
   const gameState = useGameState();
   const dispatch = useDispatch();
-  const playerIndex = getPlayerIndex(game);
-  const player = game.players[playerIndex];
+  // playerIndex should be the closest previous human
+  const currentPlayerIndex = getPlayerIndex(game);
+  const humanPlayerIndex =
+    (currentPlayerIndex -
+      _.range(game.players.length).find((d) => {
+        return game.players[(currentPlayerIndex - d) % game.players.length]
+          .isHuman;
+      })!) %
+    game.players.length;
+  const player = game.players[humanPlayerIndex];
+  const isYourTurn = currentPlayerIndex === humanPlayerIndex;
 
   const onReservedCardClick = (card: CardModel) => {
     if (gameState !== GameState.play) return;
@@ -83,7 +96,7 @@ export const Playermat: VFC<PlayerMatProps> = () => {
 
   const onCoinClick = (color: Color) => {
     if (gameState !== GameState.chooseCoins) return;
-    dispatch(putCoinBack({ color, playerIndex }));
+    dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
     if (getNumCoins(player.coins) - 1 <= 10) {
       dispatch(setGameState("play"));
     }
@@ -93,7 +106,9 @@ export const Playermat: VFC<PlayerMatProps> = () => {
   const coinCount = getNumCoins(player.coins);
 
   return (
-    <div className={classes.card}>
+    <div
+      className={classNames(classes.card, { [classes.yourTurn]: isYourTurn })}
+    >
       <Flex alignItems="center" gap="8px">
         <div className={classes.coinFraction}>{coinCount} / 10</div>
         <div className={classes.cardsContainer}>

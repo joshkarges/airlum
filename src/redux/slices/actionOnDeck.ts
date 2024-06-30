@@ -85,7 +85,7 @@ export const actionOnDeckSlice = createSlice({
       state.type = "none";
       state.card = null;
     },
-    cancel: () => INITIAL_STATE,
+    cancelAllPrep: () => INITIAL_STATE,
     setActionOnDeck: (state, action) => _.assign(state, action.payload),
   },
   extraReducers: (builder: ActionReducerMapBuilder<ActionOnDeck>) => {
@@ -104,6 +104,6 @@ export const {
   unPrepReserveCard,
   prepBuyReserveCard,
   unPrepBuyReserveCard,
-  cancel,
+  cancelAllPrep,
 } = actionOnDeckSlice.actions;
 export const actionOnDeck = actionOnDeckSlice.reducer;

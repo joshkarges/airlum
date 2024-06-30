@@ -6,13 +6,13 @@ import {
   Card as MuiCard,
 } from "@mui/material";
 import _ from "lodash";
-import { useEffect, useState, VFC } from "react";
+import { useCallback, useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { Color, Player } from "../../models/Splendor";
 import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
 import {
   actionOnDeckSlice,
-  cancel,
+  cancelAllPrep,
   setActionOnDeck,
   unPrepBuyCard,
   unPrepCoin,
@@ -133,6 +133,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
   const dispatch = useDispatch();
 
   const onCardClick = () => {
+    if (!player.isHuman) return;
     if (!actionOnDeck.card) return;
     if (actionOnDeck.type === "buy") {
       dispatch(unPrepBuyCard());
@@ -142,95 +143,120 @@ export const OnDeck: VFC<OnDeckProps> = () => {
   };
 
   const onCoinClick = (color: Color) => {
+    if (!player.isHuman) return;
     if (color === Color.Yellow) return;
     if (!actionOnDeck.coinCost[color]) return;
     dispatch(unPrepCoin(color));
   };
 
-  const onTakeActionClick = () => {
-    setDepth(0);
-    setAiAction(null);
-    worker.terminate();
-    const actionToTake =
-      actionOnDeck.type === "none" && !!aiAction ? aiAction : actionOnDeck;
-    let nextGameState = gameState;
-    if (actionToTake.type === "takeCoins") {
-      const chooseCoins =
-        getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
-      dispatch(
-        takeActionAction({
-          ...actionToTake,
-          dontAdvance: chooseCoins,
-          playerIndex,
-        })
-      );
-      if (chooseCoins) {
-        nextGameState = "chooseCoins";
+  const onTakeActionClick = useCallback(
+    (inAction?: State["actionOnDeck"]) => {
+      setDepth(0);
+      setAiAction(null);
+      worker.terminate();
+      const actionToTake = inAction
+        ? inAction
+        : actionOnDeck.type === "none" && !!aiAction
+        ? aiAction
+        : actionOnDeck;
+      let nextGameState = gameState;
+      if (actionToTake.type === "takeCoins") {
+        const chooseCoins =
+          getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
+        dispatch(
+          takeActionAction({
+            ...actionToTake,
+            dontAdvance: chooseCoins,
+            playerIndex,
+          })
+        );
+        if (chooseCoins) {
+          nextGameState = "chooseCoins";
+        }
+      } else if (
+        actionToTake.type === "buy" ||
+        actionToTake.type === "buyReserve"
+      ) {
+        const playerWithCard = {
+          ...player,
+          bought: [...player.bought, actionToTake.card],
+        } as Player;
+        const multipleNobles =
+          getAffordableNobles(game, playerWithCard).length > 1;
+        dispatch(
+          takeActionAction({
+            ...actionToTake,
+            dontAdvance: multipleNobles,
+            popNoble: multipleNobles,
+            playerIndex,
+          })
+        );
+        if (multipleNobles) {
+          nextGameState = "chooseNobles";
+        }
+      } else if (actionToTake.type === "reserve") {
+        const chooseCoins =
+          getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
+        dispatch(
+          takeActionAction({
+            ...actionToTake,
+            dontAdvance: chooseCoins,
+            playerIndex,
+          })
+        );
+        if (chooseCoins) {
+          nextGameState = "chooseCoins";
+        }
       }
-    } else if (
-      actionToTake.type === "buy" ||
-      actionToTake.type === "buyReserve"
-    ) {
-      const playerWithCard = {
-        ...player,
-        bought: [...player.bought, actionToTake.card],
-      } as Player;
-      const multipleNobles =
-        getAffordableNobles(game, playerWithCard).length > 1;
-      dispatch(
-        takeActionAction({
-          ...actionToTake,
-          dontAdvance: multipleNobles,
-          popNoble: multipleNobles,
-          playerIndex,
-        })
-      );
-      if (multipleNobles) {
-        nextGameState = "chooseNobles";
+      dispatch(setGameState(nextGameState));
+      if (nextGameState === "play") {
+        setWorker(
+          new Worker(
+            new URL(
+              "../../webWorkers/getNextAction.worker.ts",
+              import.meta.url
+            ),
+            { type: "module" }
+          )
+        );
       }
-    } else if (actionToTake.type === "reserve") {
-      const chooseCoins =
-        getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
-      dispatch(
-        takeActionAction({
-          ...actionToTake,
-          dontAdvance: chooseCoins,
-          playerIndex,
-        })
-      );
-      if (chooseCoins) {
-        nextGameState = "chooseCoins";
-      }
-    }
-    dispatch(setGameState(nextGameState));
-    if (nextGameState === "play") {
-      setWorker(
-        new Worker(
-          new URL("../../webWorkers/getNextAction.worker.ts", import.meta.url),
-          { type: "module" }
-        )
-      );
-    }
-  };
+    },
+    [
+      actionOnDeck,
+      aiAction,
+      dispatch,
+      game,
+      gameState,
+      player,
+      playerIndex,
+      worker,
+    ]
+  );
 
   const onCancelClick = () => {
-    if (actionOnDeck.type === "none") return;
-    dispatch(cancel());
+    if (actionOnDeck.type === "none" || !player.isHuman) return;
+    dispatch(cancelAllPrep());
   };
 
   const onAiActionClick = () => {
     if (!aiAction) return;
     if (aiAction.type === "none") return;
+    if (!player.isHuman) return;
     dispatch(setActionOnDeck(aiAction));
   };
 
   useEffect(() => {
+    // When the depth hits 2 and it's an AIs turn, play that action.
+    if (depth >= 2 && !game.players[getPlayerIndex(game)].isHuman) {
+      onTakeActionClick();
+      return;
+    }
     if (depth >= 3) return;
     worker.postMessage({ game, depth: depth + 1 });
     actionPool.start();
     console.log(getPossibleActions(game).map((a) => a.type));
     actionPool.end();
-  }, [worker, game, depth]);
+  }, [worker, game, depth, dispatch, onTakeActionClick]);
 
   useEffect(() => {
     worker.onmessage = (e) => {
@@ -265,7 +291,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         <ButtonGroup>
           <Button
             className={classes.takeActionButton}
-            onClick={onTakeActionClick}
+            onClick={() => player.isHuman && onTakeActionClick()}
             disabled={
               (actionOnDeck.type === "none" && !aiAction) ||
               gameState !== "play" ||

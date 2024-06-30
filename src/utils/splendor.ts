@@ -12,27 +12,26 @@ export const getNumCoins = (coins: Record<Color, number>) =>
   _.reduce(coins, (sum, num) => sum + num, 0);
 
 /** Put this inside an arrPool */
-const generateThreeCoinPermutations = (
+const COLOR_KEYS = _.pull(_.values(Color), Color.Yellow);
+export const generateThreeCoinPermutations = (
   coins: Record<Color, number>,
   output: Color[][] = []
 ): Color[][] => {
-  const gatherThreeCoins = (currentCoins: Color[]) => {
-    if (currentCoins.length === 3) {
-      output.push(currentCoins);
-      return output;
-    }
-    _.forEach(coins, (value, color) => {
-      if (color === currentCoins[0] || color === currentCoins[1]) return;
-      if (value > 0 && color !== Color.Yellow) {
-        // This is used inside the start-end pool of getPossibleActions.
-        const nextCoins = arrPool.get() as Color[];
-        nextCoins.push(...currentCoins, color as Color);
-        gatherThreeCoins(nextCoins);
+  for (let i = 0; i < COLOR_KEYS.length; i++) {
+    const iColor = COLOR_KEYS[i];
+    if (coins[iColor] === 0) continue;
+    for (let j = i + 1; j < COLOR_KEYS.length; j++) {
+      const jColor = COLOR_KEYS[j];
+      if (coins[jColor] === 0) continue;
+      for (let k = j + 1; k < COLOR_KEYS.length; k++) {
+        const kColor = COLOR_KEYS[k];
+        if (coins[kColor] === 0) continue;
+        const newArr = arrPool.get();
+        newArr.push(iColor, jColor, kColor);
+        output.push(newArr);
       }
-    });
-  };
-
-  gatherThreeCoins(arrPool.get());
+    }
+  }
   return output;
 };
 
@@ -107,6 +106,7 @@ export const getPossibleActions = (game: Game, output: Action[] = []) => {
   arrPool.start();
   const playerIndex = getPlayerIndex(game);
   const player = game.players[playerIndex];
+  const numCoinsCanTake = 10 - getNumCoins(player.coins);
   /** Take Coins */
   const lessThanThreeStacks =
     _.reduce(
@@ -125,7 +125,14 @@ export const getPossibleActions = (game: Game, output: Action[] = []) => {
       },
       arrPool.get() as Color[]
     );
-    if (onlyCoinsToTake.length) threeCoinPermutations.push(onlyCoinsToTake);
+    if (onlyCoinsToTake.length) {
+      if (numCoinsCanTake < onlyCoinsToTake.length) {
+        threeCoinPermutations.push([onlyCoinsToTake[0]]);
+        threeCoinPermutations.push([onlyCoinsToTake[1]]);
+      } else {
+        threeCoinPermutations.push(onlyCoinsToTake);
+      }
+    }
   } else {
     generateThreeCoinPermutations(game.coins, threeCoinPermutations);
   }
@@ -179,16 +186,6 @@ const coinsExchange = (game: Game, player: Player, action: Action) => {
   );
 };
 
-const getNullCard = (tier: "tier1" | "tier2" | "tier3"): Card => {
-  return {
-    id: -1,
-    color: Color.White,
-    cost: getCost(0, 0, 0, 0, 0),
-    points: 0,
-    tier,
-  };
-};
-
 const drawCardFromDeck = (
   game: Game,
   tier: "tier1" | "tier2" | "tier3",
@@ -197,8 +194,12 @@ const drawCardFromDeck = (
   const cardIndex = removeCard
     ? _.findIndex(game.table, (c) => c.id === removeCard.id)
     : game.table.length;
-  const nextCard = game.deck[tier].pop() || getNullCard(tier);
-  game.table.splice(cardIndex, removeCard ? 1 : 0, nextCard);
+  const nextCard = game.deck[tier].pop();
+  if (nextCard) {
+    game.table.splice(cardIndex, removeCard ? 1 : 0, nextCard);
+  } else {
+    game.table.splice(cardIndex, removeCard ? 1 : 0);
+  }
 };
 
 const takeCardFromTable = (game: Game, card: Card) =>
@@ -305,11 +306,10 @@ const playerValue = (game: Game, player: Player): number => {
   const points = player.points;
   const bought = player.bought.length;
   const gainCards = getBuyActions(game, player).length;
-  const coins = Math.min(
-    10,
-    _.reduce(player.coins, (sumCoins, numCoins) => sumCoins + numCoins, 0)
-  );
-  const valueString = [points, bought, gainCards, coins]
+  const coins = Math.min(10, getNumCoins(player.coins));
+  const canEndGame = points >= 15 ? 1 : 0;
+
+  const valueString = [canEndGame, points, bought, gainCards, coins]
     .map((x) => x.toString().padStart(2, "0"))
     .join("");
   return +valueString;

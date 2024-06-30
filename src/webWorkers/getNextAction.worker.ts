@@ -2,7 +2,7 @@
 import { Game } from "../models/Splendor";
 import { getStrategy, Strategy } from "../utils/splendor";
 
-const getNextAction = getStrategy(Strategy.Probablistic);
+const getNextAction = getStrategy(Strategy.AlphaBeta);
 
 self.onmessage = (ev: MessageEvent<{ game: Game; depth: number }>) => {
   self.postMessage({
