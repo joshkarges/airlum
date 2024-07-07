@@ -1,5 +1,5 @@
 import { makeStyles } from "tss-react/mui";
-import { Card as MuiCard } from "@mui/material";
+import { Card as MuiCard, Typography } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { VFC } from "react";
 import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
@@ -110,6 +110,7 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
       className={classNames(classes.card, { [classes.yourTurn]: isYourTurn })}
     >
       <Flex alignItems="center" gap="8px">
+        <Typography variant="h5">{player.points}</Typography>
         <div className={classes.coinFraction}>{coinCount} / 10</div>
         <div className={classes.cardsContainer}>
           {_.map(player.coins, (count: number, color: Color) => {

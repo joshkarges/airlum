@@ -13,6 +13,8 @@ import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
 import {
   actionOnDeckSlice,
   cancelAllPrep,
+  prepBuyCard,
+  prepReserveCard,
   setActionOnDeck,
   unPrepBuyCard,
   unPrepCoin,
@@ -22,6 +24,7 @@ import { Card, CardProps } from "./Card";
 import { Coin, CoinProps } from "./Coin";
 import { takeActionAction } from "../../redux/slices/game";
 import {
+  canAffordCard,
   getAffordableNobles,
   getNumCoins,
   getPlayerIndex,
@@ -31,7 +34,8 @@ import classNames from "classnames";
 import { setGameState } from "../../redux/slices/gameState";
 import { State } from "../../redux/rootReducer";
 import { actionPool } from "../../utils/memory";
-import { Close } from "@mui/icons-material";
+import { Close, Rotate90DegreesCcw } from "@mui/icons-material";
+import { Flex } from "../Flex";
 
 const useStyles = makeStyles()((theme) => ({
   onDeckContainer: {
@@ -245,6 +249,22 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     dispatch(setActionOnDeck(aiAction));
   };
 
+  const rotateCard = useCallback(() => {
+    if (actionOnDeck.type === "buy" || actionOnDeck.type === "reserve") {
+      const coinCost = canAffordCard(player, actionOnDeck.card);
+      if (actionOnDeck.type === "buy") {
+        dispatch(
+          prepReserveCard({
+            card: actionOnDeck.card,
+            takeYellow: !!game.coins[Color.Yellow],
+          })
+        );
+      } else if (actionOnDeck.type === "reserve" && coinCost) {
+        dispatch(prepBuyCard({ card: actionOnDeck.card, coinCost }));
+      }
+    }
+  }, [actionOnDeck.card, actionOnDeck.type, dispatch, game.coins, player]);
+
   useEffect(() => {
     // When the depth hits 2 and it's an AIs turn, play that action.
     if (depth >= 2 && !game.players[getPlayerIndex(game)].isHuman) {
@@ -278,15 +298,26 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     }
   }, [gameState]);
 
+  const coinCost =
+    actionOnDeck.card && canAffordCard(player, actionOnDeck.card);
+
   if (actionOnDeck.type === "none" && aiAction?.type === "none") return null;
 
   return (
     <MuiCard className={classes.onDeckContainer}>
-      <DisplayAction
-        action={actionOnDeck}
-        onCardClick={onCardClick}
-        onCoinClick={onCoinClick}
-      />
+      <Flex>
+        <DisplayAction
+          action={actionOnDeck}
+          onCardClick={onCardClick}
+          onCoinClick={onCoinClick}
+        />
+        {(actionOnDeck.type === "buy" ||
+          (actionOnDeck.type === "reserve" && coinCost)) && (
+          <IconButton onClick={rotateCard}>
+            <Rotate90DegreesCcw />
+          </IconButton>
+        )}
+      </Flex>
       <div>
         <ButtonGroup>
           <Button
