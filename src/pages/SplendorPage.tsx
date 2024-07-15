@@ -44,6 +44,20 @@ export const SplendorPage = () => {
     dispatch(startGameRecord(game));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
+  // Find out if there's a debug=true in the url search params.
+  const debug =
+    new URLSearchParams(window.location.search).get("debug") === "true";
+
+  // Onclick handler to download the game state as a json file.
+  const downloadGame = () => {
+    const gameJson = JSON.stringify(game, null, 2);
+    const blob = new Blob([gameJson], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "splendor-game.json";
+    a.click();
+  };
 
   return (
     <div className={classes.container}>
@@ -96,12 +110,19 @@ export const SplendorPage = () => {
           )}
         </Formik>
       </Dialog>
-      <div className={classes.tableAndOnDeck}>
-        <Opponents />
-        <Table game={game} />
-        <OnDeck />
-      </div>
-      <PlayerMat />
+      {!showGameSetup && (
+        <>
+          <div className={classes.tableAndOnDeck}>
+            <Opponents />
+            <Table game={game} />
+            <div>
+              <OnDeck />
+              {debug && <Button onClick={downloadGame}>JSON</Button>}
+            </div>
+          </div>
+          <PlayerMat />
+        </>
+      )}
       <EndGameModal />
       <ChooseNobleModal />
     </div>

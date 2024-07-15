@@ -13,6 +13,7 @@ import { ModalContextProvider } from "./components/modals/ModalContext";
 import { GiftExchangeEventPage } from "./pages/GiftExchangeEventPage";
 import { amber, blue } from "@mui/material/colors";
 import { ExchangeEventListPage } from "./pages/ExchangeEventListPage";
+import { Blog } from "./pages/Blog";
 
 export const muiCache = createCache({
   key: "mui",
@@ -57,6 +58,9 @@ function App() {
                     </Route>
                     <Route path="/exchange-events">
                       <ExchangeEventListPage />
+                    </Route>
+                    <Route path="/blog">
+                      <Blog />
                     </Route>
                     <Route path="/">
                       <HomePage />

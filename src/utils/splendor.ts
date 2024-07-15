@@ -253,8 +253,8 @@ export const takeAction = produce((game: Game, action: Action) => {
 });
 
 export const initialSetUpGameForm = {
-  numberOfHumans: 2,
-  numberOfAi: 0,
+  numberOfHumans: 1,
+  numberOfAi: 1,
 };
 
 export type SetupGameForm = typeof initialSetUpGameForm;

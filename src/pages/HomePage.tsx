@@ -1,33 +1,44 @@
-import React from "react";
-import SkyLanternCanvas from "../components/SkyLanternCanvas";
+import React, { useCallback } from "react";
 import { Flex } from "../components/Flex";
 import { StyleRules, makeStyles } from "@mui/styles";
-import { Theme } from "@mui/material";
-import { blue, green, red, yellow } from "@mui/material/colors";
+import { AppBar, Theme, Typography } from "@mui/material";
+import { blue } from "@mui/material/colors";
 import _ from "lodash";
 import classNames from "classnames";
 import { getContrastText } from "../utils/color";
+import gifterImg from "../assets/gifterImage.png";
+import tattooImg from "../assets/tattooImage.png";
+import splendorImg from "../assets/splendorImage.png";
+import plansImg from "../assets/plansImage.jpg";
 
 const PAGES = [
   {
-    title: "Bang for Buck",
-    path: "/tasks",
-    backgroundColor: yellow[500],
+    title: "CBRE Plans",
+    path: "https://web.archive.org/web/20200518141749/https://www.cbrebuild.com/nyc/plans/",
+    blog: "/blog/cbre-plans",
+    backgroundColor: blue[200],
+    img: { src: plansImg, alt: "screen shot of the plans app" },
   },
   {
     title: "Splendor",
     path: "/splendor",
-    backgroundColor: red[500],
+    blog: "/blog/splendor",
+    backgroundColor: blue[400],
+    img: { src: splendorImg, alt: "screen shot of the splendor app" },
   },
   {
     title: "Tattoo",
     path: "/tattoo",
-    backgroundColor: green[500],
+    blog: "/blog/tattoo",
+    backgroundColor: blue[600],
+    img: { src: tattooImg, alt: "screen shot of the tattoo app" },
   },
   {
-    title: "Exchange Events",
-    path: "/exchange-events",
-    backgroundColor: blue[500],
+    title: "Gifter",
+    path: "https://thegifter.app",
+    blog: "/blog/gifter",
+    backgroundColor: blue[800],
+    img: { src: gifterImg, alt: "screen shot of the gifter app" },
   },
 ];
 
@@ -58,24 +69,30 @@ const pageClasses = PAGES.reduce((acc, { title, backgroundColor }, i) => {
 const useStyles = makeStyles((theme: Theme) => ({
   homeContainer: {
     position: "relative",
+    overflow: "hidden",
+    background: blue[50],
+    height: "calc(100vh - 64px)",
+    marginTop: 64,
   },
+  appBar: {
+    backgroundColor: theme.palette.primary.dark,
+    color: theme.palette.primary.contrastText,
+    justifyContent: "center",
+    alignItems: "center",
+    height: 64,
+  },
+}));
+
+const useStyles2 = makeStyles<
+  Theme,
+  { idx: number; total: number; bg: string },
+  string
+>((theme: Theme) => ({
   pageLinkContainer: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
     textDecoration: "none",
     fontSize: 32,
     fontWieght: "bold",
   },
-  // "@keyframes spin": {
-  //   "0%": {
-  //     transform: "translate(-50%, -50%)rotate(0deg)translateY(-200px)",
-  //   },
-  //   "100%": {
-  //     transform:
-  //       "translate(-50%, -50%)rotate(360deg)translateY(-200px)rotate(-360deg)",
-  //   },
-  // },
   ...pageClasses,
   exchangeEventListCircle: {
     borderRadius: 10000,
@@ -84,34 +101,130 @@ const useStyles = makeStyles((theme: Theme) => ({
     alignItems: "center",
     padding: 32,
   },
+  pgram: {
+    position: "absolute",
+    top: 0,
+    right: ({ idx, total }) => `${(idx / total) * 100}%`,
+    backgroundColor: ({ bg }) => bg,
+    color: ({ bg }) => theme.palette.getContrastText(bg),
+    transform: "skew(20deg)",
+    width: "100vw",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    height: "calc(100vh - 64px)",
+    padding: 32,
+    boxSizing: "border-box",
+    transition: "right 0.5s",
+    columnGap: 16,
+  },
   linkText: {
     bottom: 1.5,
     position: "relative",
   },
 }));
 
+const PGram = ({
+  idx,
+  total,
+  text,
+  href,
+  hoverIndex,
+  setHoverIndex,
+}: {
+  idx: number;
+  total: number;
+  text: string;
+  href: string;
+  hoverIndex: number;
+  setHoverIndex: (idx: number) => void;
+}) => {
+  const classes = useStyles2({
+    idx: hoverIndex === -1 || idx <= hoverIndex ? idx + 0.5 : idx + 2,
+    total: hoverIndex === -1 ? total + 0.5 : total + 2,
+    bg: PAGES[idx].backgroundColor,
+  });
+  const onMouseEnter = useCallback(
+    (idx: number) => () => {
+      console.log("onMouseEnter", idx);
+      setHoverIndex(idx);
+    },
+    [setHoverIndex]
+  );
+  const onMouseLeave = useCallback(() => {
+    // setHoverIndex(-1);
+  }, []);
+  return (
+    <a
+      key={href}
+      href={href}
+      className={classNames(classes.pageLinkContainer)}
+      onMouseEnter={onMouseEnter(idx)}
+      onMouseLeave={onMouseLeave}
+    >
+      <Flex className={classes.pgram}>
+        <div
+          style={{
+            transform: "skew(-20deg)",
+            position: "absolute",
+            right: 100,
+          }}
+        >
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          {PAGES[idx].img && <img height="300px" {...PAGES[idx].img} />}
+        </div>
+        <Typography
+          variant="h4"
+          style={{
+            transform: "skew(-20deg)translateX(50%)rotate(70deg)",
+            display: "flex",
+            whiteSpace: "pre",
+          }}
+        >
+          <div className={classes.linkText}>{text}</div>
+          <div> | </div>
+          <a
+            className={classes.linkText}
+            onClick={() => (window.location.href = PAGES[idx].blog)}
+            href={PAGES[idx].blog}
+          >
+            Blog
+          </a>
+        </Typography>
+      </Flex>
+    </a>
+  );
+};
+
 const HomePage = () => {
   const classes = useStyles();
+  const [hoverIndex, setHoverIndex] = React.useState<number>(-1);
+  const onMouseLeave = useCallback(() => setHoverIndex(-1), []);
   return (
-    <Flex width="100%" flexGrow={1} className={classes.homeContainer}>
-      {PAGES.map(({ title, path }) => {
-        const camelTitle = _.camelCase(title);
-        return (
-          <a
-            key={camelTitle}
-            href={path}
-            className={classNames(
-              classes.pageLinkContainer,
-              classes[`${camelTitle}Container` as keyof typeof classes]
-            )}
-          >
-            <Flex className={classes.exchangeEventListCircle}>
-              <div className={classes.linkText}>{title}</div>
-            </Flex>
-          </a>
-        );
-      })}
-    </Flex>
+    <div>
+      <AppBar className={classes.appBar}>
+        <Typography variant="h4">Josh Karges</Typography>
+      </AppBar>
+      <Flex
+        width="100%"
+        flexGrow={1}
+        className={classes.homeContainer}
+        onMouseLeave={onMouseLeave}
+      >
+        {PAGES.map(({ title, path }, idx) => {
+          return (
+            <PGram
+              key={path}
+              idx={idx}
+              total={PAGES.length}
+              text={title}
+              href={path}
+              hoverIndex={hoverIndex}
+              setHoverIndex={setHoverIndex}
+            />
+          );
+        })}
+      </Flex>
+    </div>
   );
 };
 

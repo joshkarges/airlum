@@ -1,5 +1,7 @@
-import { makeStyles } from 'tss-react/mui';
-import { VFC } from "react";
+import { makeStyles } from "tss-react/mui";
+import { VFC, useState } from "react";
+import { FormLabel, Slider } from "@mui/material";
+import { Flex } from "./Flex";
 
 const useStyles = makeStyles()((theme) => ({
   container: {
@@ -16,7 +18,7 @@ const useStyles = makeStyles()((theme) => ({
     padding: theme.spacing(4),
     borderRadius: theme.spacing(1),
     marginBottom: theme.spacing(2),
-    maxHeight: "calc(100vh - 80px - 66px - 16px)",
+    maxHeight: "calc(100vh - 80px - 66px - 16px - 159px)",
   },
   formContainer: {
     width: "100%",
@@ -39,9 +41,10 @@ const GOLDEN_RATIO = (1 + Math.sqrt(5)) / 2;
 
 export const TattooPage: VFC = () => {
   const { classes } = useStyles();
-  const strokeWidth = 32;
+  const [strokeWidth, setStrokeWidth] = useState(20);
   const halfHeight = (4 * strokeWidth) / 2;
-  const gap = (halfHeight - 1.5 * strokeWidth) / 2;
+  const [gapPercentage, setGapPercentage] = useState(50);
+  const gap = (halfHeight - (1 + gapPercentage / 100) * strokeWidth) / 2;
   const eWidth = 2 * halfHeight + strokeWidth;
   const iWidth = strokeWidth;
   const piWidth = (3 * halfHeight) / 4 + strokeWidth;
@@ -56,7 +59,7 @@ export const TattooPage: VFC = () => {
     5 * gap +
     strokeWidth / 2;
   const boxHeight = boxWidth / GOLDEN_RATIO;
-  const borderRadius = 0; //(boxHeight - 2 * halfHeight - strokeWidth) / 2;
+  const [borderRadius, setBorderRadius] = useState(10); //(boxHeight - 2 * halfHeight - strokeWidth) / 2;
   return (
     <div className={classes.container}>
       <div className={classes.svgContainer}>
@@ -73,7 +76,7 @@ export const TattooPage: VFC = () => {
           stroke="black"
           strokeLinecap="butt"
           strokeMiterlimit="10"
-          strokeWidth={strokeWidth}
+          strokeWidth={`${strokeWidth}px`}
           strokeLinejoin="miter"
         >
           <path
@@ -125,13 +128,13 @@ export const TattooPage: VFC = () => {
             }
           `}
           />
-          <circle
+          {/* <circle
             cx={-borderRadius + strokeWidth / 2 + eWidth + iWidth / 2 + 2 * gap}
             cy={boxHeight / 2 - borderRadius - halfHeight}
             r={strokeWidth / 2}
             fill="black"
             stroke="none"
-          />
+          /> */}
           {/* <path d={`
           M-${minusWidth - strokeWidth / 2 + borderRadius} ${
             boxHeight / 2 - borderRadius
@@ -171,6 +174,39 @@ export const TattooPage: VFC = () => {
           /> */}
         </svg>
       </div>
+      <Flex flexDirection="column" p="32px">
+        <FormLabel>
+          Stroke Width
+          <Slider
+            value={strokeWidth}
+            onChange={(_, value) => setStrokeWidth(value as number)}
+            min={16}
+            max={64}
+            valueLabelDisplay="auto"
+          />
+        </FormLabel>
+        <FormLabel>
+          Outline Border Radius
+          <Slider
+            value={borderRadius}
+            onChange={(_, value) => setBorderRadius(value as number)}
+            min={0}
+            max={strokeWidth}
+            valueLabelDisplay="auto"
+          />
+        </FormLabel>
+        <FormLabel>
+          Gap Percentage of Stroke Width
+          <Slider
+            value={gapPercentage}
+            onChange={(_, value) => setGapPercentage(value as number)}
+            min={0}
+            max={100}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value}%`}
+          />
+        </FormLabel>
+      </Flex>
     </div>
   );
 };
