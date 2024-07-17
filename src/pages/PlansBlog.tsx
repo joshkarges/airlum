@@ -1,26 +1,17 @@
-import { Theme, Typography } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import { Typography } from "@mui/material";
 import buildVideo from "../assets/build.mp4";
 import testFitVideo from "../assets/testFit.mp4";
 import cmsVideo from "../assets/cms.mp4";
 import { Flex } from "../components/Flex";
-
-const useStyles = makeStyles((theme: Theme) => ({
-  bodyContainer: {
-    padding: 16,
-    maxWidth: 800,
-  },
-  img: {
-    maxWidth: "100%",
-    maxHeight: 300,
-  },
-}));
+import { useStyles } from "./styles";
 
 export const PlansBlog = () => {
   const classes = useStyles();
   return (
     <>
-      <Typography variant="h2">CBRE Plans Blog</Typography>
+      <Typography variant="h2" className={classes.header}>
+        CBRE Plans Blog
+      </Typography>
       <div className={classes.bodyContainer}>
         <Typography variant="body1">
           From 2014 to 2019, I worked at a company called Floored which was
@@ -33,7 +24,13 @@ export const PlansBlog = () => {
         </Typography>
         <br />
         <Flex justifyContent="center">
-          <video autoPlay loop playsInline preload="metadata">
+          <video
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+            className={classes.video}
+          >
             <source src={buildVideo} type="video/mp4" />
           </video>
         </Flex>
@@ -58,7 +55,13 @@ export const PlansBlog = () => {
         </Typography>
         <br />
         <Flex justifyContent="center">
-          <video autoPlay loop playsInline preload="metadata">
+          <video
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+            className={classes.video}
+          >
             <source src={cmsVideo} type="video/mp4" />
           </video>
         </Flex>
@@ -75,7 +78,13 @@ export const PlansBlog = () => {
           lot about web development in the process.
         </Typography>
         <Flex justifyContent="center">
-          <video autoPlay loop playsInline preload="metadata">
+          <video
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+            className={classes.video}
+          >
             <source src={testFitVideo} type="video/mp4" />
           </video>
         </Flex>

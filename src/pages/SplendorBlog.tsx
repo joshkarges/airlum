@@ -1,26 +1,17 @@
-import { Theme, Typography } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import { Typography } from "@mui/material";
 import splendorBox from "../assets/splendorBox.jpg";
 import splendorTable from "../assets/splendorTable.png";
 import splendorImage from "../assets/splendorImage.png";
 import { Flex } from "../components/Flex";
-
-const useStyles = makeStyles((theme: Theme) => ({
-  bodyContainer: {
-    padding: 16,
-    maxWidth: 800,
-  },
-  img: {
-    maxWidth: "100%",
-    maxHeight: 300,
-  },
-}));
+import { useStyles } from "./styles";
 
 export const SplendorBlog = () => {
   const classes = useStyles();
   return (
     <>
-      <Typography variant="h2">Splendor Blog</Typography>
+      <Typography variant="h2" className={classes.header}>
+        Splendor Blog
+      </Typography>
       <div className={classes.bodyContainer}>
         <Typography variant="body1">
           A few years ago, my brother got me this game called Splendor. It's a

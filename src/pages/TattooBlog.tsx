@@ -1,25 +1,16 @@
-import { Theme, Typography } from "@mui/material";
-import { makeStyles } from "@mui/styles";
+import { Typography } from "@mui/material";
 import tattooImage from "../assets/tattooImage.png";
 import tattooSliders from "../assets/tattooSliders.png";
 import { Flex } from "../components/Flex";
-
-const useStyles = makeStyles((theme: Theme) => ({
-  bodyContainer: {
-    padding: 16,
-    maxWidth: 800,
-  },
-  img: {
-    maxWidth: "100%",
-    maxHeight: 300,
-  },
-}));
+import { useStyles } from "./styles";
 
 export const TattooBlog = () => {
   const classes = useStyles();
   return (
     <>
-      <Typography variant="h2">Tattoo Blog</Typography>
+      <Typography variant="h2" className={classes.header}>
+        Tattoo Blog
+      </Typography>
       <div className={classes.bodyContainer}>
         <Typography variant="body1">
           In search of my next tattoo, I wanted it to represent my passion for
