@@ -5,6 +5,7 @@ import { Route, BrowserRouter as Router, Switch } from "react-router-dom";
 import { GifterBlog } from "./GifterBlog";
 import { TattooBlog } from "./TattooBlog";
 import { SplendorBlog } from "./SplendorBlog";
+import { PlansBlog } from "./PlansBlog";
 
 const useStyles = makeStyles((theme: Theme) => ({
   homeContainer: {
@@ -46,6 +47,9 @@ export const Blog = () => {
             </Route>
             <Route path="/blog/splendor">
               <SplendorBlog />
+            </Route>
+            <Route path="/blog/cbre-plans">
+              <PlansBlog />
             </Route>
           </Switch>
         </Router>
