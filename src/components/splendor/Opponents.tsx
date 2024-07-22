@@ -84,10 +84,16 @@ const CoinAndCard: VFC<CoinAndCardProps> = ({
   const { classes } = useStyles();
   return (
     <div className={classes.cardCoinContainer}>
-      <div className={classes.coin} style={{ background: color }}>
+      <div
+        className={classes.coin}
+        style={{ background: color, ...(coinCount ? {} : { opacity: 0 }) }}
+      >
         <OutlineText>{coinCount}</OutlineText>
       </div>
-      <div className={classes.card} style={{ background: color }}>
+      <div
+        className={classes.card}
+        style={{ background: color, ...(cardCount ? {} : { opacity: 0 }) }}
+      >
         <OutlineText>{!!cardCount && cardCount}</OutlineText>
       </div>
     </div>

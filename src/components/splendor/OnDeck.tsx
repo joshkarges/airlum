@@ -276,7 +276,8 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     actionPool.start();
     console.log(getPossibleActions(game).map((a) => a.type));
     actionPool.end();
-  }, [worker, game, depth, dispatch, onTakeActionClick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worker, depth, dispatch]);
 
   useEffect(() => {
     worker.onmessage = (e) => {
