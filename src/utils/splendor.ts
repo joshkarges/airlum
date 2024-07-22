@@ -302,7 +302,7 @@ export const setupGame = ({
   return game;
 };
 
-const playerValue = (game: Game, player: Player): number => {
+export const playerValue = (game: Game, player: Player): number => {
   const points = player.points;
   const bought = player.bought.length;
   const gainCards = getBuyActions(game, player).length;
@@ -327,7 +327,7 @@ const gameValue = (game: Game) => {
   );
 };
 
-const gameValueForAllPlayers = (game: Game) => {
+export const gameValueForAllPlayers = (game: Game) => {
   arrPool.start();
   const playerValues = arrPool.get();
   game.players.forEach((player) =>

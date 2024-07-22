@@ -4,11 +4,13 @@ import { actionPool, arrPool } from "../utils/memory";
 import {
   Strategy,
   canAffordCard,
+  gameValueForAllPlayers,
   generateThreeCoinPermutations,
   getBuyActions,
   getPossibleActions,
   getReserveActions,
   getStrategy,
+  playerValue,
   setupGame,
   takeAction,
 } from "../utils/splendor";
@@ -537,6 +539,31 @@ for (let i = 0; i < 60; i++) {
   }
   game = newGame;
 }
+actionPool.end();
+
+testGame.players[0].coins = {
+  white: 2,
+  blue: 2,
+  green: 2,
+  red: 2,
+  black: 2,
+  yellow: 0,
+};
+
+actionPool.start();
+actionOutput.length = 0;
+console.log(gameValueForAllPlayers(testGame));
+const possibleActions = getPossibleActions(testGame);
+console.log(possibleActions.map((a) => a.type));
+const buyAction = possibleActions.find((a) => a.type === "buy");
+const action = getNextAction(testGame, 3);
+const nextGame = takeAction(testGame, action!);
+console.log(action);
+console.log(gameValueForAllPlayers(nextGame));
+const nextGameAfterBuy = takeAction(testGame, buyAction!);
+console.log(buyAction);
+console.log(gameValueForAllPlayers(nextGameAfterBuy));
+assert.notStrictEqual(action?.type, "takeCoins");
 actionPool.end();
 
 console.log("ALL TESTS PASSED");
