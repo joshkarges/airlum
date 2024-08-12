@@ -232,6 +232,7 @@ export const TimedGame = () => {
             </List>
           )}
         </FetchedComponent>
+        {anyIsPending(deleteMemberResponse) && <Loading />}
       </Card>
       {joinTeamResponse.data.memberKey ? (
         member.team ? (
@@ -289,6 +290,7 @@ export const TimedGame = () => {
           Start Game
         </Button>
       )}
+      {anyIsPending(startGameResponse) && <Loading />}
       <FetchedComponent resource={finishGameResponse}>
         {(data) => <Typography>Teams Are Assigned!</Typography>}
       </FetchedComponent>
