@@ -1,5 +1,20 @@
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { WriteGameRequest, WriteGameResponse } from "../models/functions";
+import {
+  CreateTimedTeamRequest,
+  CreateTimedTeamResponse,
+  DeleteMemberRequest,
+  DeleteMemberResponse,
+  FinishTimedTeamRequest,
+  FinishTimedTeamResponse,
+  GetTimedTeamRequest,
+  GetTimedTeamResponse,
+  JoinTimedTeamRequest,
+  JoinTimedTeamResponse,
+  StartTimedTeamRequest,
+  StartTimedTeamResponse,
+  WriteGameRequest,
+  WriteGameResponse,
+} from "../models/functions";
 import { app } from "./firebaseApp";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -27,3 +42,33 @@ export const writeSplendorGame = makeFunctionsCall<
   WriteGameRequest,
   WriteGameResponse
 >("writeSplendorGame");
+
+export const createTimedTeam = makeFunctionsCall<
+  CreateTimedTeamRequest,
+  CreateTimedTeamResponse
+>("createTimedTeam");
+
+export const getTimedTeam = makeFunctionsCall<
+  GetTimedTeamRequest,
+  GetTimedTeamResponse
+>("getTimedTeam");
+
+export const joinTimedTeam = makeFunctionsCall<
+  JoinTimedTeamRequest,
+  JoinTimedTeamResponse
+>("joinTimedTeam");
+
+export const deleteMember = makeFunctionsCall<
+  DeleteMemberRequest,
+  DeleteMemberResponse
+>("deleteMemberFromTimedTeam");
+
+export const startTimedTeam = makeFunctionsCall<
+  StartTimedTeamRequest,
+  StartTimedTeamResponse
+>("startTimedTeam");
+
+export const finishTimedTeam = makeFunctionsCall<
+  FinishTimedTeamRequest,
+  FinishTimedTeamResponse
+>("finishTimedTeam");

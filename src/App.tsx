@@ -14,6 +14,7 @@ import { GiftExchangeEventPage } from "./pages/GiftExchangeEventPage";
 import { amber, blue } from "@mui/material/colors";
 import { ExchangeEventListPage } from "./pages/ExchangeEventListPage";
 import { Blog } from "./pages/Blog";
+import { TimedTeams } from "./pages/TimedTeams";
 
 export const muiCache = createCache({
   key: "mui",
@@ -58,6 +59,9 @@ function App() {
                     </Route>
                     <Route path="/exchange-events">
                       <ExchangeEventListPage />
+                    </Route>
+                    <Route path="/timed-teams">
+                      <TimedTeams />
                     </Route>
                     <Route path="/blog">
                       <Blog />

@@ -54,7 +54,7 @@
     "build": "yarn model; react-scripts build",
     "deploy": "cd functions && yarn build && cd .. && yarn build && firebase deploy",
     "deploy-hosting": "yarn build && firebase deploy --only hosting",
-    "model": "cp ./functions/src/models/gifter.ts ./src/models/functions.ts && cat ./functions/src/models/splendor.ts >> ./src/models/functions.ts",
+    "model": "cp ./functions/src/models/gifter.ts ./src/models/functions.ts && cat ./functions/src/models/splendor.ts >> ./src/models/functions.ts && cat ./functions/src/models/timedTeam.ts >> ./src/models/functions.ts",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "format": "prettier --write src/**/*.ts{,x}",

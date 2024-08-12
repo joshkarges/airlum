@@ -28,5 +28,13 @@ service cloud.firestore {
       allow update: if request.auth != null && isAuthorOrUser(resource.data.exchangeEvent, request.auth)
       allow delete: if request.auth != null && resource.data.author.uid == request.auth.uid && resource.data.isExtra == true
     }
+
+    match /timedTeams/{gameId} {
+      allow read: if true
+    }
+
+    match /timedTeams/{gameId}/teams/{teamId} {
+      allow read: if true
+    }
   }
 }

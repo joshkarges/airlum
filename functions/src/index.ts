@@ -67,6 +67,19 @@ import {
 import * as _ from "lodash";
 import { log } from "firebase-functions/logger";
 import { WriteGameRequest, WriteGameResponse } from "./models/splendor";
+import {
+  CreateTimedTeamRequest,
+  CreateTimedTeamResponse,
+  DeleteMemberRequest,
+  DeleteMemberResponse,
+  FinishTimedTeamRequest,
+  FinishTimedTeamResponse,
+  JoinTimedTeamRequest,
+  JoinTimedTeamResponse,
+  StartTimedTeamRequest,
+  StartTimedTeamResponse,
+  TimedTeam,
+} from "./models/timedTeam";
 
 const oldConsoleLog = console.log;
 console.log = (...args) => {
@@ -721,4 +734,157 @@ exports.writeSplendorGame = onCall<
   const gamesCollection = dbAdmin.collection("splendorGames");
   const result = await gamesCollection.add(req.data);
   return result.id;
+});
+
+exports.createTimedTeam = onCall<
+  CreateTimedTeamRequest,
+  Promise<CreateTimedTeamResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const timedTeamsCollection = dbAdmin.collection(
+    "timedTeams"
+  ) as admin.firestore.CollectionReference<TimedTeam>;
+  const docId = generateSixDigitAlphaNumericCode();
+  const docRef = timedTeamsCollection.doc(docId);
+
+  await docRef.set({
+    id: docId,
+    name: req.data.name,
+    author: req.data.author,
+    members: [],
+    duration: req.data.duration,
+    numPerTeam: req.data.numPerTeam,
+    started: false,
+    finished: false,
+    startedAt: 0,
+  });
+  return { id: docId };
+});
+
+exports.getTimedTeam = onCall<{ id: string }, Promise<TimedTeam>>(
+  { cors: [/firebase\.com$/, /airlum.web.app/] },
+  async (req) => {
+    const timedTeamsCollection = dbAdmin.collection("timedTeams");
+    const timedTeamDoc = timedTeamsCollection.doc(req.data.id);
+    const timedTeam = (await timedTeamDoc.get()).data();
+    if (!timedTeam) {
+      throw new HttpsError("not-found", "Timed team not found");
+    }
+    return timedTeam as TimedTeam;
+  }
+);
+
+exports.joinTimedTeam = onCall<
+  JoinTimedTeamRequest,
+  Promise<JoinTimedTeamResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const timedTeamsCollection = dbAdmin.collection(
+    "timedTeams"
+  ) as admin.firestore.CollectionReference<TimedTeam>;
+  const timedTeamDoc = timedTeamsCollection.doc(req.data.id);
+  const timedTeam = (await timedTeamDoc.get()).data();
+  if (!timedTeam) {
+    throw new HttpsError("not-found", "Timed team not found");
+  }
+  if (timedTeam.members.includes(req.data.user)) {
+    throw new HttpsError("already-exists", "User already in team");
+  }
+  await timedTeamDoc.update({
+    members: FieldValue.arrayUnion(req.data.user),
+  });
+  const memberKey = generateSixDigitAlphaNumericCode();
+  await timedTeamDoc.collection("teams").doc(memberKey).set({
+    user: req.data.user,
+    memberKey,
+    team: "",
+  });
+  return { memberKey };
+});
+
+exports.deleteMemberFromTimedTeam = onCall<
+  DeleteMemberRequest,
+  Promise<DeleteMemberResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const timedTeamsCollection = dbAdmin.collection(
+    "timedTeams"
+  ) as admin.firestore.CollectionReference<TimedTeam>;
+  const timedTeamDoc = timedTeamsCollection.doc(req.data.id);
+  const timedTeam = (await timedTeamDoc.get()).data();
+  if (!timedTeam) {
+    throw new HttpsError("not-found", "Timed team not found");
+  }
+  if (!timedTeam.members.includes(req.data.user)) {
+    throw new HttpsError("not-found", "User not in team");
+  }
+  await timedTeamDoc.update({
+    members: FieldValue.arrayRemove(req.data.user),
+  });
+  const teamsCollection = timedTeamDoc.collection("teams");
+  const teams = await teamsCollection.where("user", "==", req.data.user).get();
+  teams.forEach((doc) => {
+    doc.ref.delete();
+  });
+});
+
+exports.startTimedTeam = onCall<
+  StartTimedTeamRequest,
+  Promise<StartTimedTeamResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const timedTeamsCollection = dbAdmin.collection("timedTeams");
+  const timedTeamDoc = timedTeamsCollection.doc(req.data.id);
+  const timedTeam = (await timedTeamDoc.get()).data();
+  if (!timedTeam) {
+    throw new HttpsError("not-found", "Timed team not found");
+  }
+  if (timedTeam.started) {
+    throw new HttpsError("already-exists", "Timed team already started");
+  }
+  await timedTeamDoc.update({
+    started: true,
+    startedAt: Date.now(),
+  });
+});
+
+exports.finishTimedTeam = onCall<
+  FinishTimedTeamRequest,
+  Promise<FinishTimedTeamResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const timedTeamsCollection = dbAdmin.collection(
+    "timedTeams"
+  ) as admin.firestore.CollectionReference<TimedTeam>;
+  const timedTeamDoc = timedTeamsCollection.doc(req.data.id);
+  const timedTeam = (await timedTeamDoc.get()).data();
+  if (!timedTeam) {
+    throw new HttpsError("not-found", "Timed team not found");
+  }
+  if (timedTeam.finished) {
+    throw new HttpsError("already-exists", "Timed team already finished");
+  }
+  // Put members into teams
+  const teams = _.flatMap(timedTeam.numPerTeam, ({ teamName, numPlayers }) => {
+    return _.times(numPlayers, () => teamName);
+  });
+  const teamsWithZeroPlayers = _.filter(
+    timedTeam.numPerTeam,
+    ({ numPlayers }) => numPlayers === 0
+  ).map(({ teamName }) => teamName);
+  if (teamsWithZeroPlayers.length === 0) {
+    teamsWithZeroPlayers.push("no team");
+  }
+  for (let i = teams.length; i < timedTeam.members.length; i++) {
+    teams.push(teamsWithZeroPlayers[i % teamsWithZeroPlayers.length]);
+  }
+  const promise1 = timedTeamDoc
+    .collection("teams")
+    .listDocuments()
+    .then((docs) => {
+      docs.forEach((doc) => {
+        doc.update({
+          team: teams.pop() || "no team",
+        });
+      });
+    });
+  const promise2 = timedTeamDoc.update({
+    finished: true,
+  });
+  await Promise.all([promise1, promise2]);
 });
