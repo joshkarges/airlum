@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import * as Yup from "yup";
 import { Flex } from "../components/Flex";
-import { useFetchedResource } from "../utils/fetchers";
+import { anyIsPending, useFetchedResource } from "../utils/fetchers";
 import { createTimedTeam, joinTimedTeam } from "../api/SplendorApi";
 import { Form, Formik } from "formik";
 import { Add, Delete, ScheduleSend } from "@mui/icons-material";
@@ -18,6 +18,7 @@ import {
   CreateTimedTeamResponse,
   JoinTimedTeamResponse,
 } from "../models/functions";
+import { Loading } from "../components/fetchers/Loading";
 
 const useStyles = makeStyles((theme: Theme) => ({
   form: {
@@ -171,6 +172,7 @@ export const CreateTimedTeams = () => {
             >
               Create Timed Team
             </Button>
+            {anyIsPending(createTimedTeamResponse) && <Loading />}
             <FetchedComponent
               resource={[createTimedTeamResponse, joinTeamResponse as any]}
             >

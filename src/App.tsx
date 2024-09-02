@@ -15,6 +15,7 @@ import { amber, blue } from "@mui/material/colors";
 import { ExchangeEventListPage } from "./pages/ExchangeEventListPage";
 import { Blog } from "./pages/Blog";
 import { TimedTeams } from "./pages/TimedTeams";
+import { SplendorStats } from "./pages/SplendorStats";
 
 export const muiCache = createCache({
   key: "mui",
@@ -50,6 +51,9 @@ function App() {
                     </Route>
                     <Route path="/splendor">
                       <SplendorPage />
+                    </Route>
+                    <Route path="/splendor-stats">
+                      <SplendorStats />
                     </Route>
                     <Route path="/tattoo">
                       <TattooPage />

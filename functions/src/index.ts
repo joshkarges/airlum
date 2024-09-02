@@ -66,7 +66,11 @@ import {
 } from "./models";
 import * as _ from "lodash";
 import { log } from "firebase-functions/logger";
-import { WriteGameRequest, WriteGameResponse } from "./models/splendor";
+import {
+  GameRecord,
+  WriteGameRequest,
+  WriteGameResponse,
+} from "./models/splendor";
 import {
   CreateTimedTeamRequest,
   CreateTimedTeamResponse,
@@ -735,6 +739,20 @@ exports.writeSplendorGame = onCall<
   const result = await gamesCollection.add(req.data);
   return result.id;
 });
+
+exports.getAllSplendorGames = onCall<void, Promise<GameRecord[]>>(
+  { cors: [/firebase\.com$/, /airlum.web.app/] },
+  async (req) => {
+    console.log("req", req);
+    const gamesCollection = dbAdmin.collection(
+      "splendorGames"
+    ) as admin.firestore.CollectionReference<GameRecord>;
+    console.log("gamesCollection", gamesCollection);
+    const games = await gamesCollection.get();
+    console.log("games", games);
+    return games.docs.map((doc) => doc.data());
+  }
+);
 
 exports.createTimedTeam = onCall<
   CreateTimedTeamRequest,

@@ -16,8 +16,8 @@ export const gameRecordSlice = createSlice({
     startGameRecord: (state, action: PayloadAction<Game>) => {
       state.startTime = Date.now();
       state.endTime = 0;
-      state.players = action.payload.players.map(() => ({
-        isHuman: true,
+      state.players = action.payload.players.map((player) => ({
+        isHuman: player.isHuman,
         points: 0,
         cards: [],
         nobles: [],

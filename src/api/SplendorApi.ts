@@ -6,6 +6,7 @@ import {
   DeleteMemberResponse,
   FinishTimedTeamRequest,
   FinishTimedTeamResponse,
+  GameRecord,
   GetTimedTeamRequest,
   GetTimedTeamResponse,
   JoinTimedTeamRequest,
@@ -42,6 +43,10 @@ export const writeSplendorGame = makeFunctionsCall<
   WriteGameRequest,
   WriteGameResponse
 >("writeSplendorGame");
+
+export const getAllSpendorGames = makeFunctionsCall<void, GameRecord[]>(
+  "getAllSplendorGames"
+);
 
 export const createTimedTeam = makeFunctionsCall<
   CreateTimedTeamRequest,
