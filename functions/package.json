@@ -6,6 +6,7 @@
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "emulate": "npm run build && firebase emulators:start --import local-emulator-data --export-on-exit local-emulator-data",
+    "emulateProduction": "npm run build && firebase emulators:start --import production_data_export --export-on-exit production_data_export",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "rm -rf node_modules && yarn install && yarn build && yarn delete && firebase deploy --only functions",

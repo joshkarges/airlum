@@ -21,9 +21,6 @@ import {
   anyIsPending,
   anyIsSuccess,
   errorMessage,
-  FetchedResource,
-  FetchedStatus,
-  FetchedStatusString,
   useEffectIfNotFetchedYet,
   useFetchedResource,
 } from "../utils/fetchers";
@@ -37,7 +34,7 @@ import {
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 import { makeStyles } from "@mui/styles";
 import { useQuery } from "../utils/routing";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { TimedTeam, TimedTeamMember } from "../models/functions";
 import { Loading } from "../components/fetchers/Loading";
 

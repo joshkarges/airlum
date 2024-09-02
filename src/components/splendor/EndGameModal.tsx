@@ -3,15 +3,14 @@ import _ from "lodash";
 import { useCallback, useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { useGame } from "../../redux/selectors";
-import { setGame } from "../../redux/slices/game";
-import { getPlayerIndex, setupGame } from "../../utils/splendor";
+import { getPlayerIndex } from "../../utils/splendor";
 import { oxfordCommaList } from "../../utils/utils";
 import {
   useFetchedResource,
   useSelectorWithPrefix,
 } from "../../utils/fetchers";
 import { writeSplendorGame } from "../../api/SplendorApi";
-import { endGameRecord, startGameRecord } from "../../redux/slices/gameRecord";
+import { endGameRecord } from "../../redux/slices/gameRecord";
 import { FetchedComponent } from "../fetchers/FetchedComponent";
 import { setShowGameSetup } from "../../redux/slices/showGameSetup";
 

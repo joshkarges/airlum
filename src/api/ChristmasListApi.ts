@@ -1,4 +1,3 @@
-import firebase from "firebase/compat/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
   GetExchangeEventRequest,

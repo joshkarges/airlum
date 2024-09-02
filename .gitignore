@@ -108,6 +108,7 @@ dist
 .tern-port
 
 functions/local-emulator-data
+functions/production_data_export
 
 .firebase/
 

@@ -1,6 +1,5 @@
 import {
   Button,
-  Icon,
   IconButton,
   TextField,
   Theme,
@@ -14,10 +13,7 @@ import { Form, Formik } from "formik";
 import { Add, Delete, ScheduleSend } from "@mui/icons-material";
 import { makeStyles } from "@mui/styles";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
-import {
-  CreateTimedTeamResponse,
-  JoinTimedTeamResponse,
-} from "../models/functions";
+import { CreateTimedTeamResponse } from "../models/functions";
 import { Loading } from "../components/fetchers/Loading";
 
 const useStyles = makeStyles((theme: Theme) => ({
