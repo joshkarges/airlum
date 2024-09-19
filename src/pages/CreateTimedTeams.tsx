@@ -8,12 +8,12 @@ import {
 import * as Yup from "yup";
 import { Flex } from "../components/Flex";
 import { anyIsPending, useFetchedResource } from "../utils/fetchers";
-import { createTimedTeam, joinTimedTeam } from "../api/SplendorApi";
+import { upsertTimedTeam, joinTimedTeam } from "../api/SplendorApi";
 import { Form, Formik } from "formik";
 import { Add, Delete, ScheduleSend } from "@mui/icons-material";
 import { makeStyles } from "@mui/styles";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
-import { CreateTimedTeamResponse } from "../models/functions";
+import { UpsertTimedTeamResponse } from "../models/functions";
 import { Loading } from "../components/fetchers/Loading";
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -27,7 +27,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 export const CreateTimedTeams = () => {
   const classes = useStyles();
   const [createTimedTeamResponse, fetchCreateTimedTeam] =
-    useFetchedResource(createTimedTeam);
+    useFetchedResource(upsertTimedTeam);
   const [joinTeamResponse, fetchJoinTeam] = useFetchedResource(joinTimedTeam);
   return (
     <Flex p="32px" alignItems="center" height="100%" flexDirection="column">
@@ -173,7 +173,7 @@ export const CreateTimedTeams = () => {
               resource={[createTimedTeamResponse, joinTeamResponse as any]}
             >
               {(
-                createTimedTeamData: CreateTimedTeamResponse,
+                createTimedTeamData: UpsertTimedTeamResponse,
                 joinTeamData: any
               ) => (
                 <a

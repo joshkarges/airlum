@@ -243,16 +243,23 @@ export type TimedTeamMember = {
 
 // Create a timed team event
 // This creates a new doc
-export type CreateTimedTeamRequest = {
+export type UpsertTimedTeamRequest = {
   name: string;
   author: string;
   numPerTeam: { teamName: string; numPlayers: number }[];
   duration: number;
+  gameId?: string;
 };
 
-export type CreateTimedTeamResponse = {
+export type UpsertTimedTeamResponse = {
   id: string;
 };
+
+export type ResetTimedTeamRequest = {
+  id: string;
+};
+
+export type ResetTimedTeamResponse = void;
 
 // Join a timed team event
 // This will update the timed team with the new member

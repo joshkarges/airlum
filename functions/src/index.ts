@@ -72,8 +72,8 @@ import {
   WriteGameResponse,
 } from "./models/splendor";
 import {
-  CreateTimedTeamRequest,
-  CreateTimedTeamResponse,
+  UpsertTimedTeamRequest,
+  UpsertTimedTeamResponse,
   DeleteMemberRequest,
   DeleteMemberResponse,
   FinishTimedTeamRequest,
@@ -83,6 +83,8 @@ import {
   StartTimedTeamRequest,
   StartTimedTeamResponse,
   TimedTeam,
+  ResetTimedTeamResponse,
+  ResetTimedTeamRequest,
 } from "./models/timedTeam";
 
 const oldConsoleLog = console.log;
@@ -754,15 +756,25 @@ exports.getAllSplendorGames = onCall<void, Promise<GameRecord[]>>(
   }
 );
 
-exports.createTimedTeam = onCall<
-  CreateTimedTeamRequest,
-  Promise<CreateTimedTeamResponse>
+exports.upsertTimedTeam = onCall<
+  UpsertTimedTeamRequest,
+  Promise<UpsertTimedTeamResponse>
 >({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
   const timedTeamsCollection = dbAdmin.collection(
     "timedTeams"
   ) as admin.firestore.CollectionReference<TimedTeam>;
-  const docId = generateSixDigitAlphaNumericCode();
+  const docId = req.data.gameId || generateSixDigitAlphaNumericCode();
   const docRef = timedTeamsCollection.doc(docId);
+
+  if (req.data.gameId) {
+    await docRef.update({
+      duration: req.data.duration,
+      numPerTeam: req.data.numPerTeam,
+      name: req.data.name,
+      author: req.data.author,
+    });
+    return { id: docId };
+  }
 
   await docRef.set({
     id: docId,
@@ -776,6 +788,34 @@ exports.createTimedTeam = onCall<
     startedAt: 0,
   });
   return { id: docId };
+});
+
+exports.resetTimedTeam = onCall<
+  ResetTimedTeamRequest,
+  Promise<ResetTimedTeamResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const timedTeamsCollection = dbAdmin.collection("timedTeams");
+  const timedTeamDoc = timedTeamsCollection.doc(req.data.id);
+  const timedTeam = (await timedTeamDoc.get()).data();
+  if (!timedTeam) {
+    throw new HttpsError("not-found", "Timed team not found");
+  }
+  const promise1 = timedTeamDoc
+    .collection("teams")
+    .listDocuments()
+    .then((docs) => {
+      docs.forEach((doc) => {
+        doc.update({
+          team: "",
+        });
+      });
+    });
+  const promise2 = timedTeamDoc.update({
+    started: false,
+    finished: false,
+    startedAt: 0,
+  });
+  await Promise.all([promise1, promise2]);
 });
 
 exports.getTimedTeam = onCall<{ id: string }, Promise<TimedTeam>>(

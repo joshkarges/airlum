@@ -3,6 +3,9 @@ import "firebase/compat/firestore";
 import { useParams } from "react-router-dom";
 import { Flex } from "../components/Flex";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Button,
   Card,
   IconButton,
@@ -14,7 +17,7 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
-import { Delete, Person, Share } from "@mui/icons-material";
+import { Delete, Edit, Person, Share } from "@mui/icons-material";
 import {
   anyIsError,
   anyIsIdle,
@@ -29,7 +32,9 @@ import {
   finishTimedTeam,
   getTimedTeam,
   joinTimedTeam,
+  resetTimedTeam,
   startTimedTeam,
+  upsertTimedTeam,
 } from "../api/SplendorApi";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 import { makeStyles } from "@mui/styles";
@@ -37,6 +42,7 @@ import { useQuery } from "../utils/routing";
 import { useEffect, useState } from "react";
 import { TimedTeam, TimedTeamMember } from "../models/functions";
 import { Loading } from "../components/fetchers/Loading";
+import { TimedTeamForm } from "../components/TimedTeamForm";
 
 const db = firebase.firestore();
 if (window.location.hostname === "localhost") {
@@ -87,6 +93,8 @@ export const TimedGame = () => {
     useFetchedResource(startTimedTeam);
   const [finishGameResponse, fetchFinishGame] =
     useFetchedResource(finishTimedTeam);
+  const [resetGameResponse, fetchResetGame] =
+    useFetchedResource(resetTimedTeam);
   useEffectIfNotFetchedYet(timedTeamResource, fetchTimedTeam, { id: gameId });
   useEffect(() => {
     if (timedTeamResource) {
@@ -131,6 +139,7 @@ export const TimedGame = () => {
               ...prev,
               data: data as TimedTeam,
             }));
+            setTimeLeft(data.duration);
           }
         },
         error: (error) => {
@@ -171,13 +180,17 @@ export const TimedGame = () => {
       justifyContent="center"
       alignItems="center"
       rowGap="16px"
+      pb="32px"
     >
       <FetchedComponent resource={timedTeam}>
         {(data) => (
           <Flex flexDirection="column" rowGap="16px">
             <Typography variant="h1">{`${data?.name}`}</Typography>
             <Flex alignItems="center">
-              <Typography variant="h3">{`code: ${gameId}`}</Typography>
+              <Typography
+                variant="h3"
+                fontFamily="monospace"
+              >{`code: ${gameId}`}</Typography>
               <div>
                 <IconButton
                   onClick={() => {
@@ -190,6 +203,33 @@ export const TimedGame = () => {
                 </IconButton>
               </div>
             </Flex>
+            {isAuthor && (
+              <Accordion defaultExpanded={false}>
+                <AccordionSummary expandIcon={<Edit />}>Edit</AccordionSummary>
+                <AccordionDetails>
+                  <TimedTeamForm game={data} />
+                </AccordionDetails>
+              </Accordion>
+            )}
+            <Typography>{`Duration: ${data.duration} seconds`}</Typography>
+            {data.numPerTeam.map(({ teamName, numPlayers }) => (
+              <Typography key={teamName}>{`${teamName}: ${
+                numPlayers || "Any"
+              } players`}</Typography>
+            ))}
+            {isAuthor && data.started && (
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => {
+                  fetchResetGame({
+                    id: gameId,
+                  });
+                }}
+              >
+                Reset
+              </Button>
+            )}
           </Flex>
         )}
       </FetchedComponent>
@@ -231,7 +271,7 @@ export const TimedGame = () => {
         </FetchedComponent>
         {anyIsPending(deleteMemberResponse) && <Loading />}
       </Card>
-      {joinTeamResponse.data.memberKey ? (
+      {joinTeamResponse.data.memberKey ? ( // They've joined
         member.team ? (
           <Typography>{`You are on team "${member.team}"`}</Typography>
         ) : timedTeam.data.started ? (
@@ -239,9 +279,11 @@ export const TimedGame = () => {
         ) : (
           <Typography>Waiting for game to begin...</Typography>
         )
-      ) : timedTeam.data.finished ? (
-        <Typography>Teams have already been assigned</Typography>
-      ) : anyIsIdle(joinTeamResponse) ? (
+      ) : timedTeam.data.started ? ( // The game has already started and they didn't join
+        <Typography>The game has already started</Typography>
+      ) : timedTeam.data.finished ? ( // The game has already finished and they didn't join
+        <Typography>The game has already finished</Typography>
+      ) : anyIsIdle(joinTeamResponse) ? ( // The game hasn't started and they haven't joined yet
         <Flex columnGap="8px">
           <TextField
             label="User"
@@ -271,9 +313,9 @@ export const TimedGame = () => {
             Join
           </Button>
         </Flex>
-      ) : anyIsPending(joinTeamResponse) ? (
+      ) : anyIsPending(joinTeamResponse) ? ( // Joining the game
         <Loading />
-      ) : anyIsError(joinTeamResponse) ? (
+      ) : anyIsError(joinTeamResponse) ? ( // Error joining the game
         <Typography color="red">{errorMessage(joinTeamResponse)}</Typography>
       ) : null}
       {isAuthor && !timedTeam.data.started && (
@@ -289,7 +331,13 @@ export const TimedGame = () => {
       )}
       {anyIsPending(startGameResponse) && <Loading />}
       <FetchedComponent resource={finishGameResponse}>
-        {(data) => <Typography>Teams Are Assigned!</Typography>}
+        {(data) => (
+          <>
+            {timedTeam.data.finished && (
+              <Typography>Teams Are Assigned!</Typography>
+            )}
+          </>
+        )}
       </FetchedComponent>
     </Flex>
   );

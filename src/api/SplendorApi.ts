@@ -1,7 +1,7 @@
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
-  CreateTimedTeamRequest,
-  CreateTimedTeamResponse,
+  UpsertTimedTeamRequest,
+  UpsertTimedTeamResponse,
   DeleteMemberRequest,
   DeleteMemberResponse,
   FinishTimedTeamRequest,
@@ -15,6 +15,8 @@ import {
   StartTimedTeamResponse,
   WriteGameRequest,
   WriteGameResponse,
+  ResetTimedTeamRequest,
+  ResetTimedTeamResponse,
 } from "../models/functions";
 import { app } from "./firebaseApp";
 
@@ -48,10 +50,10 @@ export const getAllSpendorGames = makeFunctionsCall<void, GameRecord[]>(
   "getAllSplendorGames"
 );
 
-export const createTimedTeam = makeFunctionsCall<
-  CreateTimedTeamRequest,
-  CreateTimedTeamResponse
->("createTimedTeam");
+export const upsertTimedTeam = makeFunctionsCall<
+  UpsertTimedTeamRequest,
+  UpsertTimedTeamResponse
+>("upsertTimedTeam");
 
 export const getTimedTeam = makeFunctionsCall<
   GetTimedTeamRequest,
@@ -77,3 +79,8 @@ export const finishTimedTeam = makeFunctionsCall<
   FinishTimedTeamRequest,
   FinishTimedTeamResponse
 >("finishTimedTeam");
+
+export const resetTimedTeam = makeFunctionsCall<
+  ResetTimedTeamRequest,
+  ResetTimedTeamResponse
+>("resetTimedTeam");
