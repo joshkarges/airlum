@@ -239,6 +239,7 @@ export type TimedTeamMember = {
   user: string;
   memberKey: string;
   team: string;
+  isAuthor: boolean;
 };
 
 // Create a timed team event
@@ -267,7 +268,16 @@ export type ResetTimedTeamResponse = void;
 export type JoinTimedTeamRequest = {
   id: string;
   user: string;
+  isAuthor: boolean;
 };
+
+export type EditMemberNameRequest = {
+  id: string;
+  memberKey: string;
+  username: string;
+};
+
+export type EditMemberNameResponse = void;
 
 export type DeleteMemberRequest = {
   id: string;

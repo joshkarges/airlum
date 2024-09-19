@@ -85,6 +85,8 @@ import {
   TimedTeam,
   ResetTimedTeamResponse,
   ResetTimedTeamRequest,
+  EditMemberNameRequest,
+  EditMemberNameResponse,
 } from "./models/timedTeam";
 
 const oldConsoleLog = console.log;
@@ -854,8 +856,41 @@ exports.joinTimedTeam = onCall<
     user: req.data.user,
     memberKey,
     team: "",
+    isAuthor: req.data.isAuthor,
   });
   return { memberKey };
+});
+
+exports.editMemberName = onCall<
+  EditMemberNameRequest,
+  Promise<EditMemberNameResponse>
+>({ cors: [/firebase\.com$/, /airlum.web.app/] }, async (req) => {
+  const timedTeamsCollection = dbAdmin.collection(
+    "timedTeams"
+  ) as admin.firestore.CollectionReference<TimedTeam>;
+  const timedTeamDoc = timedTeamsCollection.doc(req.data.id);
+  const memberDoc = timedTeamDoc.collection("teams").doc(req.data.memberKey);
+  const member = (await memberDoc.get()).data();
+  if (!member) {
+    throw new HttpsError("not-found", "Member not found");
+  }
+  const timedTeam = (await timedTeamDoc.get()).data();
+  if (!timedTeam) {
+    throw new HttpsError("not-found", "Timed team not found");
+  }
+  const members = timedTeam.members;
+  const memberIndex = members.indexOf(member.user);
+  if (memberIndex === -1) {
+    throw new HttpsError("not-found", "User not in team");
+  }
+  members[memberIndex] = req.data.username;
+  const promise1 = timedTeamDoc.update({
+    members,
+  });
+  const promise2 = memberDoc.update({
+    user: req.data.username,
+  });
+  await Promise.all([promise1, promise2]);
 });
 
 exports.deleteMemberFromTimedTeam = onCall<

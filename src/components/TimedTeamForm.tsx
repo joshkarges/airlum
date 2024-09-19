@@ -45,20 +45,7 @@ export const TimedTeamForm = ({ game }: TimedTeamFormProps) => {
   return (
     <Formik
       initialValues={game || EMPTY_FORM}
-      onSubmit={async (values) => {
-        const { response } = await fetchUpsertTimedTeam({
-          name: values.name,
-          duration: values.duration,
-          author: values.author,
-          numPerTeam: values.numPerTeam,
-          gameId: game?.id,
-        });
-        if (!response || game) return;
-        fetchJoinTeam({
-          id: response.id,
-          user: values.author,
-        });
-      }}
+      onSubmit={() => {}}
       validationSchema={Yup.object({
         gameName: Yup.string().required("Required"),
         duration: Yup.number().required("Required"),
@@ -181,6 +168,7 @@ export const TimedTeamForm = ({ game }: TimedTeamFormProps) => {
               fetchJoinTeam({
                 id: response.id,
                 user: params.values.author,
+                isAuthor: true,
               });
             }}
           >

@@ -8,16 +8,18 @@ import {
   AccordionSummary,
   Button,
   Card,
+  CircularProgress,
   IconButton,
   List,
   ListItem,
   ListItemIcon,
+  ListItemSecondaryAction,
   ListItemText,
   TextField,
   Theme,
   Typography,
 } from "@mui/material";
-import { Delete, Edit, Person, Share } from "@mui/icons-material";
+import { Delete, Edit, Person, Save, Share } from "@mui/icons-material";
 import {
   anyIsError,
   anyIsIdle,
@@ -29,12 +31,12 @@ import {
 } from "../utils/fetchers";
 import {
   deleteMember,
+  editMemberName,
   finishTimedTeam,
   getTimedTeam,
   joinTimedTeam,
   resetTimedTeam,
   startTimedTeam,
-  upsertTimedTeam,
 } from "../api/SplendorApi";
 import { FetchedComponent } from "../components/fetchers/FetchedComponent";
 import { makeStyles } from "@mui/styles";
@@ -52,6 +54,10 @@ if (window.location.hostname === "localhost") {
 const useStyles = makeStyles((theme: Theme) => ({
   card: {
     minWidth: "min(400px, calc(100% - 32px))",
+  },
+  secondaryListItem: {
+    display: "flex",
+    columnGap: "16px",
   },
 }));
 
@@ -81,8 +87,9 @@ export const TimedGame = () => {
     user: "",
     memberKey,
     team: "",
+    isAuthor: false,
   });
-  const isAuthor = timedTeam.data.author === member.user;
+  const isAuthor = member.isAuthor;
   const [timeLeft, setTimeLeft] = useState(120);
   const [joinTeamResponse, fetchJoinTeam] = useFetchedResource(joinTimedTeam, {
     initialData: { memberKey },
@@ -95,6 +102,10 @@ export const TimedGame = () => {
     useFetchedResource(finishTimedTeam);
   const [resetGameResponse, fetchResetGame] =
     useFetchedResource(resetTimedTeam);
+  const [editMemberResponse, fetchEditMember] =
+    useFetchedResource(editMemberName);
+  const [editMemberText, setEditMemberText] = useState(member.user);
+  const [isEditingName, setIsEditingName] = useState(false);
   useEffectIfNotFetchedYet(timedTeamResource, fetchTimedTeam, { id: gameId });
   useEffect(() => {
     if (timedTeamResource) {
@@ -152,16 +163,31 @@ export const TimedGame = () => {
   }, [gameId]);
 
   useEffect(() => {
-    if (joinTeamResponse.data.memberKey) {
+    if (memberKey) {
       db.collection("timedTeams")
         .doc(gameId)
         .collection("teams")
-        .doc(joinTeamResponse.data.memberKey)
+        .doc(memberKey)
         .onSnapshot({
           next: (doc) => {
             const data = doc.data();
             if (data) {
               setMember(data as TimedTeamMember);
+              setEditMemberText(data.user);
+            } else {
+              setMember({
+                user: "",
+                memberKey: "",
+                team: "",
+                isAuthor: false,
+              });
+              // Remove memberKey from query params
+              queryParams.delete("memberKey");
+              window.history.replaceState(
+                null,
+                "",
+                `${window.location.pathname}?${queryParams.toString()}`
+              );
             }
           },
           error: (error) => {
@@ -172,7 +198,7 @@ export const TimedGame = () => {
           },
         });
     }
-  }, [gameId, joinTeamResponse]);
+  }, [gameId, memberKey, queryParams]);
 
   return (
     <Flex
@@ -217,18 +243,24 @@ export const TimedGame = () => {
                 numPlayers || "Any"
               } players`}</Typography>
             ))}
+            <Typography>{`Members: ${data.members.length}`}</Typography>
             {isAuthor && data.started && (
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={() => {
-                  fetchResetGame({
-                    id: gameId,
-                  });
-                }}
-              >
-                Reset
-              </Button>
+              <>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => {
+                    fetchResetGame({
+                      id: gameId,
+                    });
+                  }}
+                >
+                  Reset
+                </Button>
+                <FetchedComponent resource={resetGameResponse}>
+                  {(data) => null}
+                </FetchedComponent>
+              </>
             )}
           </Flex>
         )}
@@ -241,29 +273,63 @@ export const TimedGame = () => {
                 <ListItem
                   selected={memberName === member.user}
                   key={memberName}
-                  {...(isAuthor
-                    ? {
-                        secondaryAction: (
-                          <IconButton
-                            edge="end"
-                            aria-label="delete"
-                            onClick={() => {
-                              fetchDeleteMember({
-                                id: gameId,
-                                user: memberName,
-                              });
-                            }}
-                          >
-                            <Delete />
-                          </IconButton>
-                        ),
-                      }
-                    : {})}
                 >
                   <ListItemIcon>
                     <Person />
                   </ListItemIcon>
-                  <ListItemText primary={memberName} />
+                  {isEditingName && memberName === member.user ? (
+                    <TextField
+                      variant="standard"
+                      value={editMemberText}
+                      onChange={(e) => setEditMemberText(e.target.value)}
+                    />
+                  ) : (
+                    <ListItemText primary={memberName} />
+                  )}
+                  <ListItemSecondaryAction
+                    className={classes.secondaryListItem}
+                  >
+                    {memberName === member.user && (
+                      <IconButton
+                        edge="end"
+                        aria-label="edit"
+                        onClick={async () => {
+                          if (isEditingName) {
+                            await fetchEditMember({
+                              id: gameId,
+                              memberKey: member.memberKey,
+                              username: editMemberText,
+                            });
+                            setIsEditingName(false);
+                          } else {
+                            setIsEditingName(true);
+                          }
+                        }}
+                      >
+                        {anyIsPending(editMemberResponse) ? (
+                          <CircularProgress />
+                        ) : isEditingName ? (
+                          <Save />
+                        ) : (
+                          <Edit />
+                        )}
+                      </IconButton>
+                    )}
+                    {isAuthor && (
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={() => {
+                          fetchDeleteMember({
+                            id: gameId,
+                            user: memberName,
+                          });
+                        }}
+                      >
+                        <Delete />
+                      </IconButton>
+                    )}
+                  </ListItemSecondaryAction>
                 </ListItem>
               ))}
             </List>
@@ -271,7 +337,7 @@ export const TimedGame = () => {
         </FetchedComponent>
         {anyIsPending(deleteMemberResponse) && <Loading />}
       </Card>
-      {joinTeamResponse.data.memberKey ? ( // They've joined
+      {member.memberKey ? ( // They've joined
         member.team ? (
           <Typography>{`You are on team "${member.team}"`}</Typography>
         ) : timedTeam.data.started ? (
@@ -279,11 +345,15 @@ export const TimedGame = () => {
         ) : (
           <Typography>Waiting for game to begin...</Typography>
         )
-      ) : timedTeam.data.started ? ( // The game has already started and they didn't join
-        <Typography>The game has already started</Typography>
       ) : timedTeam.data.finished ? ( // The game has already finished and they didn't join
         <Typography>The game has already finished</Typography>
-      ) : anyIsIdle(joinTeamResponse) ? ( // The game hasn't started and they haven't joined yet
+      ) : timedTeam.data.started ? ( // The game has already started and they didn't join
+        <Typography>The game has already started</Typography>
+      ) : anyIsPending(joinTeamResponse) ? ( // Joining the game
+        <Loading />
+      ) : anyIsError(joinTeamResponse) ? ( // Error joining the game
+        <Typography color="red">{errorMessage(joinTeamResponse)}</Typography>
+      ) : (
         <Flex columnGap="8px">
           <TextField
             label="User"
@@ -291,12 +361,19 @@ export const TimedGame = () => {
             onChange={(e) => {
               setUserText(e.target.value);
             }}
+            error={timedTeam?.data?.members.includes(userText)}
+            helperText={
+              timedTeam?.data?.members.includes(userText)
+                ? "Username already taken"
+                : ""
+            }
           />
           <Button
             onClick={async () => {
               const { response } = await fetchJoinTeam({
                 id: gameId,
                 user: userText,
+                isAuthor: false,
               });
               if (response) {
                 queryParams.set("memberKey", response.memberKey);
@@ -313,11 +390,7 @@ export const TimedGame = () => {
             Join
           </Button>
         </Flex>
-      ) : anyIsPending(joinTeamResponse) ? ( // Joining the game
-        <Loading />
-      ) : anyIsError(joinTeamResponse) ? ( // Error joining the game
-        <Typography color="red">{errorMessage(joinTeamResponse)}</Typography>
-      ) : null}
+      )}
       {isAuthor && !timedTeam.data.started && (
         <Button
           variant="contained"

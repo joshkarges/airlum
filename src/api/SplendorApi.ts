@@ -17,6 +17,8 @@ import {
   WriteGameResponse,
   ResetTimedTeamRequest,
   ResetTimedTeamResponse,
+  EditMemberNameRequest,
+  EditMemberNameResponse,
 } from "../models/functions";
 import { app } from "./firebaseApp";
 
@@ -84,3 +86,8 @@ export const resetTimedTeam = makeFunctionsCall<
   ResetTimedTeamRequest,
   ResetTimedTeamResponse
 >("resetTimedTeam");
+
+export const editMemberName = makeFunctionsCall<
+  EditMemberNameRequest,
+  EditMemberNameResponse
+>("editMemberName");
