@@ -33,10 +33,12 @@ const gameSlice = createSlice({
         // Return the noble you just aquired because there are multiple to choose from.
         const player =
           newState.players[newState.turn % newState.players.length];
+        player.nobles = [...player.nobles];
+        // if (player.nobles.length === 0) return newState;
         const poppedNoble = player.nobles.pop();
         if (!poppedNoble) return newState;
         player.points -= poppedNoble.points;
-        newState.nobles.push(poppedNoble);
+        newState.nobles = [...newState.nobles, poppedNoble];
       }
       return newState;
     },

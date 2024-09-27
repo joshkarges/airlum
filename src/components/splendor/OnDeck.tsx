@@ -151,6 +151,10 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     if (color === Color.Yellow) return;
     if (!actionOnDeck.coinCost[color]) return;
     dispatch(unPrepCoin(color));
+    const needToChooseNoble = getAffordableNobles(game, player).length > 1;
+    if (needToChooseNoble) {
+      dispatch(setGameState("chooseNobles"));
+    }
   };
 
   const onTakeActionClick = useCallback(
@@ -164,55 +168,37 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         ? aiAction
         : actionOnDeck;
       let nextGameState = gameState;
-      if (actionToTake.type === "takeCoins") {
-        const chooseCoins =
-          getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
+      let needToChooseCoins = false;
+      needToChooseCoins =
+        getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
+      const playerWithCard = {
+        ...player,
+        bought: [...player.bought, actionToTake.card].filter(Boolean),
+      } as Player;
+      const needToChooseNoble =
+        getAffordableNobles(game, playerWithCard).length > 1;
+      if (actionToTake.type !== "none") {
         dispatch(
           takeActionAction({
             ...actionToTake,
-            dontAdvance: chooseCoins,
+            dontAdvance: needToChooseNoble || needToChooseCoins,
+            popNoble:
+              (actionToTake.type === "buy" ||
+                actionOnDeck.type === "buyReserve") &&
+              needToChooseNoble,
             playerIndex,
           })
         );
-        if (chooseCoins) {
-          nextGameState = "chooseCoins";
-        }
-      } else if (
-        actionToTake.type === "buy" ||
-        actionToTake.type === "buyReserve"
-      ) {
-        const playerWithCard = {
-          ...player,
-          bought: [...player.bought, actionToTake.card],
-        } as Player;
-        const multipleNobles =
-          getAffordableNobles(game, playerWithCard).length > 1;
-        dispatch(
-          takeActionAction({
-            ...actionToTake,
-            dontAdvance: multipleNobles,
-            popNoble: multipleNobles,
-            playerIndex,
-          })
-        );
-        if (multipleNobles) {
-          nextGameState = "chooseNobles";
-        }
-      } else if (actionToTake.type === "reserve") {
-        const chooseCoins =
-          getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
-        dispatch(
-          takeActionAction({
-            ...actionToTake,
-            dontAdvance: chooseCoins,
-            playerIndex,
-          })
-        );
-        if (chooseCoins) {
-          nextGameState = "chooseCoins";
-        }
       }
-      dispatch(setGameState(nextGameState));
+      dispatch(
+        setGameState(
+          needToChooseNoble
+            ? "chooseNobles"
+            : needToChooseCoins
+            ? "chooseCoins"
+            : "play"
+        )
+      );
       if (nextGameState === "play") {
         setWorker(
           new Worker(
@@ -271,7 +257,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       onTakeActionClick();
       return;
     }
-    if (depth >= 3) return;
+    if (depth >= 2) return;
     worker.postMessage({ game, depth: depth + 1 });
     actionPool.start();
     console.log(getPossibleActions(game).map((a) => a.type));
@@ -329,7 +315,13 @@ export const OnDeck: VFC<OnDeckProps> = () => {
               gameState !== "play" ||
               (actionOnDeck.type === "takeCoins" &&
                 -getNumCoins(actionOnDeck.coinCost) <
-                  Math.min(3, _.filter(game.coins, Boolean).length) &&
+                  Math.min(
+                    3,
+                    _.filter(
+                      game.coins,
+                      (count, color) => color !== "yellow" && !!count
+                    ).length
+                  ) &&
                 !_.some(actionOnDeck.coinCost, (cost) => {
                   return -cost >= 2;
                 }))
