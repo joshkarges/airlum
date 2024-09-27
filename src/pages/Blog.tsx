@@ -6,6 +6,7 @@ import { GifterBlog } from "./GifterBlog";
 import { TattooBlog } from "./TattooBlog";
 import { SplendorBlog } from "./SplendorBlog";
 import { PlansBlog } from "./PlansBlog";
+import { TimedTeamsBlog } from "./TimedTeamsBlog";
 
 const useStyles = makeStyles((theme: Theme) => ({
   homeContainer: {
@@ -50,6 +51,9 @@ export const Blog = () => {
             </Route>
             <Route path="/blog/cbre-plans">
               <PlansBlog />
+            </Route>
+            <Route path="/blog/timed-teams">
+              <TimedTeamsBlog />
             </Route>
           </Switch>
         </Router>

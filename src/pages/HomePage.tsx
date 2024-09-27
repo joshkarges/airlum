@@ -10,8 +10,16 @@ import gifterImg from "../assets/gifterImage.png";
 import tattooImg from "../assets/tattooImage.png";
 import splendorImg from "../assets/splendorImage.png";
 import plansImg from "../assets/plansImage.jpg";
+import timedTeamsImage from "../assets/timedTeamsImage.png";
 
 const PAGES = [
+  {
+    title: "Tattoo",
+    path: "/tattoo",
+    blog: "/blog/tattoo",
+    backgroundColor: blue[100],
+    img: { src: tattooImg, alt: "screen shot of the tattoo app" },
+  },
   {
     title: "CBRE Plans",
     path: "https://web.archive.org/web/20200518141749/https://www.cbrebuild.com/nyc/plans/",
@@ -20,18 +28,19 @@ const PAGES = [
     img: { src: plansImg, alt: "screen shot of the plans app" },
   },
   {
+    title: "Timed Teams",
+    path: "/timed-teams",
+    blog: "/blog/timed-teams",
+    backgroundColor: blue[400],
+    img: { src: timedTeamsImage, alt: "screen shot of the timed teams app" },
+  },
+  {
     title: "Splendor",
     path: "/splendor",
     blog: "/blog/splendor",
-    backgroundColor: blue[400],
-    img: { src: splendorImg, alt: "screen shot of the splendor app" },
-  },
-  {
-    title: "Tattoo",
-    path: "/tattoo",
-    blog: "/blog/tattoo",
+    stats: "/splendor-stats",
     backgroundColor: blue[600],
-    img: { src: tattooImg, alt: "screen shot of the tattoo app" },
+    img: { src: splendorImg, alt: "screen shot of the splendor app" },
   },
   {
     title: "Gifter",
@@ -69,7 +78,7 @@ const pageClasses = PAGES.reduce((acc, { title, backgroundColor }, i) => {
 const useStyles = makeStyles((theme: Theme) => ({
   homeContainer: {
     position: "relative",
-    overflow: "hidden",
+    overflowX: "auto",
     background: blue[50],
     height: "calc(100vh - 64px)",
     marginTop: 64,
@@ -104,7 +113,7 @@ const useStyles2 = makeStyles<
   pgram: {
     position: "absolute",
     top: 0,
-    right: ({ idx, total }) => `${(idx / total) * 100}%`,
+    right: ({ idx, total }) => `${(idx / total) * 125 - 35}%`,
     backgroundColor: ({ bg }) => bg,
     color: ({ bg }) => theme.palette.getContrastText(bg),
     transform: "skew(20deg)",
@@ -145,21 +154,16 @@ const PGram = ({
   });
   const onMouseEnter = useCallback(
     (idx: number) => () => {
-      console.log("onMouseEnter", idx);
       setHoverIndex(idx);
     },
     [setHoverIndex]
   );
-  const onMouseLeave = useCallback(() => {
-    // setHoverIndex(-1);
-  }, []);
   return (
     <a
       key={href}
       href={href}
       className={classNames(classes.pageLinkContainer)}
       onMouseEnter={onMouseEnter(idx)}
-      onMouseLeave={onMouseLeave}
     >
       <Flex className={classes.pgram}>
         <div
@@ -189,6 +193,18 @@ const PGram = ({
           >
             Blog
           </a>
+          {PAGES[idx].stats && (
+            <>
+              <div> | </div>
+              <a
+                className={classes.linkText}
+                onClick={() => (window.location.href = PAGES[idx].stats!)}
+                href={PAGES[idx].stats!}
+              >
+                Stats
+              </a>
+            </>
+          )}
         </Typography>
       </Flex>
     </a>

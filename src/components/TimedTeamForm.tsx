@@ -8,7 +8,12 @@ import {
 } from "@mui/material";
 import { Formik, Form } from "formik";
 import { TimedTeam, UpsertTimedTeamResponse } from "../models/functions";
-import { anyIsPending, useFetchedResource } from "../utils/fetchers";
+import {
+  anyIsError,
+  anyIsPending,
+  errorMessage,
+  useFetchedResource,
+} from "../utils/fetchers";
 import { FetchedComponent } from "./fetchers/FetchedComponent";
 import { Loading } from "./fetchers/Loading";
 import { Flex } from "./Flex";
@@ -174,6 +179,8 @@ export const TimedTeamForm = ({ game }: TimedTeamFormProps) => {
           >
             {`${game ? "Update" : "Create"} Timed Team`}
           </Button>
+          {anyIsError(upsertTimedTeamResponse) &&
+            errorMessage(upsertTimedTeamResponse)}
           {anyIsPending(upsertTimedTeamResponse) && <Loading />}
           {!game && (
             <FetchedComponent
