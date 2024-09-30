@@ -110,11 +110,12 @@ const Opponent: VFC<OpponentProp> = ({
   bought,
   reserved,
   currentPlayer,
+  onlyOneHuman,
   isHuman,
 }) => {
   const { classes } = useStyles();
   const boughtByColor = _.groupBy(bought, "color");
-  if (isHuman && currentPlayer) return null;
+  if (isHuman && (currentPlayer || onlyOneHuman)) return null;
   return (
     <MuiCard
       className={classNames(classes.opponentContainer, {

@@ -224,7 +224,7 @@ const maybeAcquireNoble = (game: Game, player: Player) => {
 };
 
 export const takeAction = produce((game: Game, action: Action) => {
-  const playerIndex = game.turn % game.players.length;
+  const playerIndex = getPlayerIndex(game);
   const player = game.players[playerIndex];
   coinsExchange(game, player, action);
   game.turn++;

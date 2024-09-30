@@ -157,71 +157,57 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     }
   };
 
-  const onTakeActionClick = useCallback(
-    (inAction?: State["actionOnDeck"]) => {
-      setDepth(0);
-      setAiAction(null);
-      worker.terminate();
-      const actionToTake = inAction
-        ? inAction
-        : actionOnDeck.type === "none" && !!aiAction
-        ? aiAction
-        : actionOnDeck;
-      let nextGameState = gameState;
-      let needToChooseCoins = false;
-      needToChooseCoins =
-        getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
-      const playerWithCard = {
-        ...player,
-        bought: [...player.bought, actionToTake.card].filter(Boolean),
-      } as Player;
-      const needToChooseNoble =
-        getAffordableNobles(game, playerWithCard).length > 1;
-      if (actionToTake.type !== "none") {
-        dispatch(
-          takeActionAction({
-            ...actionToTake,
-            dontAdvance: needToChooseNoble || needToChooseCoins,
-            popNoble:
-              (actionToTake.type === "buy" ||
-                actionOnDeck.type === "buyReserve") &&
-              needToChooseNoble,
-            playerIndex,
-          })
-        );
-      }
-      dispatch(
-        setGameState(
-          needToChooseNoble
-            ? "chooseNobles"
-            : needToChooseCoins
-            ? "chooseCoins"
-            : "play"
+  const onTakeActionClick = useCallback(() => {
+    setDepth(0);
+    setAiAction(null);
+    worker.terminate();
+    const actionToTake =
+      actionOnDeck.type === "none" && !!aiAction ? aiAction : actionOnDeck;
+    if (actionToTake.type === "none") return;
+
+    let needToChooseCoins = false;
+    needToChooseCoins =
+      getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
+    const playerWithCard = {
+      ...player,
+      bought: [...player.bought, actionToTake.card].filter(Boolean),
+    } as Player;
+    const needToChooseNoble =
+      getAffordableNobles(game, playerWithCard).length > 1;
+    dispatch(
+      takeActionAction({
+        ...actionToTake,
+        dontAdvance: needToChooseNoble || needToChooseCoins,
+        popNoble:
+          (actionToTake.type === "buy" || actionOnDeck.type === "buyReserve") &&
+          needToChooseNoble,
+        playerIndex,
+      })
+    );
+    const nextGameState = needToChooseNoble
+      ? "chooseNobles"
+      : needToChooseCoins
+      ? "chooseCoins"
+      : gameState;
+    dispatch(setGameState(nextGameState));
+    if (nextGameState === "play") {
+      setWorker(
+        new Worker(
+          new URL("../../webWorkers/getNextAction.worker.ts", import.meta.url),
+          { type: "module" }
         )
       );
-      if (nextGameState === "play") {
-        setWorker(
-          new Worker(
-            new URL(
-              "../../webWorkers/getNextAction.worker.ts",
-              import.meta.url
-            ),
-            { type: "module" }
-          )
-        );
-      }
-    },
-    [
-      actionOnDeck,
-      aiAction,
-      dispatch,
-      game,
-      gameState,
-      player,
-      playerIndex,
-      worker,
-    ]
-  );
+    }
+  }, [
+    actionOnDeck,
+    aiAction,
+    dispatch,
+    game,
+    gameState,
+    player,
+    playerIndex,
+    worker,
+  ]);
 
   const onCancelClick = () => {
     if (actionOnDeck.type === "none" || !player.isHuman) return;
