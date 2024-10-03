@@ -34,7 +34,8 @@ export const SplendorStats = () => {
   useEffectIfNotFetchedYet(allSpendorGames, fetchAllSplendorGames);
   return (
     <FetchedComponent resource={allSpendorGames}>
-      {(games) => {
+      {(unsortedGames) => {
+        const games = unsortedGames.sort((a, b) => a.endTime - b.endTime);
         const numTurns = games.map(
           (game) =>
             game.players[0].cards.length +
@@ -100,77 +101,84 @@ export const SplendorStats = () => {
         }));
         const data3 = delta0.map((delta0, i) => ({ x: i, y: delta0 }));
         return (
-          <Flex flexDirection="column">
-            <Pie
-              data={pieData}
-              options={{
-                interaction: {
-                  intersect: false,
-                  mode: "index",
-                },
-                plugins: {
-                  tooltip: {
-                    callbacks: {
-                      title: (tooltipItem) => "",
-                      label: (tooltipItem) => {
-                        return `${tooltipItem.label}: ${round(
-                          +tooltipItem.formattedValue,
-                          2
-                        )}%`;
+          <Flex width="100vw" justifyContent="center">
+            <Flex
+              flexDirection="column"
+              maxWidth="600px"
+              flexGrow={1}
+              rowGap="16px"
+            >
+              <Pie
+                data={pieData}
+                options={{
+                  interaction: {
+                    intersect: false,
+                    mode: "index",
+                  },
+                  plugins: {
+                    tooltip: {
+                      callbacks: {
+                        title: (tooltipItem) => "",
+                        label: (tooltipItem) => {
+                          return `${tooltipItem.label}: ${round(
+                            +tooltipItem.formattedValue,
+                            2
+                          )}%`;
+                        },
                       },
                     },
                   },
-                },
-              }}
-            />
-            <Scatter
-              data={{
-                datasets: [
-                  {
-                    label: "Delta over time",
-                    data: data3,
-                    backgroundColor: "rgba(255, 99, 132, 0.2)",
-                    borderColor: "rgba(255, 99, 132, 1)",
-                    borderWidth: 1,
-                    datalabels: {
-                      display: false,
+                }}
+              />
+              <Scatter
+                data={{
+                  datasets: [
+                    {
+                      label: "Delta over time",
+                      data: data3,
+                      backgroundColor: "rgba(255, 99, 132, 0.2)",
+                      borderColor: "rgba(255, 99, 132, 1)",
+                      borderWidth: 1,
+                      datalabels: {
+                        display: false,
+                      },
                     },
-                  },
-                ],
-              }}
-            />
-            <Scatter
-              data={{
-                datasets: [
-                  {
-                    label: "Delta per number of cards",
-                    data: data1,
-                    backgroundColor: "rgba(255, 99, 132, 0.2)",
-                    borderColor: "rgba(255, 99, 132, 1)",
-                    borderWidth: 1,
-                    datalabels: {
-                      display: false,
+                  ],
+                }}
+              />
+              <Scatter
+                data={{
+                  datasets: [
+                    {
+                      label: "Delta per number of cards",
+                      data: data1,
+                      backgroundColor: "rgba(255, 99, 132, 0.2)",
+                      borderColor: "rgba(255, 99, 132, 1)",
+                      borderWidth: 1,
+                      datalabels: {
+                        display: false,
+                      },
                     },
-                  },
-                ],
-              }}
-            />
-            <Scatter
-              data={{
-                datasets: [
-                  {
-                    label: "Delta per number of turns",
-                    data: data2,
-                    backgroundColor: "rgba(255, 99, 132, 0.2)",
-                    borderColor: "rgba(255, 99, 132, 1)",
-                    borderWidth: 1,
-                    datalabels: {
-                      display: false,
+                  ],
+                }}
+              />
+              <Scatter
+                data={{
+                  datasets: [
+                    {
+                      label: "Delta per number of turns",
+                      data: data2,
+                      backgroundColor: "rgba(255, 99, 132, 0.2)",
+                      borderColor: "rgba(255, 99, 132, 1)",
+                      borderWidth: 1,
+                      datalabels: {
+                        display: false,
+                      },
                     },
-                  },
-                ],
-              }}
-            />
+                  ],
+                }}
+              />
+            </Flex>
           </Flex>
         );
       }}
