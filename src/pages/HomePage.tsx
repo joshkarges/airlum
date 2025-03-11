@@ -79,6 +79,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   homeContainer: {
     position: "relative",
     overflowX: "auto",
+    overflowY: "hidden",
     background: blue[50],
     height: "calc(100vh - 64px)",
     marginTop: 64,
@@ -215,6 +216,19 @@ const HomePage = () => {
   const classes = useStyles();
   const [hoverIndex, setHoverIndex] = React.useState<number>(-1);
   const onMouseLeave = useCallback(() => setHoverIndex(-1), []);
+
+  // When the user scrolls vertically, scroll horizontally instead.
+  const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.target) {
+      _.set(
+        e,
+        "currentTarget.scrollLeft",
+        (_.get(e, "currentTarget.scrollLeft") || 0) + e.deltaY
+      );
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
   return (
     <div>
       <AppBar className={classes.appBar}>
@@ -225,6 +239,7 @@ const HomePage = () => {
         flexGrow={1}
         className={classes.homeContainer}
         onMouseLeave={onMouseLeave}
+        onWheel={onWheel}
       >
         {PAGES.map(({ title, path }, idx) => {
           return (
