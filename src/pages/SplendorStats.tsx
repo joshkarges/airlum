@@ -14,11 +14,16 @@ import {
   PointElement,
   LineElement,
   ArcElement,
+  BarElement,
+  CategoryScale,
 } from "chart.js";
-import { Scatter, Pie } from "react-chartjs-2";
+import { Scatter, Pie, Bar } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import _ from "lodash";
 
 ChartJS.register(
+  CategoryScale,
+  BarElement,
   ArcElement,
   LinearScale,
   PointElement,
@@ -100,6 +105,20 @@ export const SplendorStats = () => {
           y: delta0[i],
         }));
         const data3 = delta0.map((delta0, i) => ({ x: i, y: delta0 }));
+        const minData = Math.min(...delta0);
+        const maxData = Math.max(...delta0);
+        const histogramLabels = _.range(minData, maxData + 1);
+        const histogramDataMap = delta0.reduce((acc, delta) => {
+          if (delta in acc) {
+            acc[delta]++;
+          } else {
+            acc[delta] = 1;
+          }
+          return acc;
+        }, {} as Record<number, number>);
+        const histogramData = histogramLabels.map(
+          (label) => histogramDataMap[+label] ?? 0
+        );
         return (
           <Flex width="100vw" justifyContent="center">
             <Flex
@@ -142,6 +161,20 @@ export const SplendorStats = () => {
                       datalabels: {
                         display: false,
                       },
+                    },
+                  ],
+                }}
+              />
+              <Bar
+                data={{
+                  labels: histogramLabels,
+                  datasets: [
+                    {
+                      label: "Delta distribution",
+                      data: histogramData,
+                      backgroundColor: "rgba(255, 99, 132, 0.2)",
+                      borderColor: "rgba(255, 99, 132, 1)",
+                      borderWidth: 1,
                     },
                   ],
                 }}
