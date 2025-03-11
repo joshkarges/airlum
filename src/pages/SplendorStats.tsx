@@ -20,6 +20,7 @@ import {
 import { Scatter, Pie, Bar } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import _ from "lodash";
+import moment from "moment";
 
 ChartJS.register(
   CategoryScale,
@@ -119,6 +120,18 @@ export const SplendorStats = () => {
         const histogramData = histogramLabels.map(
           (label) => histogramDataMap[+label] ?? 0
         );
+        const histogramTimeData = games.reduce((acc, game) => {
+          const sundayUnix = moment(game.endTime).startOf("week").unix();
+          acc[sundayUnix] = (acc[sundayUnix] ?? 0) + 1;
+          return acc;
+        }, {} as Record<number, number>);
+        const histogramTimeLabels = Object.keys(histogramTimeData)
+          .sort((a, b) => +a - +b)
+          .map((unix) => moment.unix(+unix).format("YYYY-MM-DD"));
+        const histogramTimeDataValues = histogramTimeLabels.map(
+          (label) =>
+            histogramTimeData[moment(label).startOf("week").unix()] ?? 0
+        );
         return (
           <Flex width="100vw" justifyContent="center">
             <Flex
@@ -172,6 +185,20 @@ export const SplendorStats = () => {
                     {
                       label: "Delta distribution",
                       data: histogramData,
+                      backgroundColor: "rgba(255, 99, 132, 0.2)",
+                      borderColor: "rgba(255, 99, 132, 1)",
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+              />
+              <Bar
+                data={{
+                  labels: histogramTimeLabels,
+                  datasets: [
+                    {
+                      label: "Games per week",
+                      data: histogramTimeDataValues,
                       backgroundColor: "rgba(255, 99, 132, 0.2)",
                       borderColor: "rgba(255, 99, 132, 1)",
                       borderWidth: 1,
