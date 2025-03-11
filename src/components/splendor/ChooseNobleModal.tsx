@@ -1,6 +1,6 @@
 import { makeStyles } from "tss-react/mui";
 import { Dialog, DialogContent, DialogTitle } from "@mui/material";
-import { useEffect, useState, VFC } from "react";
+import { useCallback, useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { Noble as NobleModel } from "../../models/Splendor";
 import { useGame, useGameState } from "../../redux/selectors";
@@ -35,11 +35,20 @@ export const ChooseNobleModal: VFC<ChooseNobleModalProps> = () => {
     }
   }, [gameState]);
 
-  const onNobleClick = (noble: NobleModel) => {
-    dispatch(chooseNoble(noble));
-    dispatch(setGameState("play"));
-    setIsOpen(false);
-  };
+  const onNobleClick = useCallback(
+    (noble: NobleModel) => {
+      dispatch(chooseNoble(noble));
+      dispatch(setGameState("play"));
+      setIsOpen(false);
+    },
+    [dispatch]
+  );
+
+  useEffect(() => {
+    if (!player.isHuman && affordableNobles.length > 0) {
+      onNobleClick(affordableNobles[0]);
+    }
+  }, [player.isHuman, affordableNobles, onNobleClick]);
 
   return (
     <Dialog open={isOpen}>
