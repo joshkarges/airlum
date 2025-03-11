@@ -15,14 +15,27 @@ export const getNumCoins = (coins: Record<Color, number>) =>
 const COLOR_KEYS = _.pull(_.values(Color), Color.Yellow);
 export const generateThreeCoinPermutations = (
   coins: Record<Color, number>,
-  output: Color[][] = []
+  output: Color[][] = [],
+  numCoinsCanTake = 3
 ): Color[][] => {
   for (let i = 0; i < COLOR_KEYS.length; i++) {
     const iColor = COLOR_KEYS[i];
     if (coins[iColor] === 0) continue;
+    if (numCoinsCanTake === 1) {
+      const newArr = arrPool.get();
+      newArr.push(iColor);
+      output.push(newArr);
+      continue;
+    }
     for (let j = i + 1; j < COLOR_KEYS.length; j++) {
       const jColor = COLOR_KEYS[j];
       if (coins[jColor] === 0) continue;
+      if (numCoinsCanTake === 2) {
+        const newArr = arrPool.get();
+        newArr.push(iColor, jColor);
+        output.push(newArr);
+        continue;
+      }
       for (let k = j + 1; k < COLOR_KEYS.length; k++) {
         const kColor = COLOR_KEYS[k];
         if (coins[kColor] === 0) continue;

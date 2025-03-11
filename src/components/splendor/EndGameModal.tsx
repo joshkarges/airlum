@@ -67,6 +67,11 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
       </FetchedComponent>
       <ButtonGroup>
         <Button onClick={closeAndStartNewGame}>Start New Game</Button>
+        <Button
+          onClick={() => window.history.pushState({}, "", "/splendor-stats")}
+        >
+          Go To Stats
+        </Button>
       </ButtonGroup>
     </Dialog>
   );
