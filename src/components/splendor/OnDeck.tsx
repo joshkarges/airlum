@@ -178,9 +178,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       takeActionAction({
         ...actionToTake,
         dontAdvance: needToChooseNoble || needToChooseCoins,
-        popNoble:
-          (actionToTake.type === "buy" || actionOnDeck.type === "buyReserve") &&
-          needToChooseNoble,
+        popNoble: needToChooseNoble,
         playerIndex,
       })
     );

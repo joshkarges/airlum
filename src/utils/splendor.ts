@@ -229,7 +229,6 @@ export const getAffordableNobles = (game: Game, player: Player) =>
 
 const maybeAcquireNoble = (game: Game, player: Player) => {
   const firstAffordableNoble = getAffordableNobles(game, player)[0];
-  // TODO(jkarges): Decide between multiple nobles.
   if (!firstAffordableNoble) return;
   _.remove(game.nobles, firstAffordableNoble);
   player.nobles.push(firstAffordableNoble);
@@ -246,13 +245,11 @@ export const takeAction = produce((game: Game, action: Action) => {
       player.points += action.card.points;
       player.bought.push(action.card);
       takeCardFromTable(game, action.card);
-      maybeAcquireNoble(game, player);
       break;
     case "buyReserve":
       player.points += action.card.points;
       player.bought.push(action.card);
       _.remove(player.reserved, (card) => card.id === action.card.id);
-      maybeAcquireNoble(game, player);
       break;
     case "reserve":
       player.reserved.push(action.card);
@@ -262,6 +259,7 @@ export const takeAction = produce((game: Game, action: Action) => {
     default:
       break;
   }
+  maybeAcquireNoble(game, player);
   return game;
 });
 
