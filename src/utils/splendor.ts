@@ -88,6 +88,8 @@ export const getBuyActions = (
       action.type = type;
       action.card = card;
       output.push(action);
+    } else {
+      actionPool.freeOne();
     }
   };
   game.table.forEach(gatherBuyActions("buy"));
