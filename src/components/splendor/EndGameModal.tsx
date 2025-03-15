@@ -1,4 +1,4 @@
-import { Button, ButtonGroup, Dialog, DialogTitle } from "@mui/material";
+import { Button, Dialog, DialogContent, DialogTitle } from "@mui/material";
 import _ from "lodash";
 import { useCallback, useEffect, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
@@ -13,6 +13,8 @@ import { writeSplendorGame } from "../../api/SplendorApi";
 import { endGameRecord } from "../../redux/slices/gameRecord";
 import { FetchedComponent } from "../fetchers/FetchedComponent";
 import { setShowGameSetup } from "../../redux/slices/showGameSetup";
+import { Flex } from "../Flex";
+import moment from "moment";
 
 type EndGameModalProps = {};
 export const EndGameModal: VFC<EndGameModalProps> = () => {
@@ -62,17 +64,25 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
       } ${oxfordCommaList(
         playerIndicesWithMostPoints.map((idx) => `#${idx}`)
       )} Won! (${game.turn / game.players.length} moves)`}</DialogTitle>
+      <DialogContent>
+        {moment
+          .utc(
+            moment
+              .duration(gameRecord.endTime - gameRecord.startTime)
+              .asMilliseconds()
+          )
+          .format("mm:ss")}{" "}
+        elapsed
+      </DialogContent>
       <FetchedComponent resource={writeResponse}>
         {(data) => <div>{`Recorded game: ${data}`}</div>}
       </FetchedComponent>
-      <ButtonGroup>
+      <Flex justifyContent="space-between">
         <Button onClick={closeAndStartNewGame}>Start New Game</Button>
-        <Button
-          onClick={() => window.history.pushState({}, "", "/splendor-stats")}
-        >
+        <Button onClick={() => (window.location.href = "/splendor-stats")}>
           Go To Stats
         </Button>
-      </ButtonGroup>
+      </Flex>
     </Dialog>
   );
 };

@@ -155,7 +155,7 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
       {!!player.nobles.length && (
         <MuiCard className={classes.nobleCard}>
           {player.nobles.map((noble) => (
-            <Flex gap="4px">
+            <Flex gap="4px" key={noble.id}>
               {noble.points}
               {_.map(
                 noble.cards,

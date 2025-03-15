@@ -55,7 +55,7 @@ export const ChooseNobleModal: VFC<ChooseNobleModalProps> = () => {
       <DialogTitle>Choose A Noble</DialogTitle>
       <DialogContent className={classes.dialog}>
         {affordableNobles.map((noble) => (
-          <Noble {...noble} onClick={onNobleClick} />
+          <Noble key={noble.id} {...noble} onClick={onNobleClick} />
         ))}
       </DialogContent>
     </Dialog>

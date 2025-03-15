@@ -1,5 +1,5 @@
 import { EMPTY_COINS } from "../constants/utils";
-import { Action, Card, CoinSet } from "../models/Splendor";
+import { Action } from "../models/Splendor";
 
 const makePool = <T extends object, P extends Array<any> = any[]>(
   createNew: (...args: P) => T,
@@ -26,6 +26,10 @@ const makePool = <T extends object, P extends Array<any> = any[]>(
     },
 
     freeOne() {
+      if (numUsedAtDepth.length === 0) {
+        console.error("Pool error: freeOne empty");
+        return;
+      }
       if (numUsedAtDepth[numUsedAtDepth.length - 1] === 0) {
         console.error("Pool error: freeOne");
         return;

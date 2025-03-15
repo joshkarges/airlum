@@ -318,7 +318,9 @@ export const setupGame = ({
 export const playerValue = (game: Game, player: Player): number => {
   const points = player.points;
   const bought = player.bought.length;
+  actionPool.start();
   const gainCards = getBuyActions(game, player).length;
+  actionPool.end();
   const coins = Math.min(10, getNumCoins(player.coins));
   const canEndGame = points >= 15 ? 1 : 0;
 
