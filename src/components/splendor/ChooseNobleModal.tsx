@@ -1,6 +1,6 @@
 import { makeStyles } from "tss-react/mui";
 import { Dialog, DialogContent, DialogTitle } from "@mui/material";
-import { useCallback, useEffect, useState, VFC } from "react";
+import { useCallback, useEffect, useMemo, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { Noble as NobleModel } from "../../models/Splendor";
 import { useGame, useGameState } from "../../redux/selectors";
@@ -27,7 +27,11 @@ export const ChooseNobleModal: VFC<ChooseNobleModalProps> = () => {
   const playerIndex = getPlayerIndex(game);
   const player = game.players[playerIndex];
 
-  const affordableNobles = getAffordableNobles(game, player);
+  const affordableNobles = useMemo(
+    () => getAffordableNobles(game, player),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [game.nobles, playerIndex]
+  );
 
   useEffect(() => {
     if (gameState === GameState.chooseNobles) {
