@@ -11,8 +11,15 @@ import tattooImg from "../assets/tattooImage.png";
 import splendorImg from "../assets/splendorImage.png";
 import plansImg from "../assets/plansImage.jpg";
 import timedTeamsImage from "../assets/timedTeamsImage.png";
+import resumeImage from "../assets/resumeImage.png";
 
 const PAGES = [
+  {
+    title: "Resume",
+    path: "https://docs.google.com/document/d/1RUhfpbxBKend6wdX3yEg2YxJZvNm05MZbHirTAqhAhc/edit?usp=sharing",
+    backgroundColor: blue[50],
+    img: { src: resumeImage, alt: "screen shot of my resume" },
+  },
   {
     title: "Tattoo",
     path: "/tattoo",
@@ -186,14 +193,14 @@ const PGram = ({
           }}
         >
           <div className={classes.linkText}>{text}</div>
-          <div> | </div>
-          <a
-            className={classes.linkText}
-            onClick={() => (window.location.href = PAGES[idx].blog)}
-            href={PAGES[idx].blog}
-          >
-            Blog
-          </a>
+          {PAGES[idx].blog && (
+            <>
+              <div> | </div>
+              <a className={classes.linkText} href={PAGES[idx].blog}>
+                Blog
+              </a>
+            </>
+          )}
           {PAGES[idx].stats && (
             <>
               <div> | </div>
