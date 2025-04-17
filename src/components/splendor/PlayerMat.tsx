@@ -1,7 +1,7 @@
 import { makeStyles } from "tss-react/mui";
 import { Card as MuiCard, Typography } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import { VFC } from "react";
+import { useEffect, VFC } from "react";
 import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
 import {
   canAffordCard,
@@ -104,6 +104,28 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
 
   const boughtByColor = _.groupBy(player.bought, "color");
   const coinCount = getNumCoins(player.coins);
+  const currentPlayerCoinCount = getNumCoins(
+    game.players[currentPlayerIndex].coins
+  );
+
+  useEffect(() => {
+    if (
+      gameState === GameState.chooseCoins &&
+      !game.players[currentPlayerIndex].isHuman
+    ) {
+      // Discard random coins until the player has 10 or less
+      const color = _.sample(
+        _.without(Object.values(Color), Color.Yellow).filter(
+          (color) => game.players[currentPlayerIndex].coins[color] > 0
+        )
+      ) as Color;
+      dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
+      if (currentPlayerCoinCount - 1 <= 10) {
+        dispatch(setGameState("play"));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, currentPlayerIndex, currentPlayerCoinCount]);
 
   return (
     <div
