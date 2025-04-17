@@ -292,6 +292,8 @@ export const setupGame = ({
 
   const startingCoinsPerStack = numPlayers <= 2 ? 4 : numPlayers <= 3 ? 5 : 7;
 
+  const startingPlayerIndex = _.random(0, numPlayers - 1);
+
   const game: Game = {
     players,
     deck: shuffledDeck,
@@ -305,7 +307,8 @@ export const setupGame = ({
       startingCoinsPerStack,
       5
     ),
-    turn: 0,
+    turn: startingPlayerIndex,
+    startingPlayerIndex,
   };
 
   (["tier1", "tier2", "tier3"] as const).forEach((tier) => {

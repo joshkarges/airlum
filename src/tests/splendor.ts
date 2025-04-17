@@ -141,6 +141,7 @@ const BLANK_GAME: Game = {
   nobles: [],
   coins: { ...COIN_SET },
   turn: 0,
+  startingPlayerIndex: 0,
 };
 
 actionPool.start();

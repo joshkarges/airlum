@@ -34,7 +34,8 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
   const playerIndicesWithMostPoints = _.range(0, game.players.length).filter(
     (i) => game.players[i].points === mostPoints
   );
-  const isGameOver = playerIndex === 0 && mostPoints >= 15;
+  const isGameOver =
+    playerIndex === game.startingPlayerIndex && mostPoints >= 15;
   const [needToSendRecord, setNeedToSendRecord] = useState(false);
 
   const closeAndStartNewGame = useCallback(() => {

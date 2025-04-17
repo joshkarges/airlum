@@ -43,7 +43,8 @@ export type Game = {
   table: Card[];
   nobles: Noble[];
   coins: Record<Color, number>;
-  turn: number; // Player id
+  turn: number;
+  startingPlayerIndex: number;
 };
 
 export type Action =
