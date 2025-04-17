@@ -60,10 +60,10 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
 
   return (
     <Dialog open={isOpen && isGameOver} onClose={closeAndStartNewGame}>
-      <DialogTitle>{`Player${
-        playerIndicesWithMostPoints.length > 1 ? "s" : ""
-      } ${oxfordCommaList(
-        playerIndicesWithMostPoints.map((idx) => `#${idx}`)
+      <DialogTitle>{`${oxfordCommaList(
+        playerIndicesWithMostPoints.map((idx) =>
+          idx === 0 ? "You" : `Player #${idx}`
+        )
       )} Won! (${game.turn / game.players.length} moves)`}</DialogTitle>
       <DialogContent>
         {moment
