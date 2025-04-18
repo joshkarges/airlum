@@ -237,6 +237,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
 
   useEffect(() => {
     // When the depth hits 2 and it's an AIs turn, play that action.
+    if (gameState === "endGame") return;
     if (depth >= 2 && !game.players[getPlayerIndex(game)].isHuman) {
       onTakeActionClick();
       return;

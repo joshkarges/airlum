@@ -15,6 +15,7 @@ import { FetchedComponent } from "../fetchers/FetchedComponent";
 import { setShowGameSetup } from "../../redux/slices/showGameSetup";
 import { Flex } from "../Flex";
 import moment from "moment";
+import { setGameState } from "../../redux/slices/gameState";
 
 type EndGameModalProps = {};
 export const EndGameModal: VFC<EndGameModalProps> = () => {
@@ -47,9 +48,10 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
     if (isGameOver) {
       setIsOpen(true);
       dispatch(endGameRecord(game));
+      dispatch(setGameState("endGame"));
       setNeedToSendRecord(true);
     }
-  }, [dispatch, game, gameRecord, isGameOver, sendGameToServer]);
+  }, [dispatch, game, isGameOver]);
 
   useEffect(() => {
     if (needToSendRecord) {
@@ -64,7 +66,9 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
         playerIndicesWithMostPoints.map((idx) =>
           idx === 0 ? "You" : `Player #${idx}`
         )
-      )} Won! (${game.turn / game.players.length} moves)`}</DialogTitle>
+      )} Won! (${
+        (game.turn - game.startingPlayerIndex) / game.players.length
+      } moves)`}</DialogTitle>
       <DialogContent>
         {moment
           .utc(
