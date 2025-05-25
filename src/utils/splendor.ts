@@ -368,7 +368,7 @@ export const isLastTurns = (game: Game) =>
   _.some(game.players, (player) => player.points >= 15);
 
 export const isTerminal = (game: Game) => {
-  return isLastTurns(game) && getPlayerIndex(game) === 0;
+  return isLastTurns(game) && getPlayerIndex(game) === game.startingPlayerIndex;
 };
 
 const randomPlay = (game: Game) => {

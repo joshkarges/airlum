@@ -1,10 +1,11 @@
 import { makeStyles } from "tss-react/mui";
 import { Card as MuiCard, Typography } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import { useEffect, VFC } from "react";
+import { useCallback, useEffect, VFC } from "react";
 import { useActionOnDeck, useGame, useGameState } from "../../redux/selectors";
 import {
   canAffordCard,
+  getAffordableNobles,
   getNumCoins,
   getPlayerIndex,
 } from "../../utils/splendor";
@@ -94,19 +95,26 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
     dispatch(prepBuyReserveCard({ card, coinCost }));
   };
 
-  const onCoinClick = (color: Color) => {
-    if (gameState !== GameState.chooseCoins) return;
-    dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
-    if (getNumCoins(player.coins) - 1 <= 10) {
-      dispatch(setGameState("play"));
-    }
-  };
-
-  const boughtByColor = _.groupBy(player.bought, "color");
-  const coinCount = getNumCoins(player.coins);
   const currentPlayerCoinCount = getNumCoins(
     game.players[currentPlayerIndex].coins
   );
+  const needToChooseNoble = getAffordableNobles(game, player).length > 1;
+
+  const onCoinClick = useCallback((color: Color) => {
+    if (gameState !== GameState.chooseCoins) return;
+    dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
+    if (currentPlayerCoinCount - 1 <= 10) {
+      if (needToChooseNoble) {
+        dispatch(setGameState("chooseNobles"));
+      } else {
+        dispatch(setGameState("play"));
+      }
+    }
+  }, [needToChooseNoble, gameState, currentPlayerIndex, dispatch, currentPlayerCoinCount]);
+
+  const boughtByColor = _.groupBy(player.bought, "color");
+  const coinCount = getNumCoins(player.coins);
+  
 
   useEffect(() => {
     if (
@@ -119,13 +127,10 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
           (color) => game.players[currentPlayerIndex].coins[color] > 0
         )
       ) as Color;
-      dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
-      if (currentPlayerCoinCount - 1 <= 10) {
-        dispatch(setGameState("play"));
-      }
+      onCoinClick(color);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, currentPlayerIndex, currentPlayerCoinCount]);
+  }, [gameState, currentPlayerIndex, onCoinClick]);
 
   return (
     <div

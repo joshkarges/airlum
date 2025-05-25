@@ -28,12 +28,10 @@ import {
   getAffordableNobles,
   getNumCoins,
   getPlayerIndex,
-  getPossibleActions,
 } from "../../utils/splendor";
 import classNames from "classnames";
 import { setGameState } from "../../redux/slices/gameState";
 import { State } from "../../redux/rootReducer";
-import { actionPool } from "../../utils/memory";
 import { Close, Rotate90DegreesCcw } from "@mui/icons-material";
 import { Flex } from "../Flex";
 
@@ -165,8 +163,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       actionOnDeck.type === "none" && !!aiAction ? aiAction : actionOnDeck;
     if (actionToTake.type === "none") return;
 
-    let needToChooseCoins = false;
-    needToChooseCoins =
+    const needToChooseCoins =
       getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
     const playerWithCard = {
       ...player,
@@ -182,10 +179,10 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         playerIndex,
       })
     );
-    const nextGameState = needToChooseNoble
-      ? "chooseNobles"
-      : needToChooseCoins
+    const nextGameState = needToChooseCoins
       ? "chooseCoins"
+      : needToChooseNoble
+      ? "chooseNobles"
       : gameState;
     dispatch(setGameState(nextGameState));
     if (nextGameState === "play") {
@@ -237,16 +234,13 @@ export const OnDeck: VFC<OnDeckProps> = () => {
 
   useEffect(() => {
     // When the depth hits 2 and it's an AIs turn, play that action.
-    if (gameState === "endGame") return;
+    if (gameState !== "play") return;
     if (depth >= 2 && !game.players[getPlayerIndex(game)].isHuman) {
       onTakeActionClick();
       return;
     }
     if (depth >= 2) return;
     worker.postMessage({ game, depth: depth + 1 });
-    actionPool.start();
-    console.log(getPossibleActions(game).map((a) => a.type));
-    actionPool.end();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worker, depth, dispatch]);
 
