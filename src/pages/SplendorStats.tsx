@@ -17,7 +17,7 @@ import {
   BarElement,
   CategoryScale,
 } from "chart.js";
-import { Scatter, Pie, Bar } from "react-chartjs-2";
+import { Scatter, Pie, Bar, Line } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import _ from "lodash";
 import moment from "moment";
@@ -63,6 +63,15 @@ export const SplendorStats = () => {
           { numWins: 0, numTie: 0, numLoss: 0 }
         );
         const totalGames = games.length;
+        const slidingWindowSize = 50;
+        const slidingWindowGames = [_.sumBy(games.slice(0, slidingWindowSize), game => game.players[0].points > game.players[1].points ? 1 : 0) / slidingWindowSize];
+        for (let i = slidingWindowSize; i < totalGames; i++) {
+          const game = games[i];
+          const prevGame = games[i - slidingWindowSize];
+          const win = game.players[0].points > game.players[1].points;
+          const prevWin = prevGame.players[0].points > prevGame.players[1].points;
+          slidingWindowGames.push(slidingWindowGames[slidingWindowGames.length - 1] + (win ? 1 : 0) / slidingWindowSize - (prevWin ? 1 : 0) / slidingWindowSize);
+        }
         const pieData = {
           labels: ["Win", "Tie", "Loss"],
           datasets: [
@@ -176,6 +185,45 @@ export const SplendorStats = () => {
                       },
                     },
                   ],
+                }}
+              />
+              <Line
+                data={{
+                  labels: _.range(slidingWindowSize, totalGames),
+                  datasets: [
+                    {
+                      label: "Win percentage (sliding window)",
+                      data: slidingWindowGames,
+                      backgroundColor: "rgba(75, 192, 192, 0.2)",
+                      borderColor: "rgba(255, 99, 132, 1)",
+                      borderWidth: 3,
+                      fill: true,
+                      datalabels: {
+                        display: false,
+                      },
+                    },
+                  ],
+                }}
+                options={{
+                  scales: {
+                    x: {
+                      title: {
+                        display: true,
+                        text: "Game Number",
+                      },
+                    },
+                    y: {
+                      title: {
+                        display: true,
+                        text: "Win Percentage",
+                      },
+                    },
+                  },
+                  elements: {
+                    point:{
+                        radius: 0
+                    }
+                  }
                 }}
               />
               <Bar
