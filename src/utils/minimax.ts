@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { Game } from "../models/Splendor";
 
 export const genMinimaxAB = <G extends Game, A>(
@@ -30,6 +31,7 @@ export const genMinimaxAB = <G extends Game, A>(
       return [currValue, bestAction];
     }
 
+    const bestActions = [] as A[];
     let value = isMaximizingPlayer ? -Infinity : Infinity;
     if (isMaximizingPlayer) {
       forSomePossibleActions(node, (action) => {
@@ -42,9 +44,14 @@ export const genMinimaxAB = <G extends Game, A>(
           false
         );
         // console.log(newValue, action);
-        if (newValue > value) {
+        if (newValue >= value) {
           value = newValue;
-          bestAction = action;
+          if (newValue === value) {
+            bestActions.push(action);
+          } else  {
+            bestActions.length = 0; // Reset best actions if we found a better one
+            bestActions.push(action);
+          }
         }
         if (value >= beta) return true;
         alpha = Math.max(alpha, value);
@@ -60,16 +67,21 @@ export const genMinimaxAB = <G extends Game, A>(
           beta,
           true
         );
-        if (newValue < value) {
+        if (newValue <= value) {
           value = newValue;
-          bestAction = action;
+          if (newValue === value) {
+            bestActions.push(action);
+          } else {
+            bestActions.length = 0; // Reset best actions if we found a better one
+            bestActions.push(action);
+          }
         }
         if (value <= alpha) return true;
         beta = Math.min(beta, value);
         return false;
       });
     }
-    return [value, bestAction];
+    return [value, _.sample(bestActions) || bestAction];
   };
   return (game: G, endDepth = depth) => minimaxAB(game, null, endDepth)[1];
 };
@@ -93,6 +105,8 @@ export const genMaxN = <G, A>(
     }
     const playerIndex = getPlayerIndex(node);
     let maxValue = [] as number[];
+    const bestActions = [] as A[];
+    
     forEachPossibleAction(node, (action) => {
       const [playerValues] = maxn(
         takeAction(node, action),
@@ -101,13 +115,19 @@ export const genMaxN = <G, A>(
       );
       if (
         !maxValue.length ||
-        playerValues[playerIndex] > maxValue[playerIndex]
+        playerValues[playerIndex] >= maxValue[playerIndex]
       ) {
         maxValue = playerValues;
-        bestAction = action;
+        if (playerValues[playerIndex] === maxValue[playerIndex]) {
+          bestActions.push(action);
+        } else {
+          bestActions.length = 0; // Reset best actions if we found a better one
+          bestActions.push(action);
+        }
       }
+
     });
-    return [maxValue, bestAction];
+    return [maxValue, _.sample(bestActions) || bestAction];
   };
   return (game: G, endDepth = depth) => maxn(game, null, endDepth)[1];
 };
