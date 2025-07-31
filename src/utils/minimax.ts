@@ -25,7 +25,7 @@ export const genMinimaxAB = <G extends Game, A>(
       const currValue = nodeValue({
         ...node,
         turn:
-          (originalTurn - (depth - currDepth) + 1 + node.players.length) %
+          (originalTurn - (depth - currDepth) + node.players.length) %
           node.players.length,
       });
       return [currValue, bestAction];
