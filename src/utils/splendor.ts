@@ -9,7 +9,7 @@ import { actionPool, arrPool } from "./memory";
 import { genMaxN, genMinimaxAB, genProbablyBestMove } from "./minimax";
 
 export const getNumCoins = (coins: Record<Color, number>) =>
-  _.reduce(coins, (sum, num) => sum + num, 0);
+  _.reduce(Color, (sum, color) => sum + coins[color], 0);
 
 /** Put this inside an arrPool */
 const COLOR_KEYS = _.pull(_.values(Color), Color.Yellow);

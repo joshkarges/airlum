@@ -25,7 +25,7 @@ export const genMinimaxAB = <G extends Game, A>(
       const currValue = nodeValue({
         ...node,
         turn:
-          (originalTurn - (depth - currDepth) + node.players.length) %
+          (originalTurn - (depth - currDepth) + 1 + node.players.length) %
           node.players.length,
       });
       return [currValue, bestAction];
@@ -45,13 +45,13 @@ export const genMinimaxAB = <G extends Game, A>(
         );
         // console.log(newValue, action);
         if (newValue >= value) {
-          value = newValue;
           if (newValue === value) {
             bestActions.push(action);
           } else  {
             bestActions.length = 0; // Reset best actions if we found a better one
             bestActions.push(action);
           }
+          value = newValue;
         }
         if (value >= beta) return true;
         alpha = Math.max(alpha, value);
@@ -68,13 +68,13 @@ export const genMinimaxAB = <G extends Game, A>(
           true
         );
         if (newValue <= value) {
-          value = newValue;
           if (newValue === value) {
             bestActions.push(action);
           } else {
             bestActions.length = 0; // Reset best actions if we found a better one
             bestActions.push(action);
           }
+          value = newValue;
         }
         if (value <= alpha) return true;
         beta = Math.min(beta, value);
