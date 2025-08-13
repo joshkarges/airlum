@@ -64,13 +64,24 @@ export const SplendorStats = () => {
         );
         const totalGames = games.length;
         const slidingWindowSize = 50;
-        const slidingWindowGames = [_.sumBy(games.slice(0, slidingWindowSize), game => game.players[0].points > game.players[1].points ? 1 : 0) / slidingWindowSize];
+        const slidingWindowGames = [
+          (_.sumBy(games.slice(0, slidingWindowSize), (game) =>
+            game.players[0].points > game.players[1].points ? 1 : 0
+          ) *
+            100) /
+            slidingWindowSize,
+        ];
         for (let i = slidingWindowSize; i < totalGames; i++) {
           const game = games[i];
           const prevGame = games[i - slidingWindowSize];
           const win = game.players[0].points > game.players[1].points;
-          const prevWin = prevGame.players[0].points > prevGame.players[1].points;
-          slidingWindowGames.push(slidingWindowGames[slidingWindowGames.length - 1] + (win ? 1 : 0) / slidingWindowSize - (prevWin ? 1 : 0) / slidingWindowSize);
+          const prevWin =
+            prevGame.players[0].points > prevGame.players[1].points;
+          slidingWindowGames.push(
+            slidingWindowGames[slidingWindowGames.length - 1] +
+              ((win ? 1 : 0) * 100) / slidingWindowSize -
+              ((prevWin ? 1 : 0) * 100) / slidingWindowSize
+          );
         }
         const pieData = {
           labels: ["Win", "Tie", "Loss"],
@@ -220,10 +231,10 @@ export const SplendorStats = () => {
                     },
                   },
                   elements: {
-                    point:{
-                        radius: 0
-                    }
-                  }
+                    point: {
+                      radius: 0,
+                    },
+                  },
                 }}
               />
               <Bar

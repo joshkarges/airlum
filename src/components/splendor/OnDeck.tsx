@@ -17,6 +17,7 @@ import {
   prepReserveCard,
   setActionOnDeck,
   unPrepBuyCard,
+  unPrepBuyReserveCard,
   unPrepCoin,
   unPrepReserveCard,
 } from "../../redux/slices/actionOnDeck";
@@ -141,6 +142,8 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       dispatch(unPrepBuyCard());
     } else if (actionOnDeck.type === "reserve") {
       dispatch(unPrepReserveCard());
+    } else if (actionOnDeck.type === "buyReserve") {
+      dispatch(unPrepBuyReserveCard());
     }
   };
 

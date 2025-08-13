@@ -84,6 +84,7 @@ export const actionOnDeckSlice = createSlice({
     unPrepBuyReserveCard: (state) => {
       state.type = "none";
       state.card = null;
+      state.coinCost = EMPTY_COINS;
     },
     cancelAllPrep: () => INITIAL_STATE,
     setActionOnDeck: (state, action) => _.assign(state, action.payload),

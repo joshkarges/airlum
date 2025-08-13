@@ -100,21 +100,29 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
   );
   const needToChooseNoble = getAffordableNobles(game, player).length > 1;
 
-  const onCoinClick = useCallback((color: Color) => {
-    if (gameState !== GameState.chooseCoins) return;
-    dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
-    if (currentPlayerCoinCount - 1 <= 10) {
-      if (needToChooseNoble) {
-        dispatch(setGameState("chooseNobles"));
-      } else {
-        dispatch(setGameState("play"));
+  const onCoinClick = useCallback(
+    (color: Color) => {
+      if (gameState !== GameState.chooseCoins) return;
+      dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
+      if (currentPlayerCoinCount - 1 <= 10) {
+        if (needToChooseNoble) {
+          dispatch(setGameState("chooseNobles"));
+        } else {
+          dispatch(setGameState("play"));
+        }
       }
-    }
-  }, [needToChooseNoble, gameState, currentPlayerIndex, dispatch, currentPlayerCoinCount]);
+    },
+    [
+      needToChooseNoble,
+      gameState,
+      currentPlayerIndex,
+      dispatch,
+      currentPlayerCoinCount,
+    ]
+  );
 
   const boughtByColor = _.groupBy(player.bought, "color");
   const coinCount = getNumCoins(player.coins);
-  
 
   useEffect(() => {
     if (
@@ -144,11 +152,12 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
             const cards = boughtByColor[color];
             return (
               <div key={color} className={classes.coinCardsContainer}>
-                {gameState === GameState.chooseCoins && <KeyboardArrowUpIcon />}
+                {gameState === GameState.chooseCoins &&
+                  color !== Color.Yellow && <KeyboardArrowUpIcon />}
                 <Coin
                   count={count}
                   color={color}
-                  onClick={onCoinClick}
+                  onClick={color === Color.Yellow ? undefined : onCoinClick}
                   size={26}
                 />
                 {cards && (
