@@ -42,6 +42,7 @@ export const EndGameModal: VFC<EndGameModalProps> = () => {
   const closeAndStartNewGame = useCallback(() => {
     setIsOpen(false);
     dispatch(setShowGameSetup(true));
+    dispatch(setGameState("play"));
   }, [dispatch]);
 
   useEffect(() => {

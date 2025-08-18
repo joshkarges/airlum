@@ -48,10 +48,18 @@ export const generateThreeCoinPermutations = (
   return output;
 };
 
+const clearCoins = (coins: CoinSet) => {
+  _.forEach(coins, (value, color) => {
+    coins[color as Color] = 0;
+  });
+  return coins;
+};
+
 export const canAffordCard = (
   player: Player,
   card: Card,
-  output: CoinSet = {} as CoinSet
+  output: CoinSet = {} as CoinSet,
+  withoutYellow = false
 ): CoinSet | null => {
   _.forEach(card.cost, (coinCost, color) => {
     output[color as Color] = Math.max(
@@ -61,6 +69,7 @@ export const canAffordCard = (
   });
   const canAfford = _.every(output, (coinsNeeded, color) => {
     if (player.coins[color as Color] >= coinsNeeded) return true;
+    if (withoutYellow) return false;
     const yellowCoinsNeeded = coinsNeeded - player.coins[color as Color];
     const yellowCoinsAvailable =
       player.coins[Color.Yellow] - output[Color.Yellow];
@@ -72,6 +81,143 @@ export const canAffordCard = (
     return false;
   });
   return canAfford ? output : null;
+};
+
+const coinsNeededToAffordCard = (
+  player: Player,
+  card: Card,
+  output: CoinSet = {} as CoinSet
+): CoinSet | null => {
+  let totalCoinsNeeded = 0;
+  _.forEach(card.cost, (coinCost, color) => {
+    const coinsNeededForColor = Math.max(
+      0,
+      coinCost -
+        count(player.bought, (c) => c.color === (color as Color)) -
+        player.coins[color as Color]
+    );
+    output[color as Color] = coinsNeededForColor;
+    totalCoinsNeeded += coinsNeededForColor;
+  });
+  let numYellowCoins = player.coins[Color.Yellow];
+  while (numYellowCoins && totalCoinsNeeded) {
+    for (const color in output) {
+      if (numYellowCoins <= 0) break;
+      if (output[color as Color] > 0) {
+        output[color as Color]--;
+        numYellowCoins--;
+        totalCoinsNeeded--;
+      }
+    }
+  }
+  return totalCoinsNeeded <= 10 ? output : null;
+};
+
+const giveUpCoins = (player: Player, card: Card, coinCost: CoinSet) => {
+  let numCoinsGotten = -getNumCoins(coinCost);
+  const numCoinsCanGet = Math.min(3, 10 - getNumCoins(player.coins));
+  const coinsNeeded = coinsNeededToAffordCard(player, card);
+  while (coinsNeeded && numCoinsGotten > numCoinsCanGet) {
+    const prevNumCoinsGotten = numCoinsGotten;
+    for (const color in player.coins) {
+      if (color === Color.Yellow) continue;
+      const value = player.coins[color as Color] - coinCost[color as Color];
+      if (numCoinsGotten <= numCoinsCanGet) continue;
+      if (value > card.cost[color as Color]) {
+        numCoinsGotten -= 1;
+        coinCost[color as Color] += 1;
+      }
+    }
+    if (prevNumCoinsGotten === numCoinsGotten) {
+      // Infinite loop protection
+      break;
+    }
+  }
+  return coinCost;
+};
+
+const collectCoinsForCard = (
+  game: Game,
+  player: Player,
+  card: Card,
+  output: CoinSet = {} as CoinSet
+): CoinSet | null => {
+  const coinsNeeded = coinsNeededToAffordCard(player, card, { ...EMPTY_COINS });
+  if (!coinsNeeded || !_.some(coinsNeeded)) return null;
+  const numCoinsCanGet = Math.min(3, 10 - getNumCoins(player.coins));
+  let numCoinsGotten = 0;
+  _.forEach(coinsNeeded, (needed, color) => {
+    if (numCoinsGotten >= 3) return;
+    if (needed > 0 && game.coins[color as Color] > 0) {
+      numCoinsGotten += 1;
+      output[color as Color] = -1;
+    }
+  });
+  if (numCoinsGotten > 0) {
+    if (numCoinsGotten < numCoinsCanGet) {
+      _.forEach(game.coins, (value, color) => {
+        if (numCoinsGotten >= numCoinsCanGet) return;
+        if (value > 0 && !output[color as Color] && color !== Color.Yellow) {
+          numCoinsGotten += 1;
+          output[color as Color] = -1;
+        }
+      });
+    }
+    giveUpCoins(player, card, output);
+  }
+  return _.some(output) ? output : null;
+};
+
+/** Put this inside an actionPool */
+const getCoinsActions = (
+  game: Game,
+  player: Player,
+  output: Action[] = []
+): Action[] => {
+  arrPool.start();
+  /** Take Coins */
+  const lessThanThreeStacks =
+    _.reduce(
+      game.coins,
+      (agg, value, color) =>
+        (agg += value > 0 && color !== Color.Yellow ? 1 : 0),
+      0
+    ) < 3;
+  const threeCoinPermutations: Color[][] = arrPool.get();
+  if (lessThanThreeStacks) {
+    const onlyCoinsToTake = _.reduce(
+      game.coins,
+      (agg, value, color) => {
+        if (value > 0 && color !== Color.Yellow) agg.push(color as Color);
+        return agg;
+      },
+      arrPool.get() as Color[]
+    );
+    if (onlyCoinsToTake.length) {
+      threeCoinPermutations.push(onlyCoinsToTake);
+    }
+  } else {
+    generateThreeCoinPermutations(game.coins, threeCoinPermutations);
+  }
+  threeCoinPermutations.forEach((permutation) => {
+    const action = actionPool.get("takeCoins");
+    action.card = null;
+    permutation.forEach((color) => {
+      action.coinCost[color] = -1;
+    });
+    output.push(action);
+  });
+
+  _.forEach(game.coins, (value, color) => {
+    if (value >= 4 && color !== Color.Yellow) {
+      const action = actionPool.get("takeCoins");
+      action.card = null;
+      action.coinCost[color as Color] = -2;
+      output.push(action);
+    }
+  });
+  arrPool.end();
+  return output;
 };
 
 /** Put this inside an actionPool */
@@ -118,62 +264,16 @@ export const getReserveActions = (
 
 /** Put inside actionPool */
 export const getPossibleActions = (game: Game, output: Action[] = []) => {
-  arrPool.start();
   const playerIndex = getPlayerIndex(game);
   const player = game.players[playerIndex];
-  const numCoinsCanTake = 10 - getNumCoins(player.coins);
-  /** Take Coins */
-  const lessThanThreeStacks =
-    _.reduce(
-      game.coins,
-      (agg, value, color) =>
-        (agg += value > 0 && color !== Color.Yellow ? 1 : 0),
-      0
-    ) < 3;
-  const threeCoinPermutations: Color[][] = arrPool.get();
-  if (lessThanThreeStacks) {
-    const onlyCoinsToTake = _.reduce(
-      game.coins,
-      (agg, value, color) => {
-        if (value > 0 && color !== Color.Yellow) agg.push(color as Color);
-        return agg;
-      },
-      arrPool.get() as Color[]
-    );
-    if (onlyCoinsToTake.length) {
-      if (numCoinsCanTake < onlyCoinsToTake.length) {
-        threeCoinPermutations.push([onlyCoinsToTake[0]]);
-        threeCoinPermutations.push([onlyCoinsToTake[1]]);
-      } else {
-        threeCoinPermutations.push(onlyCoinsToTake);
-      }
-    }
-  } else {
-    generateThreeCoinPermutations(game.coins, threeCoinPermutations);
-  }
-  threeCoinPermutations.forEach((permutation) => {
-    const action = actionPool.get("takeCoins");
-    action.card = null;
-    permutation.forEach((color) => {
-      action.coinCost[color] = -1;
-    });
-    output.push(action);
-  });
 
-  _.forEach(game.coins, (value, color) => {
-    if (value >= 4 && color !== Color.Yellow) {
-      const action = actionPool.get("takeCoins");
-      action.card = null;
-      action.coinCost[color as Color] = -2;
-      output.push(action);
-    }
-  });
+  /** Take Coins */
+  getCoinsActions(game, player, output);
 
   /** Buy Or Reserve */
   getBuyActions(game, player, output);
   getReserveActions(game, player, output);
 
-  arrPool.end();
   return output;
 };
 
@@ -406,11 +506,236 @@ const probablyBestMove = genProbablyBestMove(
   4
 );
 
+const opportunistic = (game: Game): Action => {
+  // Do I have a high value reserved card?
+  const playerIndex = getPlayerIndex(game);
+  const player = game.players[playerIndex];
+  const highPoints = Math.min(15 - player.points, 2);
+  const highValueReservedCard = player.reserved.reduce((highCard, card) => {
+    if (card.points < highPoints) return highCard;
+    if (!highCard) return card;
+    if (card.points > highCard.points) return card;
+    if (card.points === highCard.points) {
+      if (getNumCoins(card.cost) < getNumCoins(highCard.cost)) {
+        return card;
+      }
+    }
+    return highCard;
+  }, null as Card | null);
+  const coinCost = { ...EMPTY_COINS };
+  if (highValueReservedCard) {
+    if (canAffordCard(player, highValueReservedCard, coinCost)) {
+      return {
+        type: "buyReserve",
+        card: highValueReservedCard,
+        coinCost,
+      };
+    }
+
+    // Try to collect coins to afford the high value reserved card
+    const getCoins = { ...EMPTY_COINS };
+    const collection = collectCoinsForCard(
+      game,
+      player,
+      highValueReservedCard,
+      getCoins
+    );
+
+    if (collection) {
+      return {
+        type: "takeCoins",
+        card: null,
+        coinCost: getCoins,
+      };
+    }
+
+    // Try to buy a card that will help afford the high value reserved card
+    // or reserve it if I can't afford it.
+    const affordableHelpfulCards = game.table.filter((card) => {
+      return (
+        player.coins[card.color as Color] +
+          player.bought.filter((c) => c.color === card.color).length <
+          highValueReservedCard.cost[card.color as Color] &&
+        canAffordCard(player, card, coinCost, true)
+      );
+    });
+    if (affordableHelpfulCards.length > 0) {
+      return {
+        type: "buy",
+        card: affordableHelpfulCards[0],
+        coinCost: canAffordCard(
+          player,
+          affordableHelpfulCards[0],
+          coinCost,
+          true
+        )!,
+      };
+    }
+    const affordableHelpfulReserveCards = player.reserved.filter((card) => {
+      return (
+        player.coins[card.color as Color] +
+          player.bought.filter((c) => c.color === card.color).length <
+          highValueReservedCard.cost[card.color as Color] &&
+        canAffordCard(player, card, coinCost, true)
+      );
+    });
+    if (affordableHelpfulReserveCards.length > 0) {
+      return {
+        type: "buyReserve",
+        card: affordableHelpfulReserveCards[0],
+        coinCost: canAffordCard(
+          player,
+          affordableHelpfulReserveCards[0],
+          coinCost,
+          true
+        )!,
+      };
+    }
+
+    // Try to reserve a cheap card that will help afford the high value reserved card
+    if (game.coins[Color.Yellow] > 0 && player.reserved.length < 3) {
+      actionPool.start();
+      const reserveActions = getReserveActions(game, player);
+      const bestReserveAction = reserveActions.reduce((best, action) => {
+        if (
+          _.max(_.values(action.card!.cost))! <
+          _.max(_.values(best.card!.cost))!
+        ) {
+          return _.cloneDeep(action);
+        }
+        if (
+          _.max(_.values(action.card!.cost))! ===
+          _.max(_.values(best.card!.cost))!
+        ) {
+          if (getNumCoins(action.card!.cost) < getNumCoins(best.card!.cost)) {
+            return _.cloneDeep(action);
+          }
+        }
+        return best;
+      }, reserveActions[0]);
+      actionPool.end();
+      giveUpCoins(player, highValueReservedCard, bestReserveAction.coinCost);
+      return _.cloneDeep(bestReserveAction);
+    }
+  }
+
+  if (!highValueReservedCard) {
+    // Do I have a high value card on the table that I could afford with 10 coins or less?
+    const highValueCards = game.table.filter((card) => {
+      if (card.points < 2) return false;
+      const coinsNeeded = coinsNeededToAffordCard(
+        player,
+        card,
+        clearCoins(coinCost)
+      );
+      if (!coinsNeeded) return false;
+      const numCoinsNeeded = _.reduce(
+        card.cost,
+        (sum, value, color) => {
+          return value
+            ? sum + coinsNeeded[color as Color] + player.coins[color as Color]
+            : sum;
+        },
+        0
+      );
+      return card.points >= highPoints && numCoinsNeeded <= 10;
+    });
+    if (highValueCards.length > 0) {
+      const highValueCard = _.maxBy(
+        highValueCards,
+        (card) =>
+          card.points /
+          getNumCoins(
+            coinsNeededToAffordCard(player, card, clearCoins(coinCost))!
+          )
+      )!;
+      if (canAffordCard(player, highValueCard, clearCoins(coinCost))) {
+        return {
+          type: "buy",
+          card: highValueCard,
+          coinCost,
+        };
+      } else if (game.coins[Color.Yellow] > 0) {
+        return {
+          type: "reserve",
+          card: highValueCard,
+          coinCost: { ...EMPTY_COINS, [Color.Yellow]: -1 },
+        };
+      }
+    }
+  }
+
+  // Otherwise, just take coins
+  actionPool.start();
+  const coinActions = getCoinsActions(game, player);
+  const bestAction =
+    coinActions[Math.floor(Math.random() * coinActions.length)] || null;
+  actionPool.end();
+  if (highValueReservedCard && bestAction) {
+    giveUpCoins(player, highValueReservedCard, bestAction.coinCost);
+  }
+  if (bestAction) {
+    return _.cloneDeep(bestAction);
+  }
+
+  // Otherwise, just reserve a card
+  if (player.reserved.length < 3) {
+    actionPool.start();
+    const reserveActions = getReserveActions(game, player);
+    const bestReserveAction = reserveActions.reduce((best, action) => {
+      if (
+        _.max(_.values(action.card!.cost))! < _.max(_.values(best.card!.cost))!
+      ) {
+        return _.cloneDeep(action);
+      }
+      if (
+        _.max(_.values(action.card!.cost))! ===
+        _.max(_.values(best.card!.cost))!
+      ) {
+        if (getNumCoins(action.card!.cost) < getNumCoins(best.card!.cost)) {
+          return _.cloneDeep(action);
+        }
+      }
+      return best;
+    }, reserveActions[0]);
+    actionPool.end();
+    return _.cloneDeep(bestReserveAction);
+  }
+
+  // Otherwise, just try and buy any cheap card
+  actionPool.start();
+  const buyActions = getBuyActions(game, player);
+  const bestBuyAction = buyActions.reduce((best, action) => {
+    if (
+      _.max(_.values(action.card!.cost))! < _.max(_.values(best.card!.cost))!
+    ) {
+      return _.cloneDeep(action);
+    }
+    if (
+      _.max(_.values(action.card!.cost))! === _.max(_.values(best.card!.cost))!
+    ) {
+      if (getNumCoins(action.card!.cost) < getNumCoins(best.card!.cost)) {
+        return _.cloneDeep(action);
+      }
+    }
+    return best;
+  }, buyActions[0]);
+  actionPool.end();
+  return bestBuyAction
+    ? _.cloneDeep(bestBuyAction)
+    : {
+        type: "takeCoins",
+        card: null,
+        coinCost: { ...EMPTY_COINS },
+      };
+};
+
 export enum Strategy {
   Random,
   AlphaBeta,
   MaxN,
   Probablistic,
+  Opportunistic,
 }
 
 export const getStrategy = (strat: Strategy) => {
@@ -421,6 +746,8 @@ export const getStrategy = (strat: Strategy) => {
       return maxn;
     case Strategy.Probablistic:
       return probablyBestMove;
+    case Strategy.Opportunistic:
+      return opportunistic;
     case Strategy.AlphaBeta:
     default:
       return minimaxAB;

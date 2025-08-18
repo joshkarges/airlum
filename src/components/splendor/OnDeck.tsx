@@ -186,7 +186,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
       ? "chooseCoins"
       : needToChooseNoble
       ? "chooseNobles"
-      : gameState;
+      : "play";
     dispatch(setGameState(nextGameState));
     if (nextGameState === "play") {
       setWorker(
@@ -196,16 +196,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
         )
       );
     }
-  }, [
-    actionOnDeck,
-    aiAction,
-    dispatch,
-    game,
-    gameState,
-    player,
-    playerIndex,
-    worker,
-  ]);
+  }, [actionOnDeck, aiAction, dispatch, game, player, playerIndex, worker]);
 
   const onCancelClick = () => {
     if (actionOnDeck.type === "none" || !player.isHuman) return;
