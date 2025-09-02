@@ -86,7 +86,7 @@ export const canAffordCard = (
 const coinsNeededToAffordCard = (
   player: Player,
   card: Card,
-  output: CoinSet = {} as CoinSet
+  output: CoinSet = { ...EMPTY_COINS } as CoinSet
 ): CoinSet | null => {
   let totalCoinsNeeded = 0;
   _.forEach(card.cost, (coinCost, color) => {
@@ -142,8 +142,26 @@ const collectCoinsForCard = (
   card: Card,
   output: CoinSet = {} as CoinSet
 ): CoinSet | null => {
-  const coinsNeeded = coinsNeededToAffordCard(player, card, { ...EMPTY_COINS });
+  const coinsNeeded = coinsNeededToAffordCard(player, card);
   if (!coinsNeeded || !_.some(coinsNeeded)) return null;
+
+  // Try to take 2 coins from a stack of 4.
+  // What's the color of the maximum coinsNeeded?
+  const sortedColors = _.sortBy(
+    _.keys(coinsNeeded),
+    (color) => coinsNeeded[color as Color]
+  ) as Color[];
+  const delta =
+    coinsNeeded[sortedColors[sortedColors.length - 1] as Color] -
+    (coinsNeeded[sortedColors[sortedColors.length - 2] as Color] ?? 0);
+  if (delta >= 2) {
+    const color = sortedColors[sortedColors.length - 1];
+    if (game.coins[color] >= 4) {
+      output[color] = -2;
+      return giveUpCoins(player, card, output);
+    }
+  }
+
   const numCoinsCanGet = Math.min(3, 10 - getNumCoins(player.coins));
   let numCoinsGotten = 0;
   _.forEach(coinsNeeded, (needed, color) => {
@@ -523,6 +541,7 @@ const opportunistic = (game: Game): Action => {
     return highCard;
   }, null as Card | null);
   const coinCost = { ...EMPTY_COINS };
+  const coinCost2 = { ...EMPTY_COINS };
   if (highValueReservedCard) {
     if (canAffordCard(player, highValueReservedCard, coinCost)) {
       return {
@@ -533,44 +552,22 @@ const opportunistic = (game: Game): Action => {
     }
 
     // Try to collect coins to afford the high value reserved card
-    const getCoins = { ...EMPTY_COINS };
     const collection = collectCoinsForCard(
       game,
       player,
       highValueReservedCard,
-      getCoins
+      clearCoins(coinCost)
     );
 
     if (collection) {
       return {
         type: "takeCoins",
         card: null,
-        coinCost: getCoins,
+        coinCost,
       };
     }
 
     // Try to buy a card that will help afford the high value reserved card
-    // or reserve it if I can't afford it.
-    const affordableHelpfulCards = game.table.filter((card) => {
-      return (
-        player.coins[card.color as Color] +
-          player.bought.filter((c) => c.color === card.color).length <
-          highValueReservedCard.cost[card.color as Color] &&
-        canAffordCard(player, card, coinCost, true)
-      );
-    });
-    if (affordableHelpfulCards.length > 0) {
-      return {
-        type: "buy",
-        card: affordableHelpfulCards[0],
-        coinCost: canAffordCard(
-          player,
-          affordableHelpfulCards[0],
-          coinCost,
-          true
-        )!,
-      };
-    }
     const affordableHelpfulReserveCards = player.reserved.filter((card) => {
       return (
         player.coins[card.color as Color] +
@@ -591,25 +588,42 @@ const opportunistic = (game: Game): Action => {
         )!,
       };
     }
+    const affordableHelpfulCards = game.table.filter((card) => {
+      return (
+        player.coins[card.color as Color] +
+          player.bought.filter((c) => c.color === card.color).length <
+          highValueReservedCard.cost[card.color as Color] &&
+        canAffordCard(player, card, coinCost, true)
+      );
+    });
+    if (affordableHelpfulCards.length > 0) {
+      return {
+        type: "buy",
+        card: affordableHelpfulCards[0],
+        coinCost: canAffordCard(
+          player,
+          affordableHelpfulCards[0],
+          coinCost,
+          true
+        )!,
+      };
+    }
 
     // Try to reserve a cheap card that will help afford the high value reserved card
     if (game.coins[Color.Yellow] > 0 && player.reserved.length < 3) {
       actionPool.start();
       const reserveActions = getReserveActions(game, player);
       const bestReserveAction = reserveActions.reduce((best, action) => {
-        if (
-          _.max(_.values(action.card!.cost))! <
-          _.max(_.values(best.card!.cost))!
-        ) {
+        const coinsNeeded = coinsNeededToAffordCard(player, action.card!);
+        if (!coinsNeeded) return best;
+        const bestCoinsNeeded = coinsNeededToAffordCard(
+          player,
+          best.card!,
+          clearCoins(coinCost)
+        );
+        if (!bestCoinsNeeded) return _.cloneDeep(action);
+        if (getNumCoins(coinsNeeded) < getNumCoins(bestCoinsNeeded)) {
           return _.cloneDeep(action);
-        }
-        if (
-          _.max(_.values(action.card!.cost))! ===
-          _.max(_.values(best.card!.cost))!
-        ) {
-          if (getNumCoins(action.card!.cost) < getNumCoins(best.card!.cost)) {
-            return _.cloneDeep(action);
-          }
         }
         return best;
       }, reserveActions[0]);
@@ -617,12 +631,47 @@ const opportunistic = (game: Game): Action => {
       giveUpCoins(player, highValueReservedCard, bestReserveAction.coinCost);
       return _.cloneDeep(bestReserveAction);
     }
+
+    // Try to collect coins to afford the high value reserved card
+    const cheapestReservedCard = player.reserved.reduce((best, card) => {
+      const coinsNeeded = coinsNeededToAffordCard(
+        player,
+        card,
+        clearCoins(coinCost2)
+      );
+      if (!coinsNeeded) return best;
+      const bestCoinsNeeded = coinsNeededToAffordCard(
+        player,
+        best,
+        clearCoins(coinCost)
+      );
+      if (!bestCoinsNeeded) return card;
+      if (getNumCoins(coinsNeeded) < getNumCoins(bestCoinsNeeded)) {
+        return card;
+      }
+      return best;
+    });
+
+    const cheapReservedCardCoins = collectCoinsForCard(
+      game,
+      player,
+      cheapestReservedCard,
+      clearCoins(coinCost)
+    );
+
+    if (cheapReservedCardCoins) {
+      return {
+        type: "takeCoins",
+        card: null,
+        coinCost: cheapReservedCardCoins!,
+      };
+    }
   }
 
   if (!highValueReservedCard) {
     // Do I have a high value card on the table that I could afford with 10 coins or less?
     const highValueCards = game.table.filter((card) => {
-      if (card.points < 2) return false;
+      if (card.points < highPoints) return false;
       const coinsNeeded = coinsNeededToAffordCard(
         player,
         card,
@@ -683,18 +732,20 @@ const opportunistic = (game: Game): Action => {
     actionPool.start();
     const reserveActions = getReserveActions(game, player);
     const bestReserveAction = reserveActions.reduce((best, action) => {
-      if (
-        _.max(_.values(action.card!.cost))! < _.max(_.values(best.card!.cost))!
-      ) {
+      const coinsNeeded = coinsNeededToAffordCard(
+        player,
+        action.card!,
+        clearCoins(coinCost2)
+      );
+      if (!coinsNeeded) return best;
+      const bestCoinsNeeded = coinsNeededToAffordCard(
+        player,
+        best.card!,
+        clearCoins(coinCost)
+      );
+      if (!bestCoinsNeeded) return _.cloneDeep(action);
+      if (getNumCoins(coinsNeeded) < getNumCoins(bestCoinsNeeded)) {
         return _.cloneDeep(action);
-      }
-      if (
-        _.max(_.values(action.card!.cost))! ===
-        _.max(_.values(best.card!.cost))!
-      ) {
-        if (getNumCoins(action.card!.cost) < getNumCoins(best.card!.cost)) {
-          return _.cloneDeep(action);
-        }
       }
       return best;
     }, reserveActions[0]);

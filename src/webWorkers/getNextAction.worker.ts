@@ -3,7 +3,7 @@ import { Game } from "../models/Splendor";
 import { getPlayerIndex, getStrategy, Strategy } from "../utils/splendor";
 
 self.onmessage = (ev: MessageEvent<{ game: Game; depth: number }>) => {
-  const opportunisticPlayer = false && getPlayerIndex(ev.data.game) === 2;
+  const opportunisticPlayer = getPlayerIndex(ev.data.game) === 2;
   const getNextAction = opportunisticPlayer
     ? getStrategy(Strategy.Opportunistic)
     : getStrategy(Strategy.AlphaBeta);
