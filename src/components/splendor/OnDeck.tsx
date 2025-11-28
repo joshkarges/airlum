@@ -271,7 +271,7 @@ export const OnDeck: VFC<OnDeckProps> = () => {
           onCardClick={onCardClick}
           onCoinClick={onCoinClick}
         />
-        {(actionOnDeck.type === "buy" ||
+        {((actionOnDeck.type === "buy" && player.reserved.length < 3) ||
           (actionOnDeck.type === "reserve" && coinCost)) && (
           <IconButton onClick={rotateCard}>
             <Rotate90DegreesCcw />

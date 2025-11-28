@@ -2,7 +2,6 @@ import { Theme } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import { PropsWithChildren } from "react";
 import { useLocation } from "react-router-dom";
-import { MyClaimsModal } from "../components/modals/MyClaimsModal";
 import { useDocTitleEffect } from "../utils/useDocTitleEffect";
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -19,12 +18,7 @@ const PageWrapper = ({ children }: PropsWithChildren) => {
   const path = useLocation().pathname;
   const docTitle = path === "/" ? "AirLum" : path.slice(1).replace(/-/g, " ");
   useDocTitleEffect(docTitle);
-  return (
-    <div className={classes.root}>
-      {children}
-      <MyClaimsModal />
-    </div>
-  );
+  return <div className={classes.root}>{children}</div>;
 };
 
 export default PageWrapper;

@@ -3,10 +3,6 @@ import { game } from "./slices/game";
 import { gameRecord } from "./slices/gameRecord";
 import { actionOnDeck } from "./slices/actionOnDeck";
 import { gameState } from "./slices/gameState";
-import { user } from "./slices/user";
-import { exchangeEvent } from "./slices/exchangeEvent";
-import { wishLists } from "./slices/wishLists";
-import { userShortNames } from "./slices/userShortNames";
 import { showGameSetup } from "./slices/showGameSetup";
 
 const reducerMap = {
@@ -14,10 +10,6 @@ const reducerMap = {
   gameRecord,
   actionOnDeck,
   gameState,
-  user,
-  exchangeEvent,
-  wishLists,
-  userShortNames,
   showGameSetup,
 };
 
