@@ -42,11 +42,20 @@ const gameSlice = createSlice({
     },
     putCoinBack: (
       state,
-      action: PayloadAction<{ color: Color; playerIndex: number }>
+      action: PayloadAction<{
+        color: Color;
+        playerIndex: number;
+        /** When finishing discard but the same player must still choose a noble, do not advance turn yet (chooseNoble will). */
+        skipTurnAdvance?: boolean;
+      }>
     ) => {
-      state.coins[action.payload.color]++;
-      state.players[action.payload.playerIndex].coins[action.payload.color]--;
-      if (getNumCoins(state.players[action.payload.playerIndex].coins) <= 10)
+      const { color, playerIndex, skipTurnAdvance } = action.payload;
+      state.coins[color]++;
+      state.players[playerIndex].coins[color]--;
+      if (
+        getNumCoins(state.players[playerIndex].coins) <= 10 &&
+        !skipTurnAdvance
+      )
         state.turn++;
     },
     chooseNoble: (state, action: PayloadAction<Noble>) => {

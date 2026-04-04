@@ -29,15 +29,8 @@ export const ChooseNobleModal: VFC<ChooseNobleModalProps> = () => {
 
   const affordableNobles = useMemo(
     () => getAffordableNobles(game, player),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [game.nobles, playerIndex]
+    [game, playerIndex]
   );
-
-  useEffect(() => {
-    if (gameState === GameState.chooseNobles) {
-      setIsOpen(true);
-    }
-  }, [gameState]);
 
   const onNobleClick = useCallback(
     (noble: NobleModel) => {
@@ -49,7 +42,19 @@ export const ChooseNobleModal: VFC<ChooseNobleModalProps> = () => {
   );
 
   useEffect(() => {
-    if (!player.isHuman && affordableNobles.length > 0) {
+    if (gameState !== GameState.chooseNobles) return;
+    // No real choice — resolve immediately without flashing the dialog.
+    if (affordableNobles.length === 1) {
+      onNobleClick(affordableNobles[0]);
+      return;
+    }
+    if (affordableNobles.length > 1 && player.isHuman) {
+      setIsOpen(true);
+    }
+  }, [affordableNobles, gameState, onNobleClick, player.isHuman]);
+
+  useEffect(() => {
+    if (!player.isHuman && affordableNobles.length > 1) {
       onNobleClick(affordableNobles[0]);
     }
   }, [player.isHuman, affordableNobles, onNobleClick]);

@@ -98,13 +98,21 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
   const currentPlayerCoinCount = getNumCoins(
     game.players[currentPlayerIndex].coins
   );
-  const needToChooseNoble = getAffordableNobles(game, player).length > 1;
+  const activePlayer = game.players[currentPlayerIndex];
+  const needToChooseNoble = getAffordableNobles(game, activePlayer).length > 1;
 
   const onCoinClick = useCallback(
     (color: Color) => {
       if (gameState !== GameState.chooseCoins) return;
-      dispatch(putCoinBack({ color, playerIndex: currentPlayerIndex }));
-      if (currentPlayerCoinCount - 1 <= 10) {
+      const finishingDiscard = currentPlayerCoinCount - 1 <= 10;
+      dispatch(
+        putCoinBack({
+          color,
+          playerIndex: currentPlayerIndex,
+          skipTurnAdvance: needToChooseNoble && finishingDiscard,
+        })
+      );
+      if (finishingDiscard) {
         if (needToChooseNoble) {
           dispatch(setGameState("chooseNobles"));
         } else {
