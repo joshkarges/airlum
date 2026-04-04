@@ -29,7 +29,7 @@ export const ChooseNobleModal: VFC<ChooseNobleModalProps> = () => {
 
   const affordableNobles = useMemo(
     () => getAffordableNobles(game, player),
-    [game, playerIndex]
+    [game, player]
   );
 
   const onNobleClick = useCallback(

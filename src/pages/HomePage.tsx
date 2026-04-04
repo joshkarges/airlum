@@ -42,6 +42,12 @@ const PAGES = [
     img: { src: timedTeamsImage, alt: "screen shot of the timed teams app" },
   },
   {
+    title: "Receipt Split",
+    path: "/receipt-split",
+    backgroundColor: blue[300],
+    img: { src: timedTeamsImage, alt: "receipt splitting" },
+  },
+  {
     title: "Splendor",
     path: "/splendor",
     blog: "/blog/splendor",

@@ -8,6 +8,7 @@
  */
 
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import {
   getFirestore as getFirestoreAdmin,
@@ -65,6 +66,24 @@ const appAdmin = admin.initializeApp({
 });
 
 const dbAdmin = getFirestoreAdmin(appAdmin);
+
+const openaiApiKey = defineSecret("OPENAI_API_KEY");
+
+const corsOrigins = [
+  /firebase\.com$/,
+  /airlum\.web\.app/,
+  /joshkarges\.com/,
+  /localhost/,
+];
+
+const parseJsonObjectFromModelContent = (content: string): unknown => {
+  const trimmed = content.trim();
+  const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/m);
+  if (fence) {
+    return JSON.parse(fence[1]!.trim());
+  }
+  return JSON.parse(trimmed);
+};
 
 exports.health = onCall(
   { cors: [/firebase\.com$/, /airlum.web.app/, /joshkarges.com/] },
@@ -346,5 +365,127 @@ exports.finishTimedTeam = onCall<
       finished: true,
     });
     await Promise.all([promise1, promise2]);
+  }
+);
+
+exports.parseReceiptImage = onCall<
+  { imageBase64: string; mimeType?: string },
+  Promise<{ items: { description: string; amount: number }[] }>
+>(
+  {
+    cors: corsOrigins,
+    secrets: [openaiApiKey],
+    memory: "512MiB",
+    timeoutSeconds: 120,
+  },
+  async (req) => {
+    const { imageBase64, mimeType = "image/jpeg" } = req.data || {};
+    if (!imageBase64 || typeof imageBase64 !== "string") {
+      throw new HttpsError("invalid-argument", "imageBase64 is required");
+    }
+    if (imageBase64.length > 18_000_000) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Image payload is too large; try a smaller photo."
+      );
+    }
+
+    const apiKey = openaiApiKey.value();
+    if (!apiKey) {
+      throw new HttpsError(
+        "failed-precondition",
+        "OPENAI_API_KEY secret is not configured."
+      );
+    }
+
+    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+    const openaiRes = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content:
+                'You parse restaurant receipts. Extract each purchasable line item with its price in dollars (decimal number). Omit subtotal, tax, tip, and grand total lines. Return JSON only: {"items":[{"description":"string","amount":number}]}. Use an empty items array if nothing is readable.',
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Parse this receipt image into the JSON structure described.",
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: dataUrl },
+                },
+              ],
+            },
+          ],
+          max_tokens: 4096,
+        }),
+      }
+    );
+
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.log("OpenAI error", openaiRes.status, errText);
+      throw new HttpsError(
+        "internal",
+        `Receipt parsing failed (${openaiRes.status}).`
+      );
+    }
+
+    const openaiJson = (await openaiRes.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const content = openaiJson.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new HttpsError("internal", "No response from receipt parser.");
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = parseJsonObjectFromModelContent(content);
+    } catch (e) {
+      console.log("JSON parse error", e, content);
+      throw new HttpsError("internal", "Could not parse receipt model output.");
+    }
+
+    const itemsRaw = (parsed as { items?: unknown }).items;
+    if (!Array.isArray(itemsRaw)) {
+      return { items: [] };
+    }
+
+    const items = itemsRaw
+      .map((row) => {
+        if (!row || typeof row !== "object") {
+          return null;
+        }
+        const r = row as { description?: unknown; amount?: unknown };
+        const description =
+          typeof r.description === "string" ? r.description.trim() : "";
+        const amount =
+          typeof r.amount === "number" && Number.isFinite(r.amount)
+            ? r.amount
+            : typeof r.amount === "string"
+            ? parseFloat(r.amount)
+            : NaN;
+        if (!description || !Number.isFinite(amount) || amount < 0) {
+          return null;
+        }
+        return { description, amount };
+      })
+      .filter((x): x is { description: string; amount: number } => x !== null);
+
+    return { items };
   }
 );
