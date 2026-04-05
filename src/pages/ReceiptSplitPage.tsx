@@ -32,7 +32,7 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { makeStyles } from "@mui/styles";
 import { blue } from "@mui/material/colors";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { parseReceiptImage } from "../api/ReceiptApi";
@@ -155,6 +155,16 @@ export const ReceiptSplitPage = () => {
   const [taxAmount, setTaxAmount] = useState(0);
   const [tipAmount, setTipAmount] = useState(0);
 
+  const newPersonRef = useRef<HTMLInputElement>(null);
+
+  const newPersonIsDuplicate = useMemo(() => {
+    const t = newPerson.trim();
+    if (!t) {
+      return false;
+    }
+    return people.some((p) => p.toLowerCase() === t.toLowerCase());
+  }, [newPerson, people]);
+
   const totalsByPerson = useMemo(() => {
     const map: Record<string, number> = {};
     let unassigned = 0;
@@ -229,14 +239,26 @@ export const ReceiptSplitPage = () => {
     });
   }, []);
 
-  const addPerson = useCallback(() => {
-    const name = newPerson.trim();
-    if (!name || people.includes(name)) {
-      return;
-    }
-    setPeople((p) => [...p, name]);
-    setNewPerson("");
-  }, [newPerson, people]);
+  const addPerson = useCallback(
+    (
+      evt:
+        | React.MouseEvent<HTMLButtonElement>
+        | React.KeyboardEvent<HTMLDivElement>
+    ) => {
+      const name = newPerson.trim();
+      if (
+        !name ||
+        people.some((p) => p.toLowerCase() === name.toLowerCase())
+      ) {
+        queueMicrotask(() => newPersonRef.current?.focus());
+        return;
+      }
+      setPeople((p) => [...p, name]);
+      setNewPerson("");
+      queueMicrotask(() => newPersonRef.current?.focus());
+    },
+    [newPerson, people]
+  );
 
   const removePerson = useCallback((name: string) => {
     setPeople((p) => p.filter((x) => x !== name));
@@ -521,13 +543,22 @@ export const ReceiptSplitPage = () => {
           </Typography>
           <Flex gap={1} flexWrap="wrap" alignItems="center">
             <TextField
+              inputRef={newPersonRef}
               size="small"
               label="Name"
               value={newPerson}
               onChange={(e) => setNewPerson(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addPerson()}
+              onKeyDown={(e) => e.key === "Enter" && addPerson(e)}
+              error={newPersonIsDuplicate}
+              helperText={
+                newPersonIsDuplicate ? "That name is already in the list" : ""
+              }
             />
-            <Button variant="outlined" onClick={addPerson}>
+            <Button
+              variant="outlined"
+              onClick={addPerson}
+              disabled={!newPerson.trim() || newPersonIsDuplicate}
+            >
               Add
             </Button>
           </Flex>
@@ -742,7 +773,7 @@ export const ReceiptSplitPage = () => {
                             <InputAdornment position="start">$</InputAdornment>
                           ),
                         }}
-                        value={taxAmount}
+                        value={taxAmount || ""}
                         onChange={(e) =>
                           setTaxAmount(parseFloat(e.target.value) || 0)
                         }
@@ -770,7 +801,7 @@ export const ReceiptSplitPage = () => {
                             <InputAdornment position="start">$</InputAdornment>
                           ),
                         }}
-                        value={tipAmount}
+                        value={tipAmount || ""}
                         onChange={(e) =>
                           setTipAmount(parseFloat(e.target.value) || 0)
                         }
