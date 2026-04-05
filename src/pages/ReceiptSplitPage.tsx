@@ -16,6 +16,8 @@ import {
   Paper,
   Select,
   type SelectChangeEvent,
+  Tab,
+  Tabs,
   Table,
   TableBody,
   TableCell,
@@ -148,6 +150,8 @@ export const ReceiptSplitPage = () => {
   const [error, setError] = useState<string | null>(null);
   /** When true, `error` is a soft warning (e.g. OCR text needs manual cleanup). */
   const [errorIsWarning, setErrorIsWarning] = useState(false);
+  /** 0 = receipt photo, 1 = paste text */
+  const [inputTab, setInputTab] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
   const [tipAmount, setTipAmount] = useState(0);
 
@@ -299,9 +303,10 @@ export const ReceiptSplitPage = () => {
       const items = parseLooseReceiptText(text);
       if (items.length === 0) {
         setPasteText(text);
+        setInputTab(1);
         setErrorIsWarning(true);
         setError(
-          'OCR did not find lines that look like "item 12.50". Raw text was copied to the box below — fix it and click "Parse pasted lines", or edit lines by hand.'
+          'OCR did not find lines that look like "item 12.50". Raw text was copied to the Paste text tab — fix it and click "Parse pasted lines", or edit lines by hand.'
         );
         return;
       }
@@ -374,9 +379,6 @@ export const ReceiptSplitPage = () => {
     <Box height="100%" display="flex" flexDirection="column">
       <AppBar position="static" className={classes.appBar}>
         <Toolbar>
-          <Link to="/" className={classes.link}>
-            Home
-          </Link>
           <Typography variant="h6" component="h1">
             Receipt split
           </Typography>
@@ -385,14 +387,14 @@ export const ReceiptSplitPage = () => {
 
       <Container maxWidth="md" sx={{ flex: 1, py: 3, overflow: "auto" }}>
         <Typography variant="body1" color="text.secondary" paragraph>
-          Upload a restaurant receipt photo. Use <strong>Parse with OCR</strong>{" "}
-          for free in-browser text recognition (accuracy varies), or{" "}
-          <strong>Parse with AI</strong> if you have OpenAI billing set up. Then
-          assign each line to one or more people splitting the bill (shared
-          lines are split evenly). Enter tax and tip below the lines; each is
-          split in proportion to each person’s share of the line-item subtotal
-          (including unassigned items). You can also paste plain text or add
-          rows by hand.
+          Use the <strong>Receipt photo</strong> tab to upload a picture and run{" "}
+          <strong>Parse with OCR</strong> (free in-browser; accuracy varies) or{" "}
+          <strong>Parse with AI</strong> if you have OpenAI billing set up. Use{" "}
+          <strong>Paste text</strong> to paste receipt lines instead. Then
+          assign each line to one or more people (shared lines are split
+          evenly). Enter tax and tip below the lines; each is split in
+          proportion to each person’s share of the line-item subtotal (including
+          unassigned items). You can also add rows by hand.
         </Typography>
 
         {error && (
@@ -409,86 +411,108 @@ export const ReceiptSplitPage = () => {
         )}
 
         <Paper sx={{ p: 2 }} className={classes.section}>
-          <Typography variant="subtitle1" gutterBottom>
-            Receipt photo
-          </Typography>
-          <Flex gap={2} flexWrap="wrap" alignItems="center">
-            <Button variant="contained" component="label">
-              Choose photo
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-              />
-            </Button>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={parseFromImageOcr}
-              disabled={!selectedFile || !!loading}
+          <Tabs
+            value={inputTab}
+            onChange={(_, v) => setInputTab(v)}
+            aria-label="How to enter receipt"
+            variant="fullWidth"
+          >
+            <Tab label="Receipt photo" id="receipt-input-tab-0" />
+            <Tab label="Paste text" id="receipt-input-tab-1" />
+          </Tabs>
+
+          {inputTab === 0 && (
+            <Box
+              role="tabpanel"
+              id="receipt-input-panel-0"
+              aria-labelledby="receipt-input-tab-0"
+              sx={{ pt: 2 }}
             >
-              {loading === "ocr" ? (
-                <CircularProgress size={22} color="inherit" />
-              ) : (
-                "Parse with OCR"
+              <Flex gap={2} flexWrap="wrap" alignItems="center">
+                <Button variant="contained" component="label">
+                  Choose photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+                  />
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={parseFromImageOcr}
+                  disabled={!selectedFile || !!loading}
+                >
+                  {loading === "ocr" ? (
+                    <CircularProgress size={22} color="inherit" />
+                  ) : (
+                    "Parse with OCR"
+                  )}
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={parseFromImage}
+                  disabled={!selectedFile || !!loading}
+                >
+                  {loading === "ai" ? (
+                    <CircularProgress size={22} color="inherit" />
+                  ) : (
+                    "Parse with AI"
+                  )}
+                </Button>
+                {selectedFile && (
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedFile.name}
+                  </Typography>
+                )}
+              </Flex>
+              {loading === "ocr" && ocrStatus && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  mt={1}
+                >
+                  {ocrStatus}
+                </Typography>
               )}
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={parseFromImage}
-              disabled={!selectedFile || !!loading}
-            >
-              {loading === "ai" ? (
-                <CircularProgress size={22} color="inherit" />
-              ) : (
-                "Parse with AI"
+              {previewUrl && (
+                <Box mt={2}>
+                  <img
+                    src={previewUrl}
+                    alt="Receipt preview"
+                    className={classes.preview}
+                  />
+                </Box>
               )}
-            </Button>
-            {selectedFile && (
-              <Typography variant="body2" color="text.secondary">
-                {selectedFile.name}
-              </Typography>
-            )}
-          </Flex>
-          {loading === "ocr" && ocrStatus && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              display="block"
-              mt={1}
-            >
-              {ocrStatus}
-            </Typography>
-          )}
-          {previewUrl && (
-            <Box mt={2}>
-              <img
-                src={previewUrl}
-                alt="Receipt preview"
-                className={classes.preview}
-              />
             </Box>
           )}
-        </Paper>
 
-        <Paper sx={{ p: 2 }} className={classes.section}>
-          <Typography variant="subtitle1" gutterBottom>
-            Or paste receipt text
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            minRows={4}
-            placeholder={"Example:\nCheeseburger 12.50\nFries 4.00\nSoda 2.50"}
-            value={pasteText}
-            onChange={(e) => setPasteText(e.target.value)}
-          />
-          <Box mt={1}>
-            <Button variant="outlined" onClick={parseFromPaste}>
-              Parse pasted lines
-            </Button>
-          </Box>
+          {inputTab === 1 && (
+            <Box
+              role="tabpanel"
+              id="receipt-input-panel-1"
+              aria-labelledby="receipt-input-tab-1"
+              sx={{ pt: 2 }}
+            >
+              <TextField
+                fullWidth
+                multiline
+                minRows={4}
+                placeholder={
+                  "Example:\nCheeseburger 12.50\nFries 4.00\nSoda 2.50"
+                }
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+              />
+              <Box mt={1}>
+                <Button variant="outlined" onClick={parseFromPaste}>
+                  Parse pasted lines
+                </Button>
+              </Box>
+            </Box>
+          )}
         </Paper>
 
         <Paper sx={{ p: 2 }} className={classes.section}>
