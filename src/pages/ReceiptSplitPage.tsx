@@ -3,16 +3,23 @@ import {
   AppBar,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Container,
   IconButton,
+  InputAdornment,
+  ListItemText,
+  ListSubheader,
   MenuItem,
+  OutlinedInput,
   Paper,
   Select,
+  type SelectChangeEvent,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -31,13 +38,72 @@ import { Flex } from "../components/Flex";
 import { resizeImageFileToJpegBase64 } from "../utils/receiptImage";
 import { parseLooseReceiptText } from "../utils/receiptParse";
 import { ocrReceiptImageToText } from "../utils/receiptTesseract";
+import { Close } from "@mui/icons-material";
 
 type ReceiptLine = {
   id: string;
   description: string;
   amount: number;
-  assignee: string;
+  /** People splitting this line; amount is divided equally among them. */
+  assignees: string[];
 };
+
+/** Split `amount` in cents across `names` so the parts sum exactly (no float drift). */
+function addEqualSplitToMap(
+  map: Record<string, number>,
+  amount: number,
+  names: string[]
+) {
+  if (names.length === 0) {
+    return;
+  }
+  const cents = Math.round(amount * 100);
+  const n = names.length;
+  const base = Math.floor(cents / n);
+  const remainder = cents - base * n;
+  names.forEach((name, i) => {
+    const shareCents = base + (i < remainder ? 1 : 0);
+    map[name] = (map[name] || 0) + shareCents / 100;
+  });
+}
+
+/**
+ * Split `amount` dollars across keys proportionally to positive weights; sums to `amount` in cents.
+ * Keys with weight 0 receive 0. If total weight is 0, returns empty (caller should handle fallback).
+ */
+function splitProportionalByWeights(
+  amount: number,
+  weights: Record<string, number>
+): Record<string, number> {
+  const keys = Object.keys(weights).filter((k) => weights[k] > 0);
+  const sumW = keys.reduce((s, k) => s + weights[k], 0);
+  const cents = Math.round(amount * 100);
+  if (sumW <= 0 || cents === 0 || keys.length === 0) {
+    return {};
+  }
+  const floorCents = keys.map((k) => ({
+    k,
+    c: Math.floor((cents * weights[k]) / sumW),
+  }));
+  const assignedSum = floorCents.reduce((s, x) => s + x.c, 0);
+  let remainder = cents - assignedSum;
+  const fracs = keys.map((k) => {
+    const exact = (cents * weights[k]) / sumW;
+    return { k, frac: exact - Math.floor(exact) };
+  });
+  fracs.sort((a, b) => b.frac - a.frac);
+  const outCents: Record<string, number> = {};
+  for (const { k, c } of floorCents) {
+    outCents[k] = c;
+  }
+  for (let i = 0; i < remainder; i++) {
+    const k = fracs[i].k;
+    outCents[k] += 1;
+  }
+  return Object.fromEntries(
+    Object.entries(outCents).map(([k, v]) => [k, v / 100])
+  );
+}
 
 const useStyles = makeStyles((theme: Theme) => ({
   appBar: {
@@ -53,8 +119,9 @@ const useStyles = makeStyles((theme: Theme) => ({
   section: {
     marginTop: theme.spacing(3),
   },
-  table: {
-    minWidth: 480,
+  itemColumn: {
+    minWidth: 220,
+    verticalAlign: "top",
   },
   preview: {
     maxWidth: "100%",
@@ -81,19 +148,70 @@ export const ReceiptSplitPage = () => {
   const [error, setError] = useState<string | null>(null);
   /** When true, `error` is a soft warning (e.g. OCR text needs manual cleanup). */
   const [errorIsWarning, setErrorIsWarning] = useState(false);
+  const [taxAmount, setTaxAmount] = useState(0);
+  const [tipAmount, setTipAmount] = useState(0);
 
   const totalsByPerson = useMemo(() => {
     const map: Record<string, number> = {};
     let unassigned = 0;
     for (const line of lines) {
-      if (!line.assignee) {
+      if (line.assignees.length === 0) {
         unassigned += line.amount;
         continue;
       }
-      map[line.assignee] = (map[line.assignee] || 0) + line.amount;
+      addEqualSplitToMap(map, line.amount, line.assignees);
     }
     return { map, unassigned };
   }, [lines]);
+
+  const lineSubtotal = useMemo(
+    () => lines.reduce((s, l) => s + l.amount, 0),
+    [lines]
+  );
+
+  const proportionalWeights = useMemo(() => {
+    const weights: Record<string, number> = {};
+    for (const name of people) {
+      const w = totalsByPerson.map[name] || 0;
+      if (w > 0) {
+        weights[name] = w;
+      }
+    }
+    if (totalsByPerson.unassigned > 0) {
+      weights.__unassigned = totalsByPerson.unassigned;
+    }
+    return weights;
+  }, [people, totalsByPerson]);
+
+  const taxSplit = useMemo(() => {
+    if (taxAmount <= 0) {
+      return {};
+    }
+    if (lineSubtotal > 0) {
+      return splitProportionalByWeights(taxAmount, proportionalWeights);
+    }
+    if (people.length > 0) {
+      const m: Record<string, number> = {};
+      addEqualSplitToMap(m, taxAmount, people);
+      return m;
+    }
+    return {};
+  }, [taxAmount, lineSubtotal, proportionalWeights, people]);
+
+  const tipSplit = useMemo(() => {
+    if (tipAmount <= 0) {
+      return {};
+    }
+    if (lineSubtotal > 0) {
+      return splitProportionalByWeights(tipAmount, proportionalWeights);
+    }
+    if (people.length > 0) {
+      const m: Record<string, number> = {};
+      addEqualSplitToMap(m, tipAmount, people);
+      return m;
+    }
+    return {};
+  }, [tipAmount, lineSubtotal, proportionalWeights, people]);
 
   const onPickFile = useCallback((file: File | null) => {
     setError(null);
@@ -119,9 +237,10 @@ export const ReceiptSplitPage = () => {
   const removePerson = useCallback((name: string) => {
     setPeople((p) => p.filter((x) => x !== name));
     setLines((rows) =>
-      rows.map((row) =>
-        row.assignee === name ? { ...row, assignee: "" } : row
-      )
+      rows.map((row) => ({
+        ...row,
+        assignees: row.assignees.filter((x) => x !== name),
+      }))
     );
   }, []);
 
@@ -138,13 +257,16 @@ export const ReceiptSplitPage = () => {
       const { base64, mimeType } = await resizeImageFileToJpegBase64(
         selectedFile
       );
-      const { items } = await parseReceiptImage({ imageBase64: base64, mimeType });
+      const { items } = await parseReceiptImage({
+        imageBase64: base64,
+        mimeType,
+      });
       setLines(
         items.map((item) => ({
           id: uuidv4(),
           description: item.description,
           amount: item.amount,
-          assignee: "",
+          assignees: [],
         }))
       );
     } catch (e: unknown) {
@@ -168,15 +290,18 @@ export const ReceiptSplitPage = () => {
     setErrorIsWarning(false);
     setOcrStatus("Starting OCR…");
     try {
-      const text = await ocrReceiptImageToText(selectedFile, ({ percent, status }) => {
-        setOcrStatus(`${status} (${percent}%)`);
-      });
+      const text = await ocrReceiptImageToText(
+        selectedFile,
+        ({ percent, status }) => {
+          setOcrStatus(`${status} (${percent}%)`);
+        }
+      );
       const items = parseLooseReceiptText(text);
       if (items.length === 0) {
         setPasteText(text);
         setErrorIsWarning(true);
         setError(
-          "OCR did not find lines that look like \"item 12.50\". Raw text was copied to the box below — fix it and click \"Parse pasted lines\", or edit lines by hand."
+          'OCR did not find lines that look like "item 12.50". Raw text was copied to the box below — fix it and click "Parse pasted lines", or edit lines by hand.'
         );
         return;
       }
@@ -185,7 +310,7 @@ export const ReceiptSplitPage = () => {
           id: uuidv4(),
           description: item.description,
           amount: item.amount,
-          assignee: "",
+          assignees: [],
         }))
       );
     } catch (e: unknown) {
@@ -206,7 +331,7 @@ export const ReceiptSplitPage = () => {
     const items = parseLooseReceiptText(pasteText);
     if (items.length === 0) {
       setError(
-        "No lines matched. Use one line per item with the price at the end (e.g. \"Burger 12.50\")."
+        'No lines matched. Use one line per item with the price at the end (e.g. "Burger 12.50").'
       );
       return;
     }
@@ -215,7 +340,7 @@ export const ReceiptSplitPage = () => {
         id: uuidv4(),
         description: item.description,
         amount: item.amount,
-        assignee: "",
+        assignees: [],
       }))
     );
   }, [pasteText]);
@@ -240,7 +365,7 @@ export const ReceiptSplitPage = () => {
         id: uuidv4(),
         description: "",
         amount: 0,
-        assignee: "",
+        assignees: [],
       },
     ]);
   }, []);
@@ -260,11 +385,14 @@ export const ReceiptSplitPage = () => {
 
       <Container maxWidth="md" sx={{ flex: 1, py: 3, overflow: "auto" }}>
         <Typography variant="body1" color="text.secondary" paragraph>
-          Upload a restaurant receipt photo. Use{" "}
-          <strong>Parse with OCR</strong> for free in-browser text recognition
-          (accuracy varies), or <strong>Parse with AI</strong> if you have OpenAI
-          billing set up. Then assign each line to someone splitting the bill.
-          You can also paste plain text or add rows by hand.
+          Upload a restaurant receipt photo. Use <strong>Parse with OCR</strong>{" "}
+          for free in-browser text recognition (accuracy varies), or{" "}
+          <strong>Parse with AI</strong> if you have OpenAI billing set up. Then
+          assign each line to one or more people splitting the bill (shared
+          lines are split evenly). Enter tax and tip below the lines; each is
+          split in proportion to each person’s share of the line-item subtotal
+          (including unassigned items). You can also paste plain text or add
+          rows by hand.
         </Typography>
 
         {error && (
@@ -324,7 +452,12 @@ export const ReceiptSplitPage = () => {
             )}
           </Flex>
           {loading === "ocr" && ocrStatus && (
-            <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              mt={1}
+            >
               {ocrStatus}
             </Typography>
           )}
@@ -347,7 +480,7 @@ export const ReceiptSplitPage = () => {
             fullWidth
             multiline
             minRows={4}
-            placeholder={'Example:\nCheeseburger 12.50\nFries 4.00\nSoda 2.50'}
+            placeholder={"Example:\nCheeseburger 12.50\nFries 4.00\nSoda 2.50"}
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
           />
@@ -380,7 +513,7 @@ export const ReceiptSplitPage = () => {
                 key={name}
                 label={name}
                 onDelete={() => removePerson(name)}
-                deleteIcon={<DeleteOutlineIcon />}
+                deleteIcon={<Close />}
               />
             ))}
           </Flex>
@@ -399,104 +532,305 @@ export const ReceiptSplitPage = () => {
               No lines yet — parse a photo, paste text, or add a line.
             </Typography>
           ) : (
-            <Table size="small" className={classes.table}>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Item</TableCell>
-                  <TableCell align="right" width={120}>
-                    Amount
-                  </TableCell>
-                  <TableCell width={180}>Assigned to</TableCell>
-                  <TableCell width={56} />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {lines.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        value={row.description}
-                        onChange={(e) =>
-                          updateLine(row.id, { description: e.target.value })
-                        }
-                      />
+            <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
+              <Table
+                size="small"
+                sx={{
+                  width: "max-content",
+                  minWidth: "100%",
+                  tableLayout: "auto",
+                }}
+              >
+                <colgroup>
+                  <col style={{ minWidth: 220 }} />
+                  <col style={{ width: 150 }} />
+                  <col style={{ minWidth: 220 }} />
+                  <col style={{ minWidth: 48 }} />
+                </colgroup>
+                <TableHead>
+                  <TableRow>
+                    <TableCell className={classes.itemColumn}>Item</TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                      Amount
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      Split between
+                    </TableCell>
+                    <TableCell padding="checkbox" />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {lines.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className={classes.itemColumn}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={row.description}
+                          onChange={(e) =>
+                            updateLine(row.id, {
+                              description: e.target.value,
+                            })
+                          }
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <TextField
+                          size="small"
+                          type="number"
+                          inputProps={{ min: 0, step: 0.01 }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                $
+                              </InputAdornment>
+                            ),
+                          }}
+                          value={row.amount || ""}
+                          onChange={(e) =>
+                            updateLine(row.id, {
+                              amount: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          fullWidth
+                          multiple
+                          displayEmpty
+                          size="small"
+                          value={row.assignees}
+                          onChange={(e: SelectChangeEvent<string[]>) => {
+                            const v = e.target.value;
+                            updateLine(row.id, {
+                              assignees:
+                                typeof v === "string" ? v.split(",") : v,
+                            });
+                          }}
+                          input={<OutlinedInput size="small" />}
+                          MenuProps={{
+                            autoFocus: false,
+                            disableAutoFocusItem: true,
+                          }}
+                          renderValue={(selected) => {
+                            const names = selected as string[];
+                            if (names.length === 0) {
+                              return (
+                                <Typography
+                                  component="span"
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  Unassigned
+                                </Typography>
+                              );
+                            }
+                            return (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 0.5,
+                                  py: 0.25,
+                                }}
+                              >
+                                {names.map((name) => (
+                                  <Chip key={name} label={name} size="small" />
+                                ))}
+                              </Box>
+                            );
+                          }}
+                        >
+                          <ListSubheader
+                            sx={{
+                              px: 1,
+                              py: 1,
+                              lineHeight: 1.2,
+                              bgcolor: "background.paper",
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Flex gap={0.5} flexWrap="wrap">
+                              <Button
+                                size="small"
+                                disabled={people.length === 0}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  updateLine(row.id, {
+                                    assignees: [...people],
+                                  });
+                                }}
+                              >
+                                Select all
+                              </Button>
+                              <Button
+                                size="small"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  updateLine(row.id, { assignees: [] });
+                                }}
+                              >
+                                Deselect all
+                              </Button>
+                            </Flex>
+                          </ListSubheader>
+                          {people.map((name) => (
+                            <MenuItem key={name} value={name}>
+                              <Checkbox
+                                size="small"
+                                checked={row.assignees.includes(name)}
+                              />
+                              <ListItemText primary={name} />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </TableCell>
+                      <TableCell padding="checkbox">
+                        <IconButton
+                          size="small"
+                          aria-label="Remove line"
+                          onClick={() => removeLine(row.id)}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell className={classes.itemColumn}>
+                      <Typography variant="body2" fontWeight={500}>
+                        Tax
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">
                       <TextField
                         size="small"
                         type="number"
                         inputProps={{ min: 0, step: 0.01 }}
-                        value={row.amount || ""}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">$</InputAdornment>
+                          ),
+                        }}
+                        value={taxAmount}
                         onChange={(e) =>
-                          updateLine(row.id, {
-                            amount: parseFloat(e.target.value) || 0,
-                          })
+                          setTaxAmount(parseFloat(e.target.value) || 0)
                         }
                       />
                     </TableCell>
-                    <TableCell>
-                      <Select
-                        fullWidth
-                        size="small"
-                        displayEmpty
-                        value={row.assignee}
-                        onChange={(e) =>
-                          updateLine(row.id, {
-                            assignee: e.target.value as string,
-                          })
-                        }
-                      >
-                        <MenuItem value="">
-                          <em>Unassigned</em>
-                        </MenuItem>
-                        {people.map((name) => (
-                          <MenuItem key={name} value={name}>
-                            {name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell padding="checkbox">
-                      <IconButton
-                        size="small"
-                        aria-label="Remove line"
-                        onClick={() => removeLine(row.id)}
-                      >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
+                    <TableCell colSpan={2}>
+                      <Typography variant="caption" color="text.secondary">
+                        Split by share of subtotal ({formatMoney(lineSubtotal)})
+                      </Typography>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                  <TableRow>
+                    <TableCell className={classes.itemColumn}>
+                      <Typography variant="body2" fontWeight={500}>
+                        Tip
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <TextField
+                        size="small"
+                        type="number"
+                        inputProps={{ min: 0, step: 0.01 }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">$</InputAdornment>
+                          ),
+                        }}
+                        value={tipAmount}
+                        onChange={(e) =>
+                          setTipAmount(parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell colSpan={2}>
+                      <Typography variant="caption" color="text.secondary">
+                        Split by share of subtotal ({formatMoney(lineSubtotal)})
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </Paper>
 
         {lines.length > 0 && (
-          <Paper
-            sx={{ p: 2, bgcolor: blue[50] }}
-            className={classes.section}
-          >
+          <Paper sx={{ p: 2, bgcolor: blue[50] }} className={classes.section}>
             <Typography variant="subtitle1" gutterBottom>
               Totals
             </Typography>
-            {people.map((name) => (
-              <Typography key={name}>
-                {name}: {formatMoney(totalsByPerson.map[name] || 0)}
-              </Typography>
-            ))}
-            {totalsByPerson.unassigned > 0 && (
-              <Typography color="text.secondary">
-                Unassigned: {formatMoney(totalsByPerson.unassigned)}
+            {people.map((name) => {
+              const items = totalsByPerson.map[name] || 0;
+              const tx = taxSplit[name] || 0;
+              const tp = tipSplit[name] || 0;
+              const grand = items + tx + tp;
+              const showBreakdown = taxAmount > 0 || tipAmount > 0;
+              return (
+                <Box key={name} sx={{ mb: showBreakdown ? 0.5 : 0 }}>
+                  <Typography>
+                    {name}: {formatMoney(grand)}
+                  </Typography>
+                  {showBreakdown && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ pl: 1 }}
+                    >
+                      {formatMoney(items)} items
+                      {taxAmount > 0 && <> + {formatMoney(tx)} tax</>}
+                      {tipAmount > 0 && <> + {formatMoney(tp)} tip</>}
+                    </Typography>
+                  )}
+                </Box>
+              );
+            })}
+            {(totalsByPerson.unassigned > 0 ||
+              (taxSplit.__unassigned ?? 0) > 0 ||
+              (tipSplit.__unassigned ?? 0) > 0) && (
+              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                Unassigned: {formatMoney(totalsByPerson.unassigned)} items
+                {taxAmount > 0 && (
+                  <> + {formatMoney(taxSplit.__unassigned ?? 0)} tax</>
+                )}
+                {tipAmount > 0 && (
+                  <> + {formatMoney(tipSplit.__unassigned ?? 0)} tip</>
+                )}
               </Typography>
             )}
-            <Typography sx={{ mt: 1, fontWeight: 600 }}>
-              Receipt total:{" "}
-              {formatMoney(
-                lines.reduce((s, l) => s + l.amount, 0)
+            {taxAmount > 0 &&
+              lineSubtotal === 0 &&
+              people.length === 0 &&
+              lines.length > 0 && (
+                <Typography variant="body2" color="warning.main" sx={{ mt: 1 }}>
+                  Add people (or assign lines) to split tax; otherwise it is not
+                  allocated.
+                </Typography>
               )}
+            {tipAmount > 0 &&
+              lineSubtotal === 0 &&
+              people.length === 0 &&
+              lines.length > 0 && (
+                <Typography
+                  variant="body2"
+                  color="warning.main"
+                  sx={{ mt: 0.5 }}
+                >
+                  Add people (or assign lines) to split tip; otherwise it is not
+                  allocated.
+                </Typography>
+              )}
+            <Typography sx={{ mt: 1, fontWeight: 600 }}>
+              Receipt total: {formatMoney(lineSubtotal + taxAmount + tipAmount)}
             </Typography>
           </Paper>
         )}

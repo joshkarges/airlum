@@ -414,6 +414,7 @@ exports.parseReceiptImage = onCall<
             {
               role: "system",
               content:
+                /* eslint-disable-next-line quotes */
                 'You parse restaurant receipts. Extract each purchasable line item with its price in dollars (decimal number). Omit subtotal, tax, tip, and grand total lines. Return JSON only: {"items":[{"description":"string","amount":number}]}. Use an empty items array if nothing is readable.',
             },
             {
@@ -477,8 +478,8 @@ exports.parseReceiptImage = onCall<
           typeof r.amount === "number" && Number.isFinite(r.amount)
             ? r.amount
             : typeof r.amount === "string"
-            ? parseFloat(r.amount)
-            : NaN;
+            ? parseFloat(r.amount) // eslint-disable-line indent
+            : NaN; // eslint-disable-line indent
         if (!description || !Number.isFinite(amount) || amount < 0) {
           return null;
         }

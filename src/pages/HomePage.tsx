@@ -12,6 +12,7 @@ import splendorImg from "../assets/splendorImage.png";
 import plansImg from "../assets/plansImage.jpg";
 import timedTeamsImage from "../assets/timedTeamsImage.png";
 import resumeImage from "../assets/resumeImage.png";
+import receiptSplit from "../assets/receiptSplit.png";
 
 const PAGES = [
   {
@@ -45,7 +46,7 @@ const PAGES = [
     title: "Receipt Split",
     path: "/receipt-split",
     backgroundColor: blue[300],
-    img: { src: timedTeamsImage, alt: "receipt splitting" },
+    img: { src: receiptSplit, alt: "receipt splitting" },
   },
   {
     title: "Splendor",
