@@ -28,6 +28,9 @@ import {
   Theme,
   Toolbar,
   Typography,
+  FormControl,
+  FormControlLabel,
+  Autocomplete,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { makeStyles } from "@mui/styles";
@@ -40,7 +43,7 @@ import { Flex } from "../components/Flex";
 import { resizeImageFileToJpegBase64 } from "../utils/receiptImage";
 import { parseLooseReceiptText } from "../utils/receiptParse";
 import { ocrReceiptImageToText } from "../utils/receiptTesseract";
-import { Close } from "@mui/icons-material";
+import { ArrowForward, Close } from "@mui/icons-material";
 
 type ReceiptLine = {
   id: string;
@@ -134,8 +137,33 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-const formatMoney = (n: number) =>
-  n.toLocaleString(undefined, { style: "currency", currency: "USD" });
+const CURRENCY_OPTIONS: { value: string; label: string }[] = [
+  { value: "USD", label: "$" },
+  { value: "EUR", label: "€" },
+  { value: "BTC", label: "฿" },
+  { value: "JPY", label: "¥" },
+];
+
+const CURRENCY_BY_VALUE = Object.fromEntries(
+  CURRENCY_OPTIONS.map((c) => [c.value, c.label])
+);
+
+const CURRENCY_BY_LABEL = Object.fromEntries(
+  CURRENCY_OPTIONS.map((c) => [c.label, c.value])
+);
+
+const formatMoney = (n: number, currency: string) => {
+  try {
+    return n.toLocaleString(undefined, {
+      style: "currency",
+      currency: CURRENCY_BY_LABEL[currency] ?? currency,
+    });
+  } catch (e) {
+    return `${CURRENCY_BY_VALUE[currency] ?? currency} ${(
+      Math.round(n * 100) / 100
+    ).toFixed(2)}`;
+  }
+};
 
 export const ReceiptSplitPage = () => {
   const classes = useStyles();
@@ -154,6 +182,13 @@ export const ReceiptSplitPage = () => {
   const [inputTab, setInputTab] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
   const [tipAmount, setTipAmount] = useState(0);
+  const [convertCurrency, setConvertCurrency] = useState(false);
+  const [fromCurrency, setFromCurrency] = useState<string>("$");
+  const [toCurrency, setToCurrency] = useState<string>("$");
+  const [fromCurrencyRate, setFromCurrencyRate] = useState<string>("1");
+  const [toCurrencyRate, setToCurrencyRate] = useState<string>("1");
+  const fromCurrencyRateNumber = parseFloat(fromCurrencyRate) || 1;
+  const toCurrencyRateNumber = parseFloat(toCurrencyRate) || 1;
 
   const newPersonRef = useRef<HTMLInputElement>(null);
 
@@ -246,10 +281,7 @@ export const ReceiptSplitPage = () => {
         | React.KeyboardEvent<HTMLDivElement>
     ) => {
       const name = newPerson.trim();
-      if (
-        !name ||
-        people.some((p) => p.toLowerCase() === name.toLowerCase())
-      ) {
+      if (!name || people.some((p) => p.toLowerCase() === name.toLowerCase())) {
         queueMicrotask(() => newPersonRef.current?.focus());
         return;
       }
@@ -637,7 +669,8 @@ export const ReceiptSplitPage = () => {
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
-                                $
+                                {CURRENCY_BY_VALUE[fromCurrency] ??
+                                  fromCurrency}
                               </InputAdornment>
                             ),
                           }}
@@ -770,7 +803,9 @@ export const ReceiptSplitPage = () => {
                         inputProps={{ min: 0, step: 0.01 }}
                         InputProps={{
                           startAdornment: (
-                            <InputAdornment position="start">$</InputAdornment>
+                            <InputAdornment position="start">
+                              {CURRENCY_BY_VALUE[fromCurrency] ?? fromCurrency}
+                            </InputAdornment>
                           ),
                         }}
                         value={taxAmount || ""}
@@ -781,7 +816,8 @@ export const ReceiptSplitPage = () => {
                     </TableCell>
                     <TableCell colSpan={2}>
                       <Typography variant="caption" color="text.secondary">
-                        Split by share of subtotal ({formatMoney(lineSubtotal)})
+                        Split by share of subtotal (
+                        {formatMoney(lineSubtotal, fromCurrency)})
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -798,7 +834,9 @@ export const ReceiptSplitPage = () => {
                         inputProps={{ min: 0, step: 0.01 }}
                         InputProps={{
                           startAdornment: (
-                            <InputAdornment position="start">$</InputAdornment>
+                            <InputAdornment position="start">
+                              {CURRENCY_BY_VALUE[fromCurrency] ?? fromCurrency}
+                            </InputAdornment>
                           ),
                         }}
                         value={tipAmount || ""}
@@ -809,7 +847,8 @@ export const ReceiptSplitPage = () => {
                     </TableCell>
                     <TableCell colSpan={2}>
                       <Typography variant="caption" color="text.secondary">
-                        Split by share of subtotal ({formatMoney(lineSubtotal)})
+                        Split by share of subtotal (
+                        {formatMoney(lineSubtotal, fromCurrency)})
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -819,21 +858,100 @@ export const ReceiptSplitPage = () => {
           )}
         </Paper>
 
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={convertCurrency}
+              onChange={(e) => setConvertCurrency(e.target.checked)}
+            />
+          }
+          label="Convert currency"
+        />
+
+        {convertCurrency && (
+          <Paper
+            sx={{
+              p: 2,
+              gridGap: 16,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+            className={classes.section}
+          >
+            <Flex gap="8px" flexWrap="nowrap" alignItems="center" flex={1}>
+              <Autocomplete
+                sx={{
+                  minWidth: 100,
+                }}
+                freeSolo
+                options={CURRENCY_OPTIONS}
+                renderInput={(params) => <TextField {...params} label="From" />}
+                onInputChange={(e, value) => setFromCurrency(value.trim())}
+                value={fromCurrency}
+              />
+              <TextField
+                sx={{
+                  minWidth: 100,
+                }}
+                label="From currency rate"
+                value={fromCurrencyRate}
+                onChange={(e) => setFromCurrencyRate(e.target.value.trim())}
+              />
+            </Flex>
+            <ArrowForward />
+            <Flex
+              gap="8px"
+              flexWrap="nowrap"
+              alignItems="center"
+              flex={1}
+              justifyContent="flex-end"
+            >
+              <Autocomplete
+                sx={{
+                  minWidth: 100,
+                }}
+                freeSolo
+                options={CURRENCY_OPTIONS}
+                renderInput={(params) => <TextField {...params} label="To" />}
+                onInputChange={(e, value) => {
+                  setToCurrency(value.trim());
+                }}
+                value={toCurrency}
+              />
+              <TextField
+                sx={{
+                  minWidth: 100,
+                }}
+                label="To currency rate"
+                value={toCurrencyRate}
+                onChange={(e) => setToCurrencyRate(e.target.value.trim())}
+              />
+            </Flex>
+          </Paper>
+        )}
         {lines.length > 0 && (
           <Paper sx={{ p: 2, bgcolor: blue[50] }} className={classes.section}>
             <Typography variant="subtitle1" gutterBottom>
               Totals
             </Typography>
             {people.map((name) => {
-              const items = totalsByPerson.map[name] || 0;
-              const tx = taxSplit[name] || 0;
-              const tp = tipSplit[name] || 0;
+              const items =
+                ((totalsByPerson.map[name] || 0) * fromCurrencyRateNumber) /
+                toCurrencyRateNumber;
+              const tx =
+                ((taxSplit[name] || 0) * fromCurrencyRateNumber) /
+                toCurrencyRateNumber;
+              const tp =
+                ((tipSplit[name] || 0) * fromCurrencyRateNumber) /
+                toCurrencyRateNumber;
               const grand = items + tx + tp;
               const showBreakdown = taxAmount > 0 || tipAmount > 0;
               return (
                 <Box key={name} sx={{ mb: showBreakdown ? 0.5 : 0 }}>
                   <Typography>
-                    {name}: {formatMoney(grand)}
+                    {name}: {formatMoney(grand, toCurrency)}
                   </Typography>
                   {showBreakdown && (
                     <Typography
@@ -841,9 +959,13 @@ export const ReceiptSplitPage = () => {
                       color="text.secondary"
                       sx={{ pl: 1 }}
                     >
-                      {formatMoney(items)} items
-                      {taxAmount > 0 && <> + {formatMoney(tx)} tax</>}
-                      {tipAmount > 0 && <> + {formatMoney(tp)} tip</>}
+                      {formatMoney(items, toCurrency)} items
+                      {taxAmount > 0 && (
+                        <> + {formatMoney(tx, toCurrency)} tax</>
+                      )}
+                      {tipAmount > 0 && (
+                        <> + {formatMoney(tp, toCurrency)} tip</>
+                      )}
                     </Typography>
                   )}
                 </Box>
@@ -853,12 +975,36 @@ export const ReceiptSplitPage = () => {
               (taxSplit.__unassigned ?? 0) > 0 ||
               (tipSplit.__unassigned ?? 0) > 0) && (
               <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-                Unassigned: {formatMoney(totalsByPerson.unassigned)} items
+                Unassigned:{" "}
+                {formatMoney(
+                  (totalsByPerson.unassigned * fromCurrencyRateNumber) /
+                    toCurrencyRateNumber,
+                  toCurrency
+                )}{" "}
+                items
                 {taxAmount > 0 && (
-                  <> + {formatMoney(taxSplit.__unassigned ?? 0)} tax</>
+                  <>
+                    {" "}
+                    +{" "}
+                    {formatMoney(
+                      ((taxSplit.__unassigned ?? 0) * fromCurrencyRateNumber) /
+                        toCurrencyRateNumber,
+                      toCurrency
+                    )}{" "}
+                    tax
+                  </>
                 )}
                 {tipAmount > 0 && (
-                  <> + {formatMoney(tipSplit.__unassigned ?? 0)} tip</>
+                  <>
+                    {" "}
+                    +{" "}
+                    {formatMoney(
+                      ((tipSplit.__unassigned ?? 0) * fromCurrencyRateNumber) /
+                        toCurrencyRateNumber,
+                      toCurrency
+                    )}{" "}
+                    tip
+                  </>
                 )}
               </Typography>
             )}
@@ -885,7 +1031,13 @@ export const ReceiptSplitPage = () => {
                 </Typography>
               )}
             <Typography sx={{ mt: 1, fontWeight: 600 }}>
-              Receipt total: {formatMoney(lineSubtotal + taxAmount + tipAmount)}
+              Receipt total:{" "}
+              {formatMoney(
+                ((lineSubtotal + taxAmount + tipAmount) *
+                  fromCurrencyRateNumber) /
+                  toCurrencyRateNumber,
+                toCurrency
+              )}
             </Typography>
           </Paper>
         )}
