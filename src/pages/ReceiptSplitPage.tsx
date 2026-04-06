@@ -880,22 +880,31 @@ export const ReceiptSplitPage = () => {
             }}
             className={classes.section}
           >
-            <Flex gap="8px" flexWrap="nowrap" alignItems="center" flex={1}>
+            <Flex gap="8px" flexWrap="nowrap" alignItems="center">
               <Autocomplete
                 sx={{
                   minWidth: 100,
                 }}
                 freeSolo
                 options={CURRENCY_OPTIONS}
-                renderInput={(params) => <TextField {...params} label="From" />}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="From"
+                    sx={{
+                      "& .MuiInputBase-input": { textAlign: "right" },
+                    }}
+                  />
+                )}
                 onInputChange={(e, value) => setFromCurrency(value.trim())}
                 value={fromCurrency}
+                disableClearable
               />
               <TextField
                 sx={{
                   minWidth: 100,
                 }}
-                label="From currency rate"
+                label="Amount"
                 value={fromCurrencyRate}
                 onChange={(e) => setFromCurrencyRate(e.target.value.trim())}
               />
@@ -914,17 +923,26 @@ export const ReceiptSplitPage = () => {
                 }}
                 freeSolo
                 options={CURRENCY_OPTIONS}
-                renderInput={(params) => <TextField {...params} label="To" />}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="To"
+                    sx={{
+                      "& .MuiInputBase-input": { textAlign: "right" },
+                    }}
+                  />
+                )}
                 onInputChange={(e, value) => {
                   setToCurrency(value.trim());
                 }}
                 value={toCurrency}
+                disableClearable
               />
               <TextField
                 sx={{
                   minWidth: 100,
                 }}
-                label="To currency rate"
+                label="Amount"
                 value={toCurrencyRate}
                 onChange={(e) => setToCurrencyRate(e.target.value.trim())}
               />
