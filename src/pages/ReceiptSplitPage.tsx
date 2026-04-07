@@ -443,7 +443,7 @@ export const ReceiptSplitPage = () => {
         <Typography variant="body1" color="text.secondary" paragraph>
           Use the <strong>Receipt photo</strong> tab to upload a picture and run{" "}
           <strong>Parse with OCR</strong> (free in-browser; accuracy varies) or{" "}
-          <strong>Parse with AI</strong> if you have OpenAI billing set up. Use{" "}
+          <strong>Parse with Gemini</strong> (slower but more accurate). Use{" "}
           <strong>Paste text</strong> to paste receipt lines instead. Then
           assign each line to one or more people (shared lines are split
           evenly). Enter tax and tip below the lines; each is split in
@@ -512,7 +512,7 @@ export const ReceiptSplitPage = () => {
                   {loading === "ai" ? (
                     <CircularProgress size={22} color="inherit" />
                   ) : (
-                    "Parse with AI"
+                    "Parse with Gemini"
                   )}
                 </Button>
                 {selectedFile && (

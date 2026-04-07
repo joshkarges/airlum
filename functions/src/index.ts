@@ -7,6 +7,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import * as admin from "firebase-admin";
@@ -67,7 +68,10 @@ const appAdmin = admin.initializeApp({
 
 const dbAdmin = getFirestoreAdmin(appAdmin);
 
-const openaiApiKey = defineSecret("OPENAI_API_KEY");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
+/** https://ai.google.dev/gemini-api/docs/models/gemini-3-flash-preview */
+const RECEIPT_PARSE_MODEL = "gemini-3-flash-preview";
 
 const corsOrigins = [
   /firebase\.com$/,
@@ -374,7 +378,7 @@ exports.parseReceiptImage = onCall<
 >(
   {
     cors: corsOrigins,
-    secrets: [openaiApiKey],
+    secrets: [geminiApiKey],
     memory: "512MiB",
     timeoutSeconds: 120,
   },
@@ -390,65 +394,47 @@ exports.parseReceiptImage = onCall<
       );
     }
 
-    const apiKey = openaiApiKey.value();
+    const apiKey = geminiApiKey.value();
     if (!apiKey) {
       throw new HttpsError(
         "failed-precondition",
-        "OPENAI_API_KEY secret is not configured."
+        "GEMINI_API_KEY secret is not configured."
       );
     }
 
-    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
-    const openaiRes = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: RECEIPT_PARSE_MODEL,
+      generationConfig: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    const prompt =
+      "Parse this receipt image. Extract each purchasable line item with its " +
+      "price in dollars (decimal number). Omit subtotal, tax, tip, and grand " +
+      "total lines. Return JSON only with this exact shape: " +
+      "{\"items\":[{\"description\":\"string\",\"amount\":number}]}. " +
+      "Use an empty items array if nothing is readable.";
+
+    let content: string;
+    try {
+      const result = await model.generateContent([
+        { text: prompt },
+        {
+          inlineData: {
+            mimeType,
+            data: imageBase64,
+          },
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content:
-                /* eslint-disable-next-line quotes */
-                'You parse restaurant receipts. Extract each purchasable line item with its price in dollars (decimal number). Omit subtotal, tax, tip, and grand total lines. Return JSON only: {"items":[{"description":"string","amount":number}]}. Use an empty items array if nothing is readable.',
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Parse this receipt image into the JSON structure described.",
-                },
-                {
-                  type: "image_url",
-                  image_url: { url: dataUrl },
-                },
-              ],
-            },
-          ],
-          max_tokens: 4096,
-        }),
-      }
-    );
-
-    if (!openaiRes.ok) {
-      const errText = await openaiRes.text();
-      console.log("OpenAI error", openaiRes.status, errText);
-      throw new HttpsError(
-        "internal",
-        `Receipt parsing failed (${openaiRes.status}).`
-      );
+      ]);
+      content = result.response.text();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.log("Gemini error", msg, e);
+      throw new HttpsError("internal", "Receipt parsing failed.");
     }
 
-    const openaiJson = (await openaiRes.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = openaiJson.choices?.[0]?.message?.content;
     if (!content) {
       throw new HttpsError("internal", "No response from receipt parser.");
     }

@@ -279,6 +279,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@google/generative-ai@npm:^0.24.1":
+  version: 0.24.1
+  resolution: "@google/generative-ai@npm:0.24.1"
+  checksum: d999b98acf1a6dba36a3e3693e02fde270c21b8d20333e2d458cf085e90508b24fad6c8d05d9475817fdf9d1ff1bf4082c86a4b09d2e59af739d391e59bca7ed
+  languageName: node
+  linkType: hard
+
 "@grpc/grpc-js@npm:~1.8.0":
   version: 1.8.21
   resolution: "@grpc/grpc-js@npm:1.8.21"
@@ -2122,6 +2129,7 @@ __metadata:
   resolution: "functions@workspace:."
   dependencies:
     "@google-cloud/functions-framework": ^3.3.0
+    "@google/generative-ai": ^0.24.1
     "@types/lodash": ^4.14.202
     "@types/uuid": ^9.0.7
     "@typescript-eslint/eslint-plugin": ^5.12.0
