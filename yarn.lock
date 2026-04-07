@@ -5727,6 +5727,7 @@ __metadata:
     react: ^18.2.0
     react-chartjs-2: ^5.2.0
     react-dom: ^18.2.0
+    react-easy-crop: ^5.5.7
     react-firebaseui: ^6.0.0
     react-redux: ^8.0.2
     react-router-dom: ^5.2.0
@@ -13301,6 +13302,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"normalize-wheel@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "normalize-wheel@npm:1.0.1"
+  checksum: 00b32efa040bad9438e732385a4ca27f8532fa2c8c06b54be43b9f75b2da6642bf41a0b4f81e542639dc8d682cde8b059b0a02ae0723fb8ebc3c8f036c8e51d8
+  languageName: node
+  linkType: hard
+
 "npm-run-path@npm:^4.0.1":
   version: 4.0.1
   resolution: "npm-run-path@npm:4.0.1"
@@ -15039,6 +15047,19 @@ __metadata:
   peerDependencies:
     react: ^18.2.0
   checksum: 7d323310bea3a91be2965f9468d552f201b1c27891e45ddc2d6b8f717680c95a75ae0bc1e3f5cf41472446a2589a75aed4483aee8169287909fcd59ad149e8cc
+  languageName: node
+  linkType: hard
+
+"react-easy-crop@npm:^5.5.7":
+  version: 5.5.7
+  resolution: "react-easy-crop@npm:5.5.7"
+  dependencies:
+    normalize-wheel: ^1.0.1
+    tslib: ^2.0.1
+  peerDependencies:
+    react: ">=16.4.0"
+    react-dom: ">=16.4.0"
+  checksum: 9dab61c2d6a0bddaa588878e65e34d965d3a8792efd07921ef2969221e4e68babfaa44854e5f1d11ac14d79eb2f8d6a60131f5ff92dfb26e665302f831cd6a98
   languageName: node
   linkType: hard
 
@@ -17085,6 +17106,13 @@ __metadata:
   version: 2.6.2
   resolution: "tslib@npm:2.6.2"
   checksum: 329ea56123005922f39642318e3d1f0f8265d1e7fcb92c633e0809521da75eeaca28d2cf96d7248229deb40e5c19adf408259f4b9640afd20d13aecc1430f3ad
+  languageName: node
+  linkType: hard
+
+"tslib@npm:^2.0.1":
+  version: 2.8.1
+  resolution: "tslib@npm:2.8.1"
+  checksum: e4aba30e632b8c8902b47587fd13345e2827fa639e7c3121074d5ee0880723282411a8838f830b55100cbe4517672f84a2472667d355b81e8af165a55dc6203a
   languageName: node
   linkType: hard
 

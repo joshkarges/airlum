@@ -7,6 +7,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   InputAdornment,
   ListItemText,
@@ -15,6 +19,7 @@ import {
   OutlinedInput,
   Paper,
   Select,
+  Slider,
   type SelectChangeEvent,
   Tab,
   Tabs,
@@ -43,6 +48,10 @@ import { Flex } from "../components/Flex";
 import { resizeImageFileToJpegBase64 } from "../utils/receiptImage";
 import { parseLooseReceiptText } from "../utils/receiptParse";
 import { ocrReceiptImageToText } from "../utils/receiptTesseract";
+import { getCroppedImageBlob } from "../utils/getCroppedImage";
+import Cropper from "react-easy-crop";
+import type { Area } from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 import { ArrowForward, Close } from "@mui/icons-material";
 
 type ReceiptLine = {
@@ -178,6 +187,12 @@ export const ReceiptSplitPage = () => {
   const [error, setError] = useState<string | null>(null);
   /** When true, `error` is a soft warning (e.g. OCR text needs manual cleanup). */
   const [errorIsWarning, setErrorIsWarning] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
+    null
+  );
   /** 0 = receipt photo, 1 = paste text */
   const [inputTab, setInputTab] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
@@ -273,6 +288,43 @@ export const ReceiptSplitPage = () => {
       return file ? URL.createObjectURL(file) : null;
     });
   }, []);
+
+  const openCropDialog = useCallback(() => {
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setCropOpen(true);
+  }, []);
+
+  const closeCropDialog = useCallback(() => {
+    setCropOpen(false);
+  }, []);
+
+  const applyCrop = useCallback(async () => {
+    if (!previewUrl || !croppedAreaPixels) {
+      return;
+    }
+    try {
+      const blob = await getCroppedImageBlob(previewUrl, croppedAreaPixels);
+      const file = new File([blob], "receipt-cropped.jpg", {
+        type: "image/jpeg",
+      });
+      setSelectedFile(file);
+      setPreviewUrl((prev) => {
+        if (prev) {
+          URL.revokeObjectURL(prev);
+        }
+        return URL.createObjectURL(blob);
+      });
+      setCropOpen(false);
+      setError(null);
+      setErrorIsWarning(false);
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : "Could not crop image.";
+      setError(msg);
+    }
+  }, [previewUrl, croppedAreaPixels]);
 
   const addPerson = useCallback(
     (
@@ -491,6 +543,13 @@ export const ReceiptSplitPage = () => {
                     hidden
                     onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
                   />
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={openCropDialog}
+                  disabled={!previewUrl || !!loading}
+                >
+                  Crop
                 </Button>
                 <Button
                   variant="contained"
@@ -1060,6 +1119,65 @@ export const ReceiptSplitPage = () => {
           </Paper>
         )}
       </Container>
+
+      <Dialog
+        open={cropOpen}
+        onClose={closeCropDialog}
+        maxWidth="sm"
+        fullWidth
+        aria-labelledby="receipt-crop-dialog-title"
+      >
+        <DialogTitle id="receipt-crop-dialog-title">Crop receipt</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Drag to frame the receipt. Pinch or use the slider to zoom.
+          </Typography>
+          {previewUrl && (
+            <Box
+              sx={{
+                position: "relative",
+                width: "100%",
+                height: 380,
+                bgcolor: "grey.900",
+                borderRadius: 1,
+                overflow: "hidden",
+              }}
+            >
+              <Cropper
+                image={previewUrl}
+                crop={crop}
+                zoom={zoom}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(_, areaPixels) =>
+                  setCroppedAreaPixels(areaPixels)
+                }
+              />
+            </Box>
+          )}
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+            Zoom
+          </Typography>
+          <Slider
+            value={zoom}
+            min={1}
+            max={3}
+            step={0.05}
+            aria-label="Crop zoom"
+            onChange={(_, v) => setZoom(v as number)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCropDialog}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => void applyCrop()}
+            disabled={!croppedAreaPixels}
+          >
+            Apply
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
