@@ -190,9 +190,7 @@ export const ReceiptSplitPage = () => {
   const [cropOpen, setCropOpen] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
-    null
-  );
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   /** 0 = receipt photo, 1 = paste text */
   const [inputTab, setInputTab] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
@@ -320,8 +318,7 @@ export const ReceiptSplitPage = () => {
       setError(null);
       setErrorIsWarning(false);
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : "Could not crop image.";
+      const msg = e instanceof Error ? e.message : "Could not crop image.";
       setError(msg);
     }
   }, [previewUrl, croppedAreaPixels]);
@@ -968,12 +965,15 @@ export const ReceiptSplitPage = () => {
                 onChange={(e) => setFromCurrencyRate(e.target.value.trim())}
               />
             </Flex>
-            <ArrowForward />
+            <Flex justifyContent="center">
+              <Typography variant="h3" color="text.secondary">
+                =
+              </Typography>
+            </Flex>
             <Flex
               gap="8px"
               flexWrap="nowrap"
               alignItems="center"
-              flex={1}
               justifyContent="flex-end"
             >
               <Autocomplete
@@ -1015,14 +1015,14 @@ export const ReceiptSplitPage = () => {
             </Typography>
             {people.map((name) => {
               const items =
-                ((totalsByPerson.map[name] || 0) * fromCurrencyRateNumber) /
-                toCurrencyRateNumber;
+                ((totalsByPerson.map[name] || 0) * toCurrencyRateNumber) /
+                fromCurrencyRateNumber;
               const tx =
-                ((taxSplit[name] || 0) * fromCurrencyRateNumber) /
-                toCurrencyRateNumber;
+                ((taxSplit[name] || 0) * toCurrencyRateNumber) /
+                fromCurrencyRateNumber;
               const tp =
-                ((tipSplit[name] || 0) * fromCurrencyRateNumber) /
-                toCurrencyRateNumber;
+                ((tipSplit[name] || 0) * toCurrencyRateNumber) /
+                fromCurrencyRateNumber;
               const grand = items + tx + tp;
               const showBreakdown = taxAmount > 0 || tipAmount > 0;
               return (
@@ -1054,8 +1054,8 @@ export const ReceiptSplitPage = () => {
               <Typography color="text.secondary" sx={{ mt: 0.5 }}>
                 Unassigned:{" "}
                 {formatMoney(
-                  (totalsByPerson.unassigned * fromCurrencyRateNumber) /
-                    toCurrencyRateNumber,
+                  (totalsByPerson.unassigned * toCurrencyRateNumber) /
+                    fromCurrencyRateNumber,
                   toCurrency
                 )}{" "}
                 items
@@ -1064,8 +1064,8 @@ export const ReceiptSplitPage = () => {
                     {" "}
                     +{" "}
                     {formatMoney(
-                      ((taxSplit.__unassigned ?? 0) * fromCurrencyRateNumber) /
-                        toCurrencyRateNumber,
+                      ((taxSplit.__unassigned ?? 0) * toCurrencyRateNumber) /
+                        fromCurrencyRateNumber,
                       toCurrency
                     )}{" "}
                     tax
@@ -1076,8 +1076,8 @@ export const ReceiptSplitPage = () => {
                     {" "}
                     +{" "}
                     {formatMoney(
-                      ((tipSplit.__unassigned ?? 0) * fromCurrencyRateNumber) /
-                        toCurrencyRateNumber,
+                      ((tipSplit.__unassigned ?? 0) * toCurrencyRateNumber) /
+                        fromCurrencyRateNumber,
                       toCurrency
                     )}{" "}
                     tip
@@ -1111,8 +1111,8 @@ export const ReceiptSplitPage = () => {
               Receipt total:{" "}
               {formatMoney(
                 ((lineSubtotal + taxAmount + tipAmount) *
-                  fromCurrencyRateNumber) /
-                  toCurrencyRateNumber,
+                  toCurrencyRateNumber) /
+                  fromCurrencyRateNumber,
                 toCurrency
               )}
             </Typography>
