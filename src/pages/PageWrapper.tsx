@@ -15,9 +15,6 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 const PageWrapper = ({ children }: PropsWithChildren) => {
   const classes = useStyles();
-  const path = useLocation().pathname;
-  const docTitle = path === "/" ? "AirLum" : path.slice(1).replace(/-/g, " ");
-  useDocTitleEffect(docTitle);
   return <div className={classes.root}>{children}</div>;
 };
 

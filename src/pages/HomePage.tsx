@@ -13,6 +13,7 @@ import plansImg from "../assets/plansImage.jpg";
 import timedTeamsImage from "../assets/timedTeamsImage.png";
 import resumeImage from "../assets/resumeImage.png";
 import receiptSplit from "../assets/receiptSplit.png";
+import { DocTitle } from "../utils/useDocTitleEffect";
 
 const PAGES = [
   {
@@ -246,6 +247,7 @@ const HomePage = () => {
   }, []);
   return (
     <div>
+      <DocTitle title="Josh Karges Portfolio" />
       <AppBar className={classes.appBar}>
         <Typography variant="h4">Josh Karges</Typography>
       </AppBar>
