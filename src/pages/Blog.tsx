@@ -7,6 +7,7 @@ import { TattooBlog } from "./TattooBlog";
 import { SplendorBlog } from "./SplendorBlog";
 import { PlansBlog } from "./PlansBlog";
 import { TimedTeamsBlog } from "./TimedTeamsBlog";
+import { ReceiptSplitBlog } from "./ReceiptSplitBlog";
 
 const useStyles = makeStyles((theme: Theme) => ({
   homeContainer: {
@@ -54,6 +55,9 @@ export const Blog = () => {
             </Route>
             <Route path="/blog/timed-teams">
               <TimedTeamsBlog />
+            </Route>
+            <Route path="/blog/receipt-split">
+              <ReceiptSplitBlog />
             </Route>
           </Switch>
         </Router>

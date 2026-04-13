@@ -45,6 +45,7 @@ const PAGES = [
   {
     title: "Receipt Split",
     path: "/receipt-split",
+    blog: "/blog/receipt-split",
     backgroundColor: blue[300],
     img: { src: receiptSplit, alt: "receipt splitting" },
   },
