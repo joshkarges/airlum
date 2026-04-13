@@ -2,11 +2,13 @@ import { Typography } from "@mui/material";
 import receiptSplit from "../assets/receiptSplit.png";
 import { Flex } from "../components/Flex";
 import { useStyles } from "./styles";
+import { DocTitle } from "../utils/useDocTitleEffect";
 
 export const ReceiptSplitBlog = () => {
   const classes = useStyles();
   return (
     <>
+      <DocTitle title="Receipt Split Blog" />
       <Typography variant="h2" className={classes.header}>
         Receipt Split Blog
       </Typography>
