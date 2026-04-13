@@ -282,6 +282,28 @@ export const ReceiptSplitPage = () => {
     return {};
   }, [tipAmount, lineSubtotal, proportionalWeights, people]);
 
+  const computedGrandTotal = useMemo(
+    () => lineSubtotal + taxAmount + tipAmount,
+    [lineSubtotal, taxAmount, tipAmount]
+  );
+
+  const grandTotalDiscrepancy = useMemo(() => {
+    const parsed = receiptTotalsFromImage?.grandTotal;
+    if (parsed == null || !Number.isFinite(parsed)) {
+      return null;
+    }
+    const computedCents = Math.round(computedGrandTotal * 100);
+    const parsedCents = Math.round(parsed * 100);
+    if (Math.abs(computedCents - parsedCents) <= 1) {
+      return null;
+    }
+    return {
+      computed: computedGrandTotal,
+      parsed,
+      diff: Math.abs(computedGrandTotal - parsed),
+    };
+  }, [receiptTotalsFromImage?.grandTotal, computedGrandTotal]);
+
   const onPickFile = useCallback((file: File | null) => {
     setError(null);
     setErrorIsWarning(false);
@@ -726,6 +748,17 @@ export const ReceiptSplitPage = () => {
                   )
                 : "—"}
             </Typography>
+          )}
+
+          {grandTotalDiscrepancy && (
+            <Alert severity="warning" sx={{ mb: 1.5 }}>
+              Line items + tax + tip (
+              {formatMoney(grandTotalDiscrepancy.computed, fromCurrency)}) don’t
+              match the grand total read from the receipt (
+              {formatMoney(grandTotalDiscrepancy.parsed, fromCurrency)}). Off by{" "}
+              {formatMoney(grandTotalDiscrepancy.diff, fromCurrency)} — check
+              lines, tax, tip, or receipt rounding.
+            </Alert>
           )}
 
           {lines.length === 0 ? (

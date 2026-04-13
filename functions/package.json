@@ -9,7 +9,7 @@
     "emulateProduction": "npm run build && firebase emulators:start --import production_data_export --export-on-exit production_data_export",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "rm -rf node_modules && yarn install && yarn build && yarn delete && firebase deploy --only functions",
+    "deploy": "rm -rf node_modules && yarn install && yarn build && firebase deploy --only functions",
     "logs": "firebase functions:log",
     "migrate": "ts-node ${0}"
   },
