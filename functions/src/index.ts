@@ -372,9 +372,31 @@ exports.finishTimedTeam = onCall<
   }
 );
 
+const parseOptionalReceiptAmount = (v: unknown): number | null => {
+  if (v === null || v === undefined) {
+    return null;
+  }
+  if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
+    return v;
+  }
+  if (typeof v === "string") {
+    const n = parseFloat(v.replace(/,/g, ""));
+    if (Number.isFinite(n) && n >= 0) {
+      return n;
+    }
+  }
+  return null;
+};
+
 exports.parseReceiptImage = onCall<
   { imageBase64: string; mimeType?: string },
-  Promise<{ items: { description: string; amount: number }[] }>
+  Promise<{
+    items: { description: string; amount: number }[];
+    subtotal: number | null;
+    tax: number | null;
+    tip: number | null;
+    grandTotal: number | null;
+  }>
 >(
   {
     cors: corsOrigins,
@@ -411,10 +433,17 @@ exports.parseReceiptImage = onCall<
     });
 
     const prompt =
-      "Parse this receipt image. Extract each purchasable line item with its " +
-      "price in dollars (decimal number). Omit subtotal, tax, tip, and grand " +
-      "total lines. Return JSON only with this exact shape: " +
-      "{\"items\":[{\"description\":\"string\",\"amount\":number}]}. " +
+      "Parse this receipt image. " +
+      "1) Extract each purchasable line item (food, drinks, etc.) with its " +
+      "price in dollars — do not include subtotal, tax, tip, or total as line items. " +
+      "2) If the receipt shows them, also extract numeric amounts for: " +
+      "subtotal (before tax), sales tax, tip/gratuity (including suggested tip lines if that is the only tip shown), " +
+      "and grand total / amount due / balance. " +
+      "Use null for any field not present or unreadable. " +
+      "Return JSON only with this exact shape: " +
+      "{\"items\":[{\"description\":\"string\",\"amount\":number}]," +
+      "\"subtotal\":number|null,\"tax\":number|null,\"tip\":number|null," +
+      "\"grandTotal\":number|null}. " +
       "Use an empty items array if nothing is readable.";
 
     let content: string;
@@ -447,9 +476,23 @@ exports.parseReceiptImage = onCall<
       throw new HttpsError("internal", "Could not parse receipt model output.");
     }
 
-    const itemsRaw = (parsed as { items?: unknown }).items;
+    const p = parsed as {
+      items?: unknown;
+      subtotal?: unknown;
+      tax?: unknown;
+      tip?: unknown;
+      grandTotal?: unknown;
+    };
+
+    const itemsRaw = p.items;
     if (!Array.isArray(itemsRaw)) {
-      return { items: [] };
+      return {
+        items: [],
+        subtotal: parseOptionalReceiptAmount(p.subtotal),
+        tax: parseOptionalReceiptAmount(p.tax),
+        tip: parseOptionalReceiptAmount(p.tip),
+        grandTotal: parseOptionalReceiptAmount(p.grandTotal),
+      };
     }
 
     const items = itemsRaw
@@ -473,6 +516,12 @@ exports.parseReceiptImage = onCall<
       })
       .filter((x): x is { description: string; amount: number } => x !== null);
 
-    return { items };
+    return {
+      items,
+      subtotal: parseOptionalReceiptAmount(p.subtotal),
+      tax: parseOptionalReceiptAmount(p.tax),
+      tip: parseOptionalReceiptAmount(p.tip),
+      grandTotal: parseOptionalReceiptAmount(p.grandTotal),
+    };
   }
 );

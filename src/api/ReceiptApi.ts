@@ -13,6 +13,11 @@ export type ParseReceiptLineItem = {
 
 export type ParseReceiptImageResponse = {
   items: ParseReceiptLineItem[];
+  /** From receipt image when present; null if not found. Omitted by older function versions. */
+  subtotal?: number | null;
+  tax?: number | null;
+  tip?: number | null;
+  grandTotal?: number | null;
 };
 
 const isDev = process.env.NODE_ENV === "development";

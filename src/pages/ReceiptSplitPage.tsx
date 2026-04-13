@@ -195,6 +195,13 @@ export const ReceiptSplitPage = () => {
   const [inputTab, setInputTab] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
   const [tipAmount, setTipAmount] = useState(0);
+  /** Totals read from the receipt by Parse with Gemini (not from OCR/paste). */
+  const [receiptTotalsFromImage, setReceiptTotalsFromImage] = useState<{
+    subtotal: number | null;
+    tax: number | null;
+    tip: number | null;
+    grandTotal: number | null;
+  } | null>(null);
   const [convertCurrency, setConvertCurrency] = useState(false);
   const [fromCurrency, setFromCurrency] = useState<string>("$");
   const [toCurrency, setToCurrency] = useState<string>("$");
@@ -278,6 +285,7 @@ export const ReceiptSplitPage = () => {
   const onPickFile = useCallback((file: File | null) => {
     setError(null);
     setErrorIsWarning(false);
+    setReceiptTotalsFromImage(null);
     setSelectedFile(file);
     setPreviewUrl((prev) => {
       if (prev) {
@@ -364,10 +372,11 @@ export const ReceiptSplitPage = () => {
       const { base64, mimeType } = await resizeImageFileToJpegBase64(
         selectedFile
       );
-      const { items } = await parseReceiptImage({
+      const result = await parseReceiptImage({
         imageBase64: base64,
         mimeType,
       });
+      const { items } = result;
       setLines(
         items.map((item) => ({
           id: uuidv4(),
@@ -376,6 +385,18 @@ export const ReceiptSplitPage = () => {
           assignees: [],
         }))
       );
+      setReceiptTotalsFromImage({
+        subtotal: result.subtotal ?? null,
+        tax: result.tax ?? null,
+        tip: result.tip ?? null,
+        grandTotal: result.grandTotal ?? null,
+      });
+      if (result.tax != null && Number.isFinite(result.tax)) {
+        setTaxAmount(result.tax);
+      }
+      if (result.tip != null && Number.isFinite(result.tip)) {
+        setTipAmount(result.tip);
+      }
     } catch (e: unknown) {
       const msg =
         e && typeof e === "object" && "message" in e
@@ -395,6 +416,7 @@ export const ReceiptSplitPage = () => {
     setLoading("ocr");
     setError(null);
     setErrorIsWarning(false);
+    setReceiptTotalsFromImage(null);
     setOcrStatus("Starting OCR…");
     try {
       const text = await ocrReceiptImageToText(
@@ -436,6 +458,7 @@ export const ReceiptSplitPage = () => {
   const parseFromPaste = useCallback(() => {
     setError(null);
     setErrorIsWarning(false);
+    setReceiptTotalsFromImage(null);
     const items = parseLooseReceiptText(pasteText);
     if (items.length === 0) {
       setError(
@@ -669,6 +692,41 @@ export const ReceiptSplitPage = () => {
               Add line
             </Button>
           </Flex>
+
+          {receiptTotalsFromImage &&
+            (receiptTotalsFromImage.subtotal != null ||
+              receiptTotalsFromImage.tax != null ||
+              receiptTotalsFromImage.tip != null ||
+              receiptTotalsFromImage.grandTotal != null) && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 1.5 }}
+            >
+              <strong>From receipt (Gemini):</strong> Subtotal{" "}
+              {receiptTotalsFromImage.subtotal != null
+                ? formatMoney(
+                    receiptTotalsFromImage.subtotal,
+                    fromCurrency
+                  )
+                : "—"}{" "}
+              · Tax{" "}
+              {receiptTotalsFromImage.tax != null
+                ? formatMoney(receiptTotalsFromImage.tax, fromCurrency)
+                : "—"}{" "}
+              · Tip{" "}
+              {receiptTotalsFromImage.tip != null
+                ? formatMoney(receiptTotalsFromImage.tip, fromCurrency)
+                : "—"}{" "}
+              · Grand total{" "}
+              {receiptTotalsFromImage.grandTotal != null
+                ? formatMoney(
+                    receiptTotalsFromImage.grandTotal,
+                    fromCurrency
+                  )
+                : "—"}
+            </Typography>
+          )}
 
           {lines.length === 0 ? (
             <Typography color="text.secondary">
