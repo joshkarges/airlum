@@ -53,6 +53,7 @@ import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { ArrowForward, Close } from "@mui/icons-material";
+import { DocTitle } from "../utils/useDocTitleEffect";
 
 type ReceiptLine = {
   id: string;
@@ -525,6 +526,7 @@ export const ReceiptSplitPage = () => {
 
   return (
     <Box height="100%" display="flex" flexDirection="column">
+      <DocTitle title="Receipt Split" />
       <AppBar position="static" className={classes.appBar}>
         <Toolbar>
           <Typography variant="h6" component="h1">
@@ -720,35 +722,29 @@ export const ReceiptSplitPage = () => {
               receiptTotalsFromImage.tax != null ||
               receiptTotalsFromImage.tip != null ||
               receiptTotalsFromImage.grandTotal != null) && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mb: 1.5 }}
-            >
-              <strong>From receipt (Gemini):</strong> Subtotal{" "}
-              {receiptTotalsFromImage.subtotal != null
-                ? formatMoney(
-                    receiptTotalsFromImage.subtotal,
-                    fromCurrency
-                  )
-                : "—"}{" "}
-              · Tax{" "}
-              {receiptTotalsFromImage.tax != null
-                ? formatMoney(receiptTotalsFromImage.tax, fromCurrency)
-                : "—"}{" "}
-              · Tip{" "}
-              {receiptTotalsFromImage.tip != null
-                ? formatMoney(receiptTotalsFromImage.tip, fromCurrency)
-                : "—"}{" "}
-              · Grand total{" "}
-              {receiptTotalsFromImage.grandTotal != null
-                ? formatMoney(
-                    receiptTotalsFromImage.grandTotal,
-                    fromCurrency
-                  )
-                : "—"}
-            </Typography>
-          )}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 1.5 }}
+              >
+                <strong>From receipt (Gemini):</strong> Subtotal{" "}
+                {receiptTotalsFromImage.subtotal != null
+                  ? formatMoney(receiptTotalsFromImage.subtotal, fromCurrency)
+                  : "—"}{" "}
+                · Tax{" "}
+                {receiptTotalsFromImage.tax != null
+                  ? formatMoney(receiptTotalsFromImage.tax, fromCurrency)
+                  : "—"}{" "}
+                · Tip{" "}
+                {receiptTotalsFromImage.tip != null
+                  ? formatMoney(receiptTotalsFromImage.tip, fromCurrency)
+                  : "—"}{" "}
+                · Grand total{" "}
+                {receiptTotalsFromImage.grandTotal != null
+                  ? formatMoney(receiptTotalsFromImage.grandTotal, fromCurrency)
+                  : "—"}
+              </Typography>
+            )}
 
           {grandTotalDiscrepancy && (
             <Alert severity="warning" sx={{ mb: 1.5 }}>
