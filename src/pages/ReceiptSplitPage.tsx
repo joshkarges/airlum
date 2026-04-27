@@ -63,6 +63,13 @@ type ReceiptLine = {
   assignees: string[];
 };
 
+/** Couples/families paying together; display-only layer on top of per-person totals. */
+type PaymentGroup = {
+  id: string;
+  name: string;
+  members: string[];
+};
+
 /** Split `amount` in cents across `names` so the parts sum exactly (no float drift). */
 function addEqualSplitToMap(
   map: Record<string, number>,
@@ -214,6 +221,20 @@ const amountFromPercent = (percent: number, subtotal: number) =>
 const percentFromAmount = (amount: number, subtotal: number) =>
   subtotal > 0 ? (amount / subtotal) * 100 : 0;
 
+function updatePaymentGroupMembers(
+  groups: PaymentGroup[],
+  groupId: string,
+  newMembers: string[]
+): PaymentGroup[] {
+  const taken = new Set(newMembers);
+  return groups.map((g) => {
+    if (g.id === groupId) {
+      return { ...g, members: newMembers };
+    }
+    return { ...g, members: g.members.filter((m) => !taken.has(m)) };
+  });
+}
+
 export const ReceiptSplitPage = () => {
   const classes = useStyles();
   const [people, setPeople] = useState<string[]>([]);
@@ -244,6 +265,7 @@ export const ReceiptSplitPage = () => {
   >({});
   const [taxAmountDraft, setTaxAmountDraft] = useState<string | null>(null);
   const [tipAmountDraft, setTipAmountDraft] = useState<string | null>(null);
+  const [paymentGroups, setPaymentGroups] = useState<PaymentGroup[]>([]);
   /** Totals read from the receipt by Parse with Gemini (not from OCR/paste). */
   const [receiptTotalsFromImage, setReceiptTotalsFromImage] = useState<{
     subtotal: number | null;
@@ -375,6 +397,59 @@ export const ReceiptSplitPage = () => {
     return {};
   }, [effectiveTipAmount, lineSubtotal, proportionalWeights, people]);
 
+  const perPersonTotalsConverted = useMemo(() => {
+    const out: Record<
+      string,
+      { items: number; tax: number; tip: number; grand: number }
+    > = {};
+    for (const name of people) {
+      const items =
+        ((totalsByPerson.map[name] || 0) * toCurrencyRateNumber) /
+        fromCurrencyRateNumber;
+      const tx =
+        ((taxSplit[name] || 0) * toCurrencyRateNumber) /
+        fromCurrencyRateNumber;
+      const tp =
+        ((tipSplit[name] || 0) * toCurrencyRateNumber) /
+        fromCurrencyRateNumber;
+      out[name] = { items, tax: tx, tip: tp, grand: items + tx + tp };
+    }
+    return out;
+  }, [
+    people,
+    totalsByPerson.map,
+    taxSplit,
+    tipSplit,
+    toCurrencyRateNumber,
+    fromCurrencyRateNumber,
+  ]);
+
+  const peopleInPaymentGroups = useMemo(() => {
+    const s = new Set<string>();
+    for (const g of paymentGroups) {
+      for (const m of g.members) {
+        s.add(m);
+      }
+    }
+    return s;
+  }, [paymentGroups]);
+
+  const ungroupedPeople = useMemo(
+    () => people.filter((p) => !peopleInPaymentGroups.has(p)),
+    [people, peopleInPaymentGroups]
+  );
+
+  const addPaymentGroup = useCallback(() => {
+    setPaymentGroups((g) => [
+      ...g,
+      { id: uuidv4(), name: "", members: [] },
+    ]);
+  }, []);
+
+  const removePaymentGroup = useCallback((id: string) => {
+    setPaymentGroups((g) => g.filter((x) => x.id !== id));
+  }, []);
+
   const computedGrandTotal = useMemo(
     () => lineSubtotal + effectiveTaxAmount + effectiveTipAmount,
     [lineSubtotal, effectiveTaxAmount, effectiveTipAmount]
@@ -471,6 +546,14 @@ export const ReceiptSplitPage = () => {
         ...row,
         assignees: row.assignees.filter((x) => x !== name),
       }))
+    );
+    setPaymentGroups((groups) =>
+      groups
+        .map((g) => ({
+          ...g,
+          members: g.members.filter((m) => m !== name),
+        }))
+        .filter((g) => g.members.length > 0)
     );
   }, []);
 
@@ -1447,42 +1530,233 @@ export const ReceiptSplitPage = () => {
             <Typography variant="subtitle1" gutterBottom>
               Totals
             </Typography>
-            {people.map((name) => {
-              const items =
-                ((totalsByPerson.map[name] || 0) * toCurrencyRateNumber) /
-                fromCurrencyRateNumber;
-              const tx =
-                ((taxSplit[name] || 0) * toCurrencyRateNumber) /
-                fromCurrencyRateNumber;
-              const tp =
-                ((tipSplit[name] || 0) * toCurrencyRateNumber) /
-                fromCurrencyRateNumber;
-              const grand = items + tx + tp;
+            {people.length > 0 && (
+              <Box
+                sx={{
+                  mb: 2,
+                  pb: 2,
+                  borderBottom: 1,
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="body2" fontWeight={600} gutterBottom>
+                  Combine totals for payment
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  sx={{ mb: 1 }}
+                >
+                  Optional: group people paying on one check. Line items stay
+                  assigned to individuals; only these totals combine.
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={addPaymentGroup}
+                  sx={{ mb: 1 }}
+                >
+                  Add payment group
+                </Button>
+                {paymentGroups.map((group) => (
+                  <Paper
+                    key={group.id}
+                    variant="outlined"
+                    sx={{ p: 1.5, mt: 1 }}
+                  >
+                    <Flex
+                      gap={1}
+                      alignItems="flex-start"
+                      justifyContent="space-between"
+                    >
+                      <TextField
+                        size="small"
+                        fullWidth
+                        label="Group name (optional)"
+                        placeholder="e.g. Smith family"
+                        value={group.name}
+                        onChange={(e) =>
+                          setPaymentGroups((rows) =>
+                            rows.map((g) =>
+                              g.id === group.id
+                                ? { ...g, name: e.target.value }
+                                : g
+                            )
+                          )
+                        }
+                      />
+                      <IconButton
+                        size="small"
+                        aria-label="Remove payment group"
+                        onClick={() => removePaymentGroup(group.id)}
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Flex>
+                    <Select
+                      fullWidth
+                      multiple
+                      displayEmpty
+                      size="small"
+                      sx={{ mt: 1 }}
+                      value={group.members}
+                      onChange={(e: SelectChangeEvent<string[]>) => {
+                        const v = e.target.value;
+                        const next =
+                          typeof v === "string" ? v.split(",") : v;
+                        setPaymentGroups((rows) =>
+                          updatePaymentGroupMembers(rows, group.id, next)
+                        );
+                      }}
+                      input={<OutlinedInput size="small" />}
+                      renderValue={(selected) => {
+                        const names = selected as string[];
+                        if (names.length === 0) {
+                          return (
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              Select who pays together
+                            </Typography>
+                          );
+                        }
+                        return (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 0.5,
+                              py: 0.25,
+                            }}
+                          >
+                            {names.map((name) => (
+                              <Chip key={name} label={name} size="small" />
+                            ))}
+                          </Box>
+                        );
+                      }}
+                    >
+                      {people.map((name) => (
+                        <MenuItem key={name} value={name}>
+                          <Checkbox
+                            size="small"
+                            checked={group.members.includes(name)}
+                          />
+                          <ListItemText primary={name} />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </Paper>
+                ))}
+              </Box>
+            )}
+            <Typography variant="body2" fontWeight={600} gutterBottom>
+              Amount due
+            </Typography>
+            {(() => {
+              const activeGroups = paymentGroups.filter(
+                (g) => g.members.length > 0
+              );
+              const hasGroupedPayers = activeGroups.length > 0;
               const showBreakdown =
                 effectiveTaxAmount > 0 || effectiveTipAmount > 0;
-              return (
-                <Box key={name} sx={{ mb: showBreakdown ? 0.5 : 0 }}>
-                  <Typography>
-                    {name}: {formatMoney(grand, toCurrency)}
-                  </Typography>
-                  {showBreakdown && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ pl: 1 }}
-                    >
-                      {formatMoney(items, toCurrency)} items
-                      {effectiveTaxAmount > 0 && (
-                        <> + {formatMoney(tx, toCurrency)} tax</>
-                      )}
-                      {effectiveTipAmount > 0 && (
-                        <> + {formatMoney(tp, toCurrency)} tip</>
-                      )}
+
+              const renderPersonRow = (name: string) => {
+                const t = perPersonTotalsConverted[name];
+                if (!t) {
+                  return null;
+                }
+                const { items, tax: tx, tip: tp, grand } = t;
+                return (
+                  <Box key={name} sx={{ mb: showBreakdown ? 0.5 : 0 }}>
+                    <Typography>
+                      {name}: {formatMoney(grand, toCurrency)}
                     </Typography>
-                  )}
-                </Box>
+                    {showBreakdown && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ pl: 1 }}
+                      >
+                        {formatMoney(items, toCurrency)} items
+                        {effectiveTaxAmount > 0 && (
+                          <> + {formatMoney(tx, toCurrency)} tax</>
+                        )}
+                        {effectiveTipAmount > 0 && (
+                          <> + {formatMoney(tp, toCurrency)} tip</>
+                        )}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              };
+
+              if (!hasGroupedPayers) {
+                return people.map((name) => renderPersonRow(name));
+              }
+
+              return (
+                <>
+                  {activeGroups.map((group) => {
+                    const combined = group.members.reduce(
+                      (sum, m) =>
+                        sum + (perPersonTotalsConverted[m]?.grand ?? 0),
+                      0
+                    );
+                    const title =
+                      group.name.trim() ||
+                      group.members.join(" + ") ||
+                      "Payment group";
+                    const memberParts = group.members.map((m) => {
+                      const g = perPersonTotalsConverted[m]?.grand ?? 0;
+                      return `${m} ${formatMoney(g, toCurrency)}`;
+                    });
+                    return (
+                      <Box key={group.id} sx={{ mb: showBreakdown ? 0.5 : 0 }}>
+                        <Typography>
+                          {title}: {formatMoney(combined, toCurrency)}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ pl: 1 }}
+                        >
+                          {memberParts.join(" + ")}
+                        </Typography>
+                        {showBreakdown &&
+                          group.members.map((m) => {
+                            const t = perPersonTotalsConverted[m];
+                            if (!t) {
+                              return null;
+                            }
+                            return (
+                              <Typography
+                                key={m}
+                                variant="caption"
+                                color="text.secondary"
+                                display="block"
+                                sx={{ pl: 1, mt: 0.25 }}
+                              >
+                                {m}: {formatMoney(t.items, toCurrency)} items
+                                {effectiveTaxAmount > 0 && (
+                                  <> + {formatMoney(t.tax, toCurrency)} tax</>
+                                )}
+                                {effectiveTipAmount > 0 && (
+                                  <> + {formatMoney(t.tip, toCurrency)} tip</>
+                                )}
+                              </Typography>
+                            );
+                          })}
+                      </Box>
+                    );
+                  })}
+                  {ungroupedPeople.map((name) => renderPersonRow(name))}
+                </>
               );
-            })}
+            })()}
             {(totalsByPerson.unassigned > 0 ||
               (taxSplit.__unassigned ?? 0) > 0 ||
               (tipSplit.__unassigned ?? 0) > 0) && (
