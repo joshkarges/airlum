@@ -306,7 +306,10 @@ export const ReceiptSplitPage = () => {
       return {};
     }
     if (lineSubtotal > 0) {
-      return splitProportionalByWeights(effectiveTaxAmount, proportionalWeights);
+      return splitProportionalByWeights(
+        effectiveTaxAmount,
+        proportionalWeights
+      );
     }
     if (people.length > 0) {
       const m: Record<string, number> = {};
@@ -321,7 +324,10 @@ export const ReceiptSplitPage = () => {
       return {};
     }
     if (lineSubtotal > 0) {
-      return splitProportionalByWeights(effectiveTipAmount, proportionalWeights);
+      return splitProportionalByWeights(
+        effectiveTipAmount,
+        proportionalWeights
+      );
     }
     if (people.length > 0) {
       const m: Record<string, number> = {};
@@ -590,12 +596,12 @@ export const ReceiptSplitPage = () => {
           Use the <strong>Receipt photo</strong> tab to upload a picture and run{" "}
           <strong>Parse with OCR</strong> (free in-browser; accuracy varies) or{" "}
           <strong>Parse with Gemini</strong> (slower but more accurate). Use{" "}
-          <strong>Paste text</strong> to paste receipt lines instead. Then assign
-          each line to one or more people (shared lines are split evenly). Enter
-          tax and tip (each as an amount or a % of subtotal) below the lines;
-          each is split in
-          proportion to each person’s share of the line-item subtotal (including
-          unassigned items). You can also add rows by hand.
+          <strong>Paste text</strong> to paste receipt lines instead. Then
+          assign each line to one or more people (shared lines are split
+          evenly). Enter tax and tip (each as an amount or a % of subtotal)
+          below the lines; each is split in proportion to each person’s share of
+          the line-item subtotal (including unassigned items). You can also add
+          rows by hand.
         </Typography>
 
         {error && (
@@ -986,6 +992,23 @@ export const ReceiptSplitPage = () => {
                   ))}
                   <TableRow>
                     <TableCell className={classes.itemColumn}>
+                      <Typography variant="body2" fontWeight={500}>
+                        Subtotal
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={500}>
+                        {formatMoney(lineSubtotal, fromCurrency)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell colSpan={2}>
+                      <Typography variant="caption" color="text.secondary">
+                        Sum of line items
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className={classes.itemColumn}>
                       <Box
                         display="flex"
                         gap={1}
@@ -1000,11 +1023,18 @@ export const ReceiptSplitPage = () => {
                             value={taxMode}
                             onChange={(
                               e: SelectChangeEvent<"amount" | "percent">
-                            ) =>
+                            ) => {
                               setTaxMode(
                                 e.target.value as "amount" | "percent"
-                              )
-                            }
+                              );
+                              if (e.target.value === "amount") {
+                                setTaxAmount(Math.round(taxAmount * 100) / 100);
+                              } else {
+                                setTaxPercent(
+                                  Math.round(taxPercent * 1000) / 1000
+                                );
+                              }
+                            }}
                           >
                             <MenuItem value="amount">Amount</MenuItem>
                             <MenuItem value="percent">% of subtotal</MenuItem>
@@ -1044,12 +1074,23 @@ export const ReceiptSplitPage = () => {
                           const value = parseFloat(e.target.value) || 0;
                           if (taxMode === "amount") {
                             setTaxAmount(value);
-                            setTaxPercent(percentFromAmount(value, lineSubtotal));
+                            setTaxPercent(
+                              percentFromAmount(value, lineSubtotal)
+                            );
                             return;
                           }
                           setTaxPercent(value);
                           setTaxAmount(amountFromPercent(value, lineSubtotal));
                         }}
+                        helperText={
+                          taxMode === "percent"
+                            ? `${
+                                CURRENCY_BY_VALUE[fromCurrency] ?? fromCurrency
+                              }${(Math.round(taxAmount * 100) / 100).toFixed(
+                                2
+                              )}`
+                            : undefined
+                        }
                       />
                     </TableCell>
                     <TableCell colSpan={2}>
@@ -1082,11 +1123,18 @@ export const ReceiptSplitPage = () => {
                             value={tipMode}
                             onChange={(
                               e: SelectChangeEvent<"amount" | "percent">
-                            ) =>
+                            ) => {
                               setTipMode(
                                 e.target.value as "amount" | "percent"
-                              )
-                            }
+                              );
+                              if (e.target.value === "amount") {
+                                setTipAmount(Math.round(tipAmount * 100) / 100);
+                              } else {
+                                setTipPercent(
+                                  Math.round(tipPercent * 1000) / 1000
+                                );
+                              }
+                            }}
                           >
                             <MenuItem value="amount">Amount</MenuItem>
                             <MenuItem value="percent">% of subtotal</MenuItem>
@@ -1126,12 +1174,23 @@ export const ReceiptSplitPage = () => {
                           const value = parseFloat(e.target.value) || 0;
                           if (tipMode === "amount") {
                             setTipAmount(value);
-                            setTipPercent(percentFromAmount(value, lineSubtotal));
+                            setTipPercent(
+                              percentFromAmount(value, lineSubtotal)
+                            );
                             return;
                           }
                           setTipPercent(value);
                           setTipAmount(amountFromPercent(value, lineSubtotal));
                         }}
+                        helperText={
+                          tipMode === "percent"
+                            ? `${
+                                CURRENCY_BY_VALUE[fromCurrency] ?? fromCurrency
+                              }${(Math.round(tipAmount * 100) / 100).toFixed(
+                                2
+                              )}`
+                            : undefined
+                        }
                       />
                     </TableCell>
                     <TableCell colSpan={2}>
