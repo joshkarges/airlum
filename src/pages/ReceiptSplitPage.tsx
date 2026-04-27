@@ -193,6 +193,12 @@ const formatCurrencyNumber = (n: number, currency: string) =>
 const getCurrencyStep = (currency: string) =>
   1 / 10 ** getCurrencyFractionDigits(currency);
 
+const getAmountInputWidth = (currency: string, amountText: string) => {
+  const currencyText = CURRENCY_BY_VALUE[currency] ?? currency;
+  const chars = currencyText.length + amountText.length + 4;
+  return `max(150px, calc(${chars}ch + 48px))`;
+};
+
 const roundCurrencyAmount = (n: number, currency: string) => {
   const multiplier = 10 ** getCurrencyFractionDigits(currency);
   return Math.round(n * multiplier) / multiplier;
@@ -958,7 +964,7 @@ export const ReceiptSplitPage = () => {
               >
                 <colgroup>
                   <col style={{ minWidth: 220 }} />
-                  <col style={{ width: 150 }} />
+                  <col style={{ minWidth: 150 }} />
                   <col style={{ minWidth: 220 }} />
                   <col style={{ minWidth: 48 }} />
                 </colgroup>
@@ -993,6 +999,23 @@ export const ReceiptSplitPage = () => {
                         <TextField
                           size="small"
                           type="number"
+                          sx={{
+                            width: (() => {
+                              const draftText = lineAmountDrafts[row.id] ?? "";
+                              const formattedText = formatCurrencyNumber(
+                                row.amount,
+                                fromCurrency
+                              );
+                              const widerText =
+                                draftText.length > formattedText.length
+                                  ? draftText
+                                  : formattedText;
+                              return getAmountInputWidth(
+                                fromCurrency,
+                                widerText
+                              );
+                            })(),
+                          }}
                           inputProps={{
                             min: 0,
                             step: getCurrencyStep(fromCurrency),
@@ -1205,6 +1228,30 @@ export const ReceiptSplitPage = () => {
                       <TextField
                         size="small"
                         type="number"
+                        sx={{
+                          width: (() => {
+                            if (taxMode === "amount") {
+                              const draftText = taxAmountDraft ?? "";
+                              const formattedText = formatCurrencyNumber(
+                                taxAmount,
+                                fromCurrency
+                              );
+                              const widerText =
+                                draftText.length > formattedText.length
+                                  ? draftText
+                                  : formattedText;
+                              return getAmountInputWidth(
+                                fromCurrency,
+                                widerText
+                              );
+                            }
+                            const percentText = taxPercent
+                              ? String(taxPercent)
+                              : "0";
+                            const chars = percentText.length + 5;
+                            return `max(150px, calc(${chars}ch + 48px))`;
+                          })(),
+                        }}
                         inputProps={{
                           min: 0,
                           step:
@@ -1336,6 +1383,30 @@ export const ReceiptSplitPage = () => {
                       <TextField
                         size="small"
                         type="number"
+                        sx={{
+                          width: (() => {
+                            if (tipMode === "amount") {
+                              const draftText = tipAmountDraft ?? "";
+                              const formattedText = formatCurrencyNumber(
+                                tipAmount,
+                                fromCurrency
+                              );
+                              const widerText =
+                                draftText.length > formattedText.length
+                                  ? draftText
+                                  : formattedText;
+                              return getAmountInputWidth(
+                                fromCurrency,
+                                widerText
+                              );
+                            }
+                            const percentText = tipPercent
+                              ? String(tipPercent)
+                              : "0";
+                            const chars = percentText.length + 5;
+                            return `max(150px, calc(${chars}ch + 48px))`;
+                          })(),
+                        }}
                         inputProps={{
                           min: 0,
                           step:
