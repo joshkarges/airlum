@@ -162,16 +162,49 @@ const CURRENCY_BY_LABEL = Object.fromEntries(
   CURRENCY_OPTIONS.map((c) => [c.label, c.value])
 );
 
+const getCurrencyCode = (currency: string) =>
+  CURRENCY_BY_LABEL[currency] ?? currency;
+
+const getCurrencyFractionDigits = (currency: string) => {
+  const currencyCode = getCurrencyCode(currency);
+  if (currencyCode === "BTC") {
+    return 8;
+  }
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currencyCode,
+    }).resolvedOptions().maximumFractionDigits ?? 2;
+  } catch (e) {
+    return 2;
+  }
+};
+
+const formatCurrencyNumber = (n: number, currency: string) =>
+  n.toFixed(getCurrencyFractionDigits(currency));
+
+const getCurrencyStep = (currency: string) =>
+  1 / 10 ** getCurrencyFractionDigits(currency);
+
+const roundCurrencyAmount = (n: number, currency: string) => {
+  const multiplier = 10 ** getCurrencyFractionDigits(currency);
+  return Math.round(n * multiplier) / multiplier;
+};
+
 const formatMoney = (n: number, currency: string) => {
   try {
+    const fractionDigits = getCurrencyFractionDigits(currency);
     return n.toLocaleString(undefined, {
       style: "currency",
-      currency: CURRENCY_BY_LABEL[currency] ?? currency,
+      currency: getCurrencyCode(currency),
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     });
   } catch (e) {
-    return `${CURRENCY_BY_VALUE[currency] ?? currency} ${(
-      Math.round(n * 100) / 100
-    ).toFixed(2)}`;
+    return `${CURRENCY_BY_VALUE[currency] ?? currency} ${formatCurrencyNumber(
+      n,
+      currency
+    )}`;
   }
 };
 
@@ -206,6 +239,11 @@ export const ReceiptSplitPage = () => {
   const [tipAmount, setTipAmount] = useState(0);
   const [tipMode, setTipMode] = useState<"amount" | "percent">("amount");
   const [tipPercent, setTipPercent] = useState(0);
+  const [lineAmountDrafts, setLineAmountDrafts] = useState<
+    Record<string, string>
+  >({});
+  const [taxAmountDraft, setTaxAmountDraft] = useState<string | null>(null);
+  const [tipAmountDraft, setTipAmountDraft] = useState<string | null>(null);
   /** Totals read from the receipt by Parse with Gemini (not from OCR/paste). */
   const [receiptTotalsFromImage, setReceiptTotalsFromImage] = useState<{
     subtotal: number | null;
@@ -462,6 +500,7 @@ export const ReceiptSplitPage = () => {
           assignees: [],
         }))
       );
+      setLineAmountDrafts({});
       setReceiptTotalsFromImage({
         subtotal: result.subtotal ?? null,
         tax: result.tax ?? null,
@@ -522,6 +561,7 @@ export const ReceiptSplitPage = () => {
           assignees: [],
         }))
       );
+      setLineAmountDrafts({});
     } catch (e: unknown) {
       const msg =
         e && typeof e === "object" && "message" in e
@@ -553,6 +593,7 @@ export const ReceiptSplitPage = () => {
         assignees: [],
       }))
     );
+    setLineAmountDrafts({});
   }, [pasteText]);
 
   const updateLine = useCallback(
@@ -566,6 +607,10 @@ export const ReceiptSplitPage = () => {
 
   const removeLine = useCallback((id: string) => {
     setLines((rows) => rows.filter((row) => row.id !== id));
+    setLineAmountDrafts((drafts) => {
+      const { [id]: _removed, ...rest } = drafts;
+      return rest;
+    });
   }, []);
 
   const addBlankLine = useCallback(() => {
@@ -865,7 +910,10 @@ export const ReceiptSplitPage = () => {
                         <TextField
                           size="small"
                           type="number"
-                          inputProps={{ min: 0, step: 0.01 }}
+                          inputProps={{
+                            min: 0,
+                            step: getCurrencyStep(fromCurrency),
+                          }}
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
@@ -874,12 +922,37 @@ export const ReceiptSplitPage = () => {
                               </InputAdornment>
                             ),
                           }}
-                          value={row.amount || ""}
-                          onChange={(e) =>
-                            updateLine(row.id, {
-                              amount: parseFloat(e.target.value) || 0,
-                            })
+                          value={
+                            lineAmountDrafts[row.id] ??
+                            formatCurrencyNumber(row.amount, fromCurrency)
                           }
+                          onFocus={() =>
+                            setLineAmountDrafts((drafts) => ({
+                              ...drafts,
+                              [row.id]: row.amount === 0 ? "" : String(row.amount),
+                            }))
+                          }
+                          onChange={(e) => {
+                            const nextValue = e.target.value;
+                            setLineAmountDrafts((drafts) => ({
+                              ...drafts,
+                              [row.id]: nextValue,
+                            }));
+                            updateLine(row.id, {
+                              amount: parseFloat(nextValue) || 0,
+                            });
+                          }}
+                          onBlur={() => {
+                            const roundedAmount = roundCurrencyAmount(
+                              row.amount,
+                              fromCurrency
+                            );
+                            updateLine(row.id, { amount: roundedAmount });
+                            setLineAmountDrafts((drafts) => {
+                              const { [row.id]: _removed, ...rest } = drafts;
+                              return rest;
+                            });
+                          }}
                         />
                       </TableCell>
                       <TableCell>
@@ -1028,12 +1101,15 @@ export const ReceiptSplitPage = () => {
                                 e.target.value as "amount" | "percent"
                               );
                               if (e.target.value === "amount") {
-                                setTaxAmount(Math.round(taxAmount * 100) / 100);
+                                setTaxAmount(
+                                  roundCurrencyAmount(taxAmount, fromCurrency)
+                                );
                               } else {
                                 setTaxPercent(
                                   Math.round(taxPercent * 1000) / 1000
                                 );
                               }
+                              setTaxAmountDraft(null);
                             }}
                           >
                             <MenuItem value="amount">Amount</MenuItem>
@@ -1046,7 +1122,13 @@ export const ReceiptSplitPage = () => {
                       <TextField
                         size="small"
                         type="number"
-                        inputProps={{ min: 0, step: 0.01 }}
+                        inputProps={{
+                          min: 0,
+                          step:
+                            taxMode === "amount"
+                              ? getCurrencyStep(fromCurrency)
+                              : 0.01,
+                        }}
                         InputProps={{
                           ...(taxMode === "amount"
                             ? {
@@ -1067,12 +1149,15 @@ export const ReceiptSplitPage = () => {
                         }}
                         value={
                           taxMode === "amount"
-                            ? taxAmount || ""
+                            ? taxAmountDraft ??
+                              formatCurrencyNumber(taxAmount, fromCurrency)
                             : taxPercent || ""
                         }
                         onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0;
+                          const nextValue = e.target.value;
+                          const value = parseFloat(nextValue) || 0;
                           if (taxMode === "amount") {
+                            setTaxAmountDraft(nextValue);
                             setTaxAmount(value);
                             setTaxPercent(
                               percentFromAmount(value, lineSubtotal)
@@ -1082,13 +1167,32 @@ export const ReceiptSplitPage = () => {
                           setTaxPercent(value);
                           setTaxAmount(amountFromPercent(value, lineSubtotal));
                         }}
+                        onFocus={() => {
+                          if (taxMode === "amount") {
+                            setTaxAmountDraft(
+                              taxAmount === 0 ? "" : String(taxAmount)
+                            );
+                          }
+                        }}
+                        onBlur={() => {
+                          if (taxMode !== "amount") {
+                            return;
+                          }
+                          const roundedAmount = roundCurrencyAmount(
+                            taxAmount,
+                            fromCurrency
+                          );
+                          setTaxAmount(roundedAmount);
+                          setTaxPercent(
+                            percentFromAmount(roundedAmount, lineSubtotal)
+                          );
+                          setTaxAmountDraft(null);
+                        }}
                         helperText={
                           taxMode === "percent"
                             ? `${
                                 CURRENCY_BY_VALUE[fromCurrency] ?? fromCurrency
-                              }${(Math.round(taxAmount * 100) / 100).toFixed(
-                                2
-                              )}`
+                              }${formatCurrencyNumber(taxAmount, fromCurrency)}`
                             : undefined
                         }
                       />
@@ -1128,12 +1232,15 @@ export const ReceiptSplitPage = () => {
                                 e.target.value as "amount" | "percent"
                               );
                               if (e.target.value === "amount") {
-                                setTipAmount(Math.round(tipAmount * 100) / 100);
+                                setTipAmount(
+                                  roundCurrencyAmount(tipAmount, fromCurrency)
+                                );
                               } else {
                                 setTipPercent(
                                   Math.round(tipPercent * 1000) / 1000
                                 );
                               }
+                              setTipAmountDraft(null);
                             }}
                           >
                             <MenuItem value="amount">Amount</MenuItem>
@@ -1146,7 +1253,13 @@ export const ReceiptSplitPage = () => {
                       <TextField
                         size="small"
                         type="number"
-                        inputProps={{ min: 0, step: 0.01 }}
+                        inputProps={{
+                          min: 0,
+                          step:
+                            tipMode === "amount"
+                              ? getCurrencyStep(fromCurrency)
+                              : 0.01,
+                        }}
                         InputProps={{
                           ...(tipMode === "amount"
                             ? {
@@ -1167,12 +1280,15 @@ export const ReceiptSplitPage = () => {
                         }}
                         value={
                           tipMode === "amount"
-                            ? tipAmount || ""
+                            ? tipAmountDraft ??
+                              formatCurrencyNumber(tipAmount, fromCurrency)
                             : tipPercent || ""
                         }
                         onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0;
+                          const nextValue = e.target.value;
+                          const value = parseFloat(nextValue) || 0;
                           if (tipMode === "amount") {
+                            setTipAmountDraft(nextValue);
                             setTipAmount(value);
                             setTipPercent(
                               percentFromAmount(value, lineSubtotal)
@@ -1182,13 +1298,32 @@ export const ReceiptSplitPage = () => {
                           setTipPercent(value);
                           setTipAmount(amountFromPercent(value, lineSubtotal));
                         }}
+                        onFocus={() => {
+                          if (tipMode === "amount") {
+                            setTipAmountDraft(
+                              tipAmount === 0 ? "" : String(tipAmount)
+                            );
+                          }
+                        }}
+                        onBlur={() => {
+                          if (tipMode !== "amount") {
+                            return;
+                          }
+                          const roundedAmount = roundCurrencyAmount(
+                            tipAmount,
+                            fromCurrency
+                          );
+                          setTipAmount(roundedAmount);
+                          setTipPercent(
+                            percentFromAmount(roundedAmount, lineSubtotal)
+                          );
+                          setTipAmountDraft(null);
+                        }}
                         helperText={
                           tipMode === "percent"
                             ? `${
                                 CURRENCY_BY_VALUE[fromCurrency] ?? fromCurrency
-                              }${(Math.round(tipAmount * 100) / 100).toFixed(
-                                2
-                              )}`
+                              }${formatCurrencyNumber(tipAmount, fromCurrency)}`
                             : undefined
                         }
                       />
