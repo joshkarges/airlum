@@ -61,6 +61,9 @@ function App() {
                   <Route path="/blog">
                     <Blog />
                   </Route>
+                  <Route path="/receipt-split/:receiptId">
+                    <ReceiptSplitPage />
+                  </Route>
                   <Route path="/receipt-split">
                     <ReceiptSplitPage />
                   </Route>

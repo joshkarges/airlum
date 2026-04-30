@@ -36,5 +36,9 @@ service cloud.firestore {
     match /timedTeams/{gameId}/teams/{teamId} {
       allow read: if true
     }
+
+    match /receiptSplits/{receiptId} {
+      allow read, write: if true
+    }
   }
 }
