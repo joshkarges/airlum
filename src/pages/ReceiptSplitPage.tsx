@@ -72,6 +72,7 @@ import {
   uploadReceiptImage,
 } from "../api/ReceiptImageStorage";
 import { Flex } from "../components/Flex";
+import { ImageZoomDialog } from "../components/ImageZoomDialog";
 import { resizeImageFileToJpegBase64 } from "../utils/receiptImage";
 import { parseLooseReceiptText } from "../utils/receiptParse";
 import { ocrReceiptImageToText } from "../utils/receiptTesseract";
@@ -187,6 +188,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     objectFit: "contain",
     borderRadius: theme.shape.borderRadius,
     border: `1px solid ${theme.palette.divider}`,
+    cursor: "zoom-in",
   },
 }));
 
@@ -305,6 +307,7 @@ export const ReceiptSplitPage = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   /** Download URL for `imagePath` from Firestore (shared receipts). */
   const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<false | "ai" | "ocr">(false);
   const [ocrStatus, setOcrStatus] = useState<string>("");
@@ -1268,6 +1271,21 @@ export const ReceiptSplitPage = () => {
                         src={remoteImageUrl ?? previewUrl ?? undefined}
                         alt="Receipt"
                         className={classes.preview}
+                        onClick={() =>
+                          setZoomImageUrl(
+                            remoteImageUrl ?? previewUrl ?? null
+                          )
+                        }
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setZoomImageUrl(
+                              remoteImageUrl ?? previewUrl ?? null
+                            );
+                          }
+                        }}
                       />
                     </Box>
                   ) : (
@@ -1359,6 +1377,15 @@ export const ReceiptSplitPage = () => {
                             src={previewUrl}
                             alt="Receipt preview"
                             className={classes.preview}
+                            onClick={() => setZoomImageUrl(previewUrl)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setZoomImageUrl(previewUrl);
+                              }
+                            }}
                           />
                         </Box>
                       )}
@@ -2591,6 +2618,12 @@ export const ReceiptSplitPage = () => {
         message="Link copied to clipboard"
       />
 
+      <ImageZoomDialog
+        open={!!zoomImageUrl}
+        src={zoomImageUrl}
+        alt="Receipt"
+        onClose={() => setZoomImageUrl(null)}
+      />
       <Dialog
         open={cropOpen}
         onClose={closeCropDialog}
