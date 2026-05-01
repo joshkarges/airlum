@@ -61,11 +61,16 @@ import {
   patchLineFieldsDebounced,
   removeLineDoc,
   setLineDoc,
+  setReceiptImagePath,
   subscribeReceiptSplit,
   syncAssigneesToServer,
   updateReceiptFieldsImmediate,
   updateReceiptFieldsDebounced,
 } from "../api/ReceiptSplitDb";
+import {
+  getReceiptImageDownloadUrl,
+  uploadReceiptImage,
+} from "../api/ReceiptImageStorage";
 import { Flex } from "../components/Flex";
 import { resizeImageFileToJpegBase64 } from "../utils/receiptImage";
 import { parseLooseReceiptText } from "../utils/receiptParse";
@@ -285,6 +290,12 @@ export const ReceiptSplitPage = () => {
 
   const skipNextMetaPush = useRef(false);
   const hasHydratedShared = useRef(false);
+  /** Last `resizeImageFileToJpegBase64` result for `selectedFile` (Share reuses it). */
+  const lastResizedRef = useRef<{
+    file: File;
+    base64: string;
+    mimeType: string;
+  } | null>(null);
 
   const [people, setPeople] = useState<string[]>([]);
   const [newPerson, setNewPerson] = useState("");
@@ -292,6 +303,8 @@ export const ReceiptSplitPage = () => {
   const [linesById, setLinesById] = useState<Record<string, LineBody>>({});
   const [pasteText, setPasteText] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  /** Download URL for `imagePath` from Firestore (shared receipts). */
+  const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<false | "ai" | "ocr">(false);
   const [ocrStatus, setOcrStatus] = useState<string>("");
@@ -379,6 +392,7 @@ export const ReceiptSplitPage = () => {
     if (!receiptId) {
       setSharedNotFound(false);
       hasHydratedShared.current = false;
+      setRemoteImageUrl(null);
       return undefined;
     }
     setSharedNotFound(false);
@@ -414,6 +428,18 @@ export const ReceiptSplitPage = () => {
         setFromCurrencyRate(data.currency?.fromRate ?? "1");
         setToCurrencyRate(data.currency?.toRate ?? "1");
         setReceiptTotalsFromImage(data.receiptTotalsFromImage ?? null);
+        const imagePath = data.imagePath ?? null;
+        if (!imagePath) {
+          setRemoteImageUrl(null);
+        } else {
+          void getReceiptImageDownloadUrl(imagePath)
+            .then((url) => {
+              setRemoteImageUrl(url);
+            })
+            .catch(() => {
+              setRemoteImageUrl(null);
+            });
+        }
       },
       (err) => {
         setError(err.message);
@@ -664,6 +690,7 @@ export const ReceiptSplitPage = () => {
     setError(null);
     setErrorIsWarning(false);
     setReceiptTotalsFromImage(null);
+    lastResizedRef.current = null;
     setSelectedFile(file);
     setPreviewUrl((prev) => {
       if (prev) {
@@ -693,6 +720,7 @@ export const ReceiptSplitPage = () => {
       const file = new File([blob], "receipt-cropped.jpg", {
         type: "image/jpeg",
       });
+      lastResizedRef.current = null;
       setSelectedFile(file);
       setPreviewUrl((prev) => {
         if (prev) {
@@ -780,6 +808,7 @@ export const ReceiptSplitPage = () => {
       const { base64, mimeType } = await resizeImageFileToJpegBase64(
         selectedFile
       );
+      lastResizedRef.current = { file: selectedFile, base64, mimeType };
       const result = await parseReceiptImage({
         imageBase64: base64,
         mimeType,
@@ -1067,6 +1096,7 @@ export const ReceiptSplitPage = () => {
     }
     setShareBusy(true);
     setError(null);
+    setErrorIsWarning(false);
     try {
       const order = lineOrder;
       const byId = linesById;
@@ -1094,6 +1124,35 @@ export const ReceiptSplitPage = () => {
         },
         receiptTotalsFromImage,
       });
+      if (selectedFile) {
+        try {
+          let base64: string;
+          let mimeType: string;
+          const cached = lastResizedRef.current;
+          if (cached && cached.file === selectedFile) {
+            base64 = cached.base64;
+            mimeType = cached.mimeType;
+          } else {
+            const resized = await resizeImageFileToJpegBase64(selectedFile);
+            base64 = resized.base64;
+            mimeType = resized.mimeType;
+            lastResizedRef.current = {
+              file: selectedFile,
+              base64,
+              mimeType,
+            };
+          }
+          const path = await uploadReceiptImage(id, base64, mimeType);
+          await setReceiptImagePath(id, path);
+        } catch (e: unknown) {
+          const msg =
+            e instanceof Error
+              ? e.message
+              : "Could not save receipt photo to storage.";
+          setError(msg);
+          setErrorIsWarning(true);
+        }
+      }
       history.push(`/receipt-split/${id}`);
     } catch (e: unknown) {
       const msg =
@@ -1120,6 +1179,7 @@ export const ReceiptSplitPage = () => {
     fromCurrencyRate,
     toCurrencyRate,
     receiptTotalsFromImage,
+    selectedFile,
     history,
   ]);
 
@@ -1157,26 +1217,31 @@ export const ReceiptSplitPage = () => {
           </Alert>
         ) : (
           <>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Use the <strong>Receipt photo</strong> tab to upload a picture and
-              run <strong>Parse with OCR</strong> (free in-browser; accuracy
-              varies) or <strong>Parse with Gemini</strong> (slower but more
-              accurate). Use <strong>Paste text</strong> to paste receipt lines
-              instead. Then assign each line to one or more people (shared lines
-              are split evenly). Enter tax and tip (each as an amount or a % of
-              subtotal) below the lines; each is split in proportion to each
-              person’s share of the line-item subtotal (including unassigned
-              items). You can also add rows by hand.
-              {isShared && (
-                <>
-                  {" "}
-                  <strong>Shared:</strong> everyone with the link sees edits in
-                  real time. Use <strong>Copy link</strong> in the bar above to
-                  share the URL. Pick <strong>Your name</strong> below, then use{" "}
-                  <strong>+ Me</strong> on a line to assign yourself quickly.
-                </>
-              )}
-            </Typography>
+            {isShared ? (
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Assign each line to one or more people (shared lines are split
+                evenly). Enter tax and tip (each as an amount or a % of subtotal)
+                below the lines; each is split in proportion to each person’s
+                share of the line-item subtotal (including unassigned items). You
+                can also add rows by hand.{" "}
+                <strong>Shared:</strong> everyone with the link sees edits in
+                real time. Use <strong>Copy link</strong> in the bar above to share
+                the URL. Pick <strong>Your name</strong> below, then use{" "}
+                <strong>+ Me</strong> on a line to assign yourself quickly.
+              </Typography>
+            ) : (
+              <Typography variant="body1" color="text.secondary" paragraph>
+                Use the <strong>Receipt photo</strong> tab to upload a picture and
+                run <strong>Parse with OCR</strong> (free in-browser; accuracy
+                varies) or <strong>Parse with Gemini</strong> (slower but more
+                accurate). Use <strong>Paste text</strong> to paste receipt lines
+                instead. Then assign each line to one or more people (shared lines
+                are split evenly). Enter tax and tip (each as an amount or a % of
+                subtotal) below the lines; each is split in proportion to each
+                person’s share of the line-item subtotal (including unassigned
+                items). You can also add rows by hand.
+              </Typography>
+            )}
 
             {error && (
               <Alert
@@ -1192,161 +1257,141 @@ export const ReceiptSplitPage = () => {
             )}
 
             <Paper sx={{ p: 2 }} className={classes.section}>
-              <Tabs
-                value={inputTab}
-                onChange={(_, v) => setInputTab(v)}
-                aria-label="How to enter receipt"
-                variant="fullWidth"
-              >
-                <Tab label="Receipt photo" id="receipt-input-tab-0" />
-                <Tab label="Paste text" id="receipt-input-tab-1" />
-              </Tabs>
-
-              {inputTab === 0 && (
-                <Box
-                  role="tabpanel"
-                  id="receipt-input-panel-0"
-                  aria-labelledby="receipt-input-tab-0"
-                  sx={{ pt: 2 }}
-                >
-                  <Flex gap={2} flexWrap="wrap" alignItems="center">
-                    <Button variant="contained" component="label">
-                      Choose photo
-                      <input
-                        type="file"
-                        accept="image/*"
-                        hidden
-                        onChange={(e) =>
-                          onPickFile(e.target.files?.[0] ?? null)
-                        }
-                      />
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={openCropDialog}
-                      disabled={!previewUrl || !!loading}
-                    >
-                      Crop
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={parseFromImageOcr}
-                      disabled={!selectedFile || !!loading}
-                    >
-                      {loading === "ocr" ? (
-                        <CircularProgress size={22} color="inherit" />
-                      ) : (
-                        "Parse with OCR"
-                      )}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={parseFromImage}
-                      disabled={!selectedFile || !!loading}
-                    >
-                      {loading === "ai" ? (
-                        <CircularProgress size={22} color="inherit" />
-                      ) : (
-                        "Parse with Gemini"
-                      )}
-                    </Button>
-                    {selectedFile && (
-                      <Typography variant="body2" color="text.secondary">
-                        {selectedFile.name}
-                      </Typography>
-                    )}
-                  </Flex>
-                  {loading === "ocr" && ocrStatus && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      display="block"
-                      mt={1}
-                    >
-                      {ocrStatus}
-                    </Typography>
-                  )}
-                  {previewUrl && (
-                    <Box mt={2}>
+              {isShared ? (
+                <>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Receipt photo
+                  </Typography>
+                  {remoteImageUrl || previewUrl ? (
+                    <Box mt={1}>
                       <img
-                        src={previewUrl}
-                        alt="Receipt preview"
+                        src={remoteImageUrl ?? previewUrl ?? undefined}
+                        alt="Receipt"
                         className={classes.preview}
                       />
                     </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No receipt photo was attached.
+                    </Typography>
                   )}
-                </Box>
-              )}
+                </>
+              ) : (
+                <>
+                  <Tabs
+                    value={inputTab}
+                    onChange={(_, v) => setInputTab(v)}
+                    aria-label="How to enter receipt"
+                    variant="fullWidth"
+                  >
+                    <Tab label="Receipt photo" id="receipt-input-tab-0" />
+                    <Tab label="Paste text" id="receipt-input-tab-1" />
+                  </Tabs>
 
-              {inputTab === 1 && (
-                <Box
-                  role="tabpanel"
-                  id="receipt-input-panel-1"
-                  aria-labelledby="receipt-input-tab-1"
-                  sx={{ pt: 2 }}
-                >
-                  <TextField
-                    fullWidth
-                    multiline
-                    minRows={4}
-                    placeholder={
-                      "Example:\nCheeseburger 12.50\nFries 4.00\nSoda 2.50"
-                    }
-                    value={pasteText}
-                    onChange={(e) => setPasteText(e.target.value)}
-                  />
-                  <Box mt={1}>
-                    <Button variant="outlined" onClick={parseFromPaste}>
-                      Parse pasted lines
-                    </Button>
-                  </Box>
-                </Box>
+                  {inputTab === 0 && (
+                    <Box
+                      role="tabpanel"
+                      id="receipt-input-panel-0"
+                      aria-labelledby="receipt-input-tab-0"
+                      sx={{ pt: 2 }}
+                    >
+                      <Flex gap={2} flexWrap="wrap" alignItems="center">
+                        <Button variant="contained" component="label">
+                          Choose photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            hidden
+                            onChange={(e) =>
+                              onPickFile(e.target.files?.[0] ?? null)
+                            }
+                          />
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          onClick={openCropDialog}
+                          disabled={!previewUrl || !!loading}
+                        >
+                          Crop
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          onClick={parseFromImageOcr}
+                          disabled={!selectedFile || !!loading}
+                        >
+                          {loading === "ocr" ? (
+                            <CircularProgress size={22} color="inherit" />
+                          ) : (
+                            "Parse with OCR"
+                          )}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          onClick={parseFromImage}
+                          disabled={!selectedFile || !!loading}
+                        >
+                          {loading === "ai" ? (
+                            <CircularProgress size={22} color="inherit" />
+                          ) : (
+                            "Parse with Gemini"
+                          )}
+                        </Button>
+                        {selectedFile && (
+                          <Typography variant="body2" color="text.secondary">
+                            {selectedFile.name}
+                          </Typography>
+                        )}
+                      </Flex>
+                      {loading === "ocr" && ocrStatus && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          mt={1}
+                        >
+                          {ocrStatus}
+                        </Typography>
+                      )}
+                      {previewUrl && (
+                        <Box mt={2}>
+                          <img
+                            src={previewUrl}
+                            alt="Receipt preview"
+                            className={classes.preview}
+                          />
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
+                  {inputTab === 1 && (
+                    <Box
+                      role="tabpanel"
+                      id="receipt-input-panel-1"
+                      aria-labelledby="receipt-input-tab-1"
+                      sx={{ pt: 2 }}
+                    >
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={4}
+                        placeholder={
+                          "Example:\nCheeseburger 12.50\nFries 4.00\nSoda 2.50"
+                        }
+                        value={pasteText}
+                        onChange={(e) => setPasteText(e.target.value)}
+                      />
+                      <Box mt={1}>
+                        <Button variant="outlined" onClick={parseFromPaste}>
+                          Parse pasted lines
+                        </Button>
+                      </Box>
+                    </Box>
+                  )}
+                </>
               )}
             </Paper>
-
-            {isShared && receiptId && !sharedNotFound && (
-              <Paper sx={{ p: 2 }} className={classes.section}>
-                <Typography variant="subtitle1" gutterBottom>
-                  You are
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  paragraph
-                  sx={{ mt: -0.5 }}
-                >
-                  Choose the name that matches you in the list below so you can
-                  use <strong>+ Me</strong> on each line. Names are added under{" "}
-                  <strong>People splitting the bill</strong>.
-                </Typography>
-                <FormControl fullWidth size="small">
-                  <Select<string>
-                    labelId="receipt-split-self-label"
-                    placeholder={undefined}
-                    value={selfName}
-                    displayEmpty
-                    onChange={(e) => setSelfName(e.target.value)}
-                    inputProps={{
-                      shrink: true,
-                    }}
-                  >
-                    <MenuItem value="">
-                      <em>Select your name…</em>
-                    </MenuItem>
-                    {people.map((name) => (
-                      <MenuItem key={name} value={name}>
-                        {name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText>
-                    Required for the <strong>+ Me</strong> shortcut on line
-                    items.
-                  </FormHelperText>
-                </FormControl>
-              </Paper>
-            )}
 
             <Paper sx={{ p: 2 }} className={classes.section}>
               <Typography variant="subtitle1" gutterBottom>
@@ -1386,6 +1431,44 @@ export const ReceiptSplitPage = () => {
                 ))}
               </Flex>
             </Paper>
+
+            {isShared && receiptId && !sharedNotFound && (
+              <Paper sx={{ p: 2 }} className={classes.section}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Your name
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  paragraph
+                  sx={{ mt: -0.5 }}
+                >
+                  Choose the name that matches you in the list above so you can
+                  use <strong>+ Me</strong> on each line.
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select<string>
+                    labelId="receipt-split-self-label"
+                    placeholder={undefined}
+                    value={selfName}
+                    displayEmpty
+                    onChange={(e) => setSelfName(e.target.value)}
+                    inputProps={{
+                      shrink: true,
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>Select your name…</em>
+                    </MenuItem>
+                    {people.map((name) => (
+                      <MenuItem key={name} value={name}>
+                        {name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Paper>
+            )}
 
             <Paper sx={{ p: 2 }} className={classes.section}>
               <Flex justifyContent="space-between" alignItems="center" mb={1}>

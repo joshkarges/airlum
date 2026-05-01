@@ -54,6 +54,8 @@ export type ReceiptSplitDoc = {
     tip: number | null;
     grandTotal: number | null;
   } | null;
+  /** Firebase Storage object path for the shared receipt image, or null. */
+  imagePath: string | null;
 };
 
 const defaultDoc = (id: string): ReceiptSplitDoc => ({
@@ -74,6 +76,7 @@ const defaultDoc = (id: string): ReceiptSplitDoc => ({
     toRate: "1",
   },
   receiptTotalsFromImage: null,
+  imagePath: null,
 });
 
 /** Build payload for setDoc (Firestore-compatible; no undefined values). */
@@ -100,6 +103,7 @@ export const buildReceiptSplitPayload = (
     tip: merged.tip,
     currency: merged.currency,
     receiptTotalsFromImage: merged.receiptTotalsFromImage,
+    imagePath: merged.imagePath ?? null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
@@ -209,6 +213,19 @@ export const updateReceiptFieldsImmediate = async (
     .doc(receiptId)
     .update({
       ...fields,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+};
+
+export const setReceiptImagePath = async (
+  receiptId: string,
+  imagePath: string | null
+): Promise<void> => {
+  await db
+    .collection(RECEIPT_SPLITS)
+    .doc(receiptId)
+    .update({
+      imagePath,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 };
