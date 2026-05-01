@@ -175,7 +175,6 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   itemColumn: {
     minWidth: 220,
-    verticalAlign: "top",
   },
   preview: {
     maxWidth: "100%",
@@ -1740,15 +1739,13 @@ export const ReceiptSplitPage = () => {
                           <Typography variant="body2" fontWeight={500}>
                             Subtotal
                           </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Sum of line items
+                          </Typography>
                         </TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" fontWeight={500}>
                             {formatMoney(lineSubtotal, fromCurrency)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell colSpan={isMobile ? 1 : 2}>
-                          <Typography variant="caption" color="text.secondary">
-                            Sum of line items
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -1794,8 +1791,12 @@ export const ReceiptSplitPage = () => {
                               </Select>
                             </FormControl>
                           </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            Split by share of subtotal (
+                            {formatMoney(lineSubtotal, fromCurrency)})
+                          </Typography>
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell align="right" sx={{ verticalAlign: "top" }}>
                           <TextField
                             size="small"
                             type="number"
@@ -1904,19 +1905,6 @@ export const ReceiptSplitPage = () => {
                             }
                           />
                         </TableCell>
-                        <TableCell colSpan={isMobile ? 1 : 2}>
-                          <Typography variant="caption" color="text.secondary">
-                            Split by share of subtotal (
-                            {formatMoney(lineSubtotal, fromCurrency)})
-                            {taxMode === "percent" && (
-                              <>
-                                {" "}
-                                · Tax amount:{" "}
-                                {formatMoney(effectiveTaxAmount, fromCurrency)}
-                              </>
-                            )}
-                          </Typography>
-                        </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell className={classes.itemColumn}>
@@ -1960,8 +1948,12 @@ export const ReceiptSplitPage = () => {
                               </Select>
                             </FormControl>
                           </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            Split by share of subtotal (
+                            {formatMoney(lineSubtotal, fromCurrency)})
+                          </Typography>
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell align="right" sx={{ verticalAlign: "top" }}>
                           <TextField
                             size="small"
                             type="number"
@@ -2069,19 +2061,6 @@ export const ReceiptSplitPage = () => {
                                 : undefined
                             }
                           />
-                        </TableCell>
-                        <TableCell colSpan={isMobile ? 1 : 2}>
-                          <Typography variant="caption" color="text.secondary">
-                            Split by share of subtotal (
-                            {formatMoney(lineSubtotal, fromCurrency)})
-                            {tipMode === "percent" && (
-                              <>
-                                {" "}
-                                · Tip amount:{" "}
-                                {formatMoney(effectiveTipAmount, fromCurrency)}
-                              </>
-                            )}
-                          </Typography>
                         </TableCell>
                       </TableRow>
                     </TableBody>
