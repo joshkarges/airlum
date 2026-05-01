@@ -38,12 +38,20 @@ import {
   FormHelperText,
   Autocomplete,
   Snackbar,
+  useMediaQuery,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ShareIcon from "@mui/icons-material/Share";
 import { makeStyles } from "@mui/styles";
 import { blue } from "@mui/material/colors";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useHistory, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { parseReceiptImage } from "../api/ReceiptApi";
@@ -272,6 +280,9 @@ export const ReceiptSplitPage = () => {
   const { receiptId } = useParams<{ receiptId?: string }>();
   const history = useHistory();
   const isShared = Boolean(receiptId);
+  const isMobile = useMediaQuery((theme: Theme) =>
+    theme.breakpoints.down("sm")
+  );
 
   const skipNextMetaPush = useRef(false);
   const hasHydratedShared = useRef(false);
@@ -1448,7 +1459,7 @@ export const ReceiptSplitPage = () => {
                     <colgroup>
                       <col style={{ minWidth: 220 }} />
                       <col style={{ minWidth: 150 }} />
-                      <col style={{ minWidth: 220 }} />
+                      {!isMobile && <col style={{ minWidth: 220 }} />}
                       <col style={{ minWidth: 48 }} />
                     </colgroup>
                     <TableHead>
@@ -1459,234 +1470,271 @@ export const ReceiptSplitPage = () => {
                         <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                           Amount
                         </TableCell>
-                        <TableCell sx={{ whiteSpace: "nowrap" }}>
-                          Split between
-                        </TableCell>
+                        {!isMobile && (
+                          <TableCell sx={{ whiteSpace: "nowrap" }}>
+                            Split between
+                          </TableCell>
+                        )}
                         <TableCell padding="checkbox" />
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {lines.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className={classes.itemColumn}>
-                            <TextField
+                      {lines.map((row) => {
+                        const assigneesCell = (
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Select
                               fullWidth
+                              multiple
+                              displayEmpty
+                              autoWidth
                               size="small"
-                              value={row.description}
-                              onChange={(e) =>
+                              value={row.assignees}
+                              onChange={(e: SelectChangeEvent<string[]>) => {
+                                const v = e.target.value;
                                 updateLine(row.id, {
-                                  description: e.target.value,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <TextField
-                              size="small"
-                              type="number"
-                              sx={{
-                                width: (() => {
-                                  const draftText =
-                                    lineAmountDrafts[row.id] ?? "";
-                                  const formattedText = formatCurrencyNumber(
-                                    row.amount,
-                                    fromCurrency
-                                  );
-                                  const widerText =
-                                    draftText.length > formattedText.length
-                                      ? draftText
-                                      : formattedText;
-                                  return getAmountInputWidth(
-                                    fromCurrency,
-                                    widerText
-                                  );
-                                })(),
-                              }}
-                              inputProps={{
-                                min: 0,
-                                step: getCurrencyStep(fromCurrency),
-                              }}
-                              InputProps={{
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    {CURRENCY_BY_VALUE[fromCurrency] ??
-                                      fromCurrency}
-                                  </InputAdornment>
-                                ),
-                              }}
-                              value={
-                                lineAmountDrafts[row.id] ??
-                                formatCurrencyNumber(row.amount, fromCurrency)
-                              }
-                              onFocus={() =>
-                                setLineAmountDrafts((drafts) => ({
-                                  ...drafts,
-                                  [row.id]:
-                                    row.amount === 0 ? "" : String(row.amount),
-                                }))
-                              }
-                              onChange={(e) => {
-                                const nextValue = e.target.value;
-                                setLineAmountDrafts((drafts) => ({
-                                  ...drafts,
-                                  [row.id]: nextValue,
-                                }));
-                                updateLine(row.id, {
-                                  amount: parseFloat(nextValue) || 0,
+                                  assignees:
+                                    typeof v === "string" ? v.split(",") : v,
                                 });
                               }}
-                              onBlur={() => {
-                                const roundedAmount = roundCurrencyAmount(
-                                  row.amount,
-                                  fromCurrency
-                                );
-                                updateLine(row.id, { amount: roundedAmount });
-                                setLineAmountDrafts((drafts) => {
-                                  const { [row.id]: _removed, ...rest } =
-                                    drafts;
-                                  return rest;
-                                });
+                              input={<OutlinedInput size="small" />}
+                              MenuProps={{
+                                autoFocus: false,
+                                disableAutoFocusItem: true,
+                                PaperProps: {
+                                  sx: {
+                                    maxWidth: "calc(100vw - 32px)",
+                                  },
+                                },
                               }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Flex
-                              gap={1}
-                              alignItems="center"
-                              sx={{ minWidth: 0 }}
-                            >
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Select
-                                  fullWidth
-                                  multiple
-                                  displayEmpty
-                                  size="small"
-                                  value={row.assignees}
-                                  onChange={(
-                                    e: SelectChangeEvent<string[]>
-                                  ) => {
-                                    const v = e.target.value;
-                                    updateLine(row.id, {
-                                      assignees:
-                                        typeof v === "string"
-                                          ? v.split(",")
-                                          : v,
-                                    });
-                                  }}
-                                  input={<OutlinedInput size="small" />}
-                                  MenuProps={{
-                                    autoFocus: false,
-                                    disableAutoFocusItem: true,
-                                  }}
-                                  renderValue={(selected) => {
-                                    const names = selected as string[];
-                                    if (names.length === 0) {
-                                      return (
-                                        <Typography
-                                          component="span"
-                                          variant="body2"
-                                          color="text.secondary"
-                                        >
-                                          Unassigned
-                                        </Typography>
-                                      );
-                                    }
-                                    return (
-                                      <Box
-                                        sx={{
-                                          display: "flex",
-                                          flexWrap: "wrap",
-                                          gap: 0.5,
-                                          py: 0.25,
-                                        }}
-                                      >
-                                        {names.map((name) => (
-                                          <Chip
-                                            key={name}
-                                            label={name}
-                                            size="small"
-                                          />
-                                        ))}
-                                      </Box>
-                                    );
-                                  }}
-                                >
-                                  <ListSubheader
+                              renderValue={(selected) => {
+                                const names = selected as string[];
+                                if (names.length === 0) {
+                                  return (
+                                    <Typography
+                                      component="span"
+                                      variant="body2"
+                                      color="text.secondary"
+                                    >
+                                      Unassigned
+                                    </Typography>
+                                  );
+                                }
+                                return (
+                                  <Box
                                     sx={{
-                                      px: 1,
-                                      py: 1,
-                                      lineHeight: 1.2,
-                                      bgcolor: "background.paper",
+                                      display: "flex",
+                                      flexWrap: "wrap",
+                                      gap: 0.5,
+                                      py: 0.25,
                                     }}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <Flex gap={0.5} flexWrap="wrap">
-                                      <Button
+                                    {names.map((name) => (
+                                      <Chip
+                                        key={name}
+                                        label={name}
                                         size="small"
-                                        disabled={people.length === 0}
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          e.preventDefault();
-                                          updateLine(row.id, {
-                                            assignees: [...people],
-                                          });
-                                        }}
-                                      >
-                                        Select all
-                                      </Button>
-                                      <Button
-                                        size="small"
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          e.preventDefault();
-                                          updateLine(row.id, { assignees: [] });
-                                        }}
-                                      >
-                                        Deselect all
-                                      </Button>
-                                    </Flex>
-                                  </ListSubheader>
-                                  {people.map((name) => (
-                                    <MenuItem key={name} value={name}>
-                                      <Checkbox
-                                        size="small"
-                                        checked={row.assignees.includes(name)}
                                       />
-                                      <ListItemText primary={name} />
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </Box>
-                              {isShared &&
-                                selfName &&
-                                people.includes(selfName) && (
+                                    ))}
+                                  </Box>
+                                );
+                              }}
+                            >
+                              <ListSubheader
+                                sx={{
+                                  px: 1,
+                                  py: 1,
+                                  lineHeight: 1.2,
+                                  bgcolor: "background.paper",
+                                }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Flex gap={0.5} flexWrap="wrap">
                                   <Button
                                     size="small"
-                                    variant="outlined"
-                                    sx={{ flexShrink: 0 }}
-                                    onClick={() => toggleMeOnLine(row.id)}
+                                    disabled={people.length === 0}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      updateLine(row.id, {
+                                        assignees: [...people],
+                                      });
+                                    }}
                                   >
-                                    {row.assignees.includes(selfName)
-                                      ? "− Me"
-                                      : "+ Me"}
+                                    Select all
                                   </Button>
-                                )}
-                            </Flex>
-                          </TableCell>
-                          <TableCell padding="checkbox">
-                            <IconButton
+                                  <Button
+                                    size="small"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      updateLine(row.id, { assignees: [] });
+                                    }}
+                                  >
+                                    Deselect all
+                                  </Button>
+                                </Flex>
+                              </ListSubheader>
+                              {people.map((name) => (
+                                <MenuItem key={name} value={name}>
+                                  <Checkbox
+                                    size="small"
+                                    checked={row.assignees.includes(name)}
+                                  />
+                                  <ListItemText primary={name} />
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </Box>
+                        );
+                        const meButton =
+                          isShared && selfName && people.includes(selfName) ? (
+                            <Button
                               size="small"
-                              aria-label="Remove line"
-                              onClick={() => removeLine(row.id)}
+                              variant="outlined"
+                              sx={{ flexShrink: 0 }}
+                              onClick={() => toggleMeOnLine(row.id)}
                             >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              {row.assignees.includes(selfName)
+                                ? "− Me"
+                                : "+ Me"}
+                            </Button>
+                          ) : null;
+                        return (
+                          <Fragment key={row.id}>
+                            <TableRow
+                              sx={
+                                isMobile
+                                  ? {
+                                      "& > .MuiTableCell-root": {
+                                        borderBottom: "none",
+                                      },
+                                    }
+                                  : undefined
+                              }
+                            >
+                              <TableCell className={classes.itemColumn}>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  value={row.description}
+                                  onChange={(e) =>
+                                    updateLine(row.id, {
+                                      description: e.target.value,
+                                    })
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell align="right">
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  sx={{
+                                    width: (() => {
+                                      const draftText =
+                                        lineAmountDrafts[row.id] ?? "";
+                                      const formattedText =
+                                        formatCurrencyNumber(
+                                          row.amount,
+                                          fromCurrency
+                                        );
+                                      const widerText =
+                                        draftText.length > formattedText.length
+                                          ? draftText
+                                          : formattedText;
+                                      return getAmountInputWidth(
+                                        fromCurrency,
+                                        widerText
+                                      );
+                                    })(),
+                                  }}
+                                  inputProps={{
+                                    min: 0,
+                                    step: getCurrencyStep(fromCurrency),
+                                  }}
+                                  InputProps={{
+                                    startAdornment: (
+                                      <InputAdornment position="start">
+                                        {CURRENCY_BY_VALUE[fromCurrency] ??
+                                          fromCurrency}
+                                      </InputAdornment>
+                                    ),
+                                  }}
+                                  value={
+                                    lineAmountDrafts[row.id] ??
+                                    formatCurrencyNumber(
+                                      row.amount,
+                                      fromCurrency
+                                    )
+                                  }
+                                  onFocus={() =>
+                                    setLineAmountDrafts((drafts) => ({
+                                      ...drafts,
+                                      [row.id]:
+                                        row.amount === 0
+                                          ? ""
+                                          : String(row.amount),
+                                    }))
+                                  }
+                                  onChange={(e) => {
+                                    const nextValue = e.target.value;
+                                    setLineAmountDrafts((drafts) => ({
+                                      ...drafts,
+                                      [row.id]: nextValue,
+                                    }));
+                                    updateLine(row.id, {
+                                      amount: parseFloat(nextValue) || 0,
+                                    });
+                                  }}
+                                  onBlur={() => {
+                                    const roundedAmount = roundCurrencyAmount(
+                                      row.amount,
+                                      fromCurrency
+                                    );
+                                    updateLine(row.id, {
+                                      amount: roundedAmount,
+                                    });
+                                    setLineAmountDrafts((drafts) => {
+                                      const { [row.id]: _removed, ...rest } =
+                                        drafts;
+                                      return rest;
+                                    });
+                                  }}
+                                />
+                              </TableCell>
+                              {!isMobile && (
+                                <TableCell>
+                                  <Flex
+                                    gap={1}
+                                    alignItems="center"
+                                    sx={{ minWidth: 0 }}
+                                  >
+                                    {assigneesCell}
+                                    {meButton}
+                                  </Flex>
+                                </TableCell>
+                              )}
+                              <TableCell padding="checkbox">
+                                <IconButton
+                                  size="small"
+                                  aria-label="Remove line"
+                                  onClick={() => removeLine(row.id)}
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                            {isMobile && (
+                              <TableRow>
+                                <TableCell>{assigneesCell}</TableCell>
+                                <TableCell>{meButton}</TableCell>
+                              </TableRow>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                       <TableRow>
                         <TableCell className={classes.itemColumn}>
                           <Typography variant="body2" fontWeight={500}>
@@ -1698,7 +1746,7 @@ export const ReceiptSplitPage = () => {
                             {formatMoney(lineSubtotal, fromCurrency)}
                           </Typography>
                         </TableCell>
-                        <TableCell colSpan={2}>
+                        <TableCell colSpan={isMobile ? 1 : 2}>
                           <Typography variant="caption" color="text.secondary">
                             Sum of line items
                           </Typography>
@@ -1856,7 +1904,7 @@ export const ReceiptSplitPage = () => {
                             }
                           />
                         </TableCell>
-                        <TableCell colSpan={2}>
+                        <TableCell colSpan={isMobile ? 1 : 2}>
                           <Typography variant="caption" color="text.secondary">
                             Split by share of subtotal (
                             {formatMoney(lineSubtotal, fromCurrency)})
@@ -2022,7 +2070,7 @@ export const ReceiptSplitPage = () => {
                             }
                           />
                         </TableCell>
-                        <TableCell colSpan={2}>
+                        <TableCell colSpan={isMobile ? 1 : 2}>
                           <Typography variant="caption" color="text.secondary">
                             Split by share of subtotal (
                             {formatMoney(lineSubtotal, fromCurrency)})
