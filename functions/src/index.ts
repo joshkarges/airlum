@@ -63,7 +63,7 @@ const generateSixDigitAlphaNumericCode = () => {
 // Initialize Firebase
 const appAdmin = admin.initializeApp({
   projectId: "airlum",
-  storageBucket: "airlum.appspot.com",
+  storageBucket: "airlum.firebasestorage.app",
 });
 
 const dbAdmin = getFirestoreAdmin(appAdmin);
@@ -441,9 +441,9 @@ exports.parseReceiptImage = onCall<
       "and grand total / amount due / balance. " +
       "Use null for any field not present or unreadable. " +
       "Return JSON only with this exact shape: " +
-      "{\"items\":[{\"description\":\"string\",\"amount\":number}]," +
-      "\"subtotal\":number|null,\"tax\":number|null,\"tip\":number|null," +
-      "\"grandTotal\":number|null}. " +
+      '{"items":[{"description":"string","amount":number}],' +
+      '"subtotal":number|null,"tax":number|null,"tip":number|null,' +
+      '"grandTotal":number|null}. ' +
       "Use an empty items array if nothing is readable.";
 
     let content: string;
