@@ -35,12 +35,12 @@ import {
   Typography,
   FormControl,
   FormControlLabel,
-  FormHelperText,
   Autocomplete,
   Snackbar,
   useMediaQuery,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import Google from "@mui/icons-material/Google";
 import ShareIcon from "@mui/icons-material/Share";
 import { makeStyles } from "@mui/styles";
 import { blue } from "@mui/material/colors";
@@ -82,6 +82,7 @@ import type { Area } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { Close } from "@mui/icons-material";
 import { DocTitle } from "../utils/useDocTitleEffect";
+import firebase from "firebase/compat/app";
 
 type ReceiptLine = {
   id: string;
@@ -350,6 +351,8 @@ export const ReceiptSplitPage = () => {
   const [sharedNotFound, setSharedNotFound] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareSnackOpen, setShareSnackOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<firebase.User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [selfName, setSelfName] = useState("");
 
   const lines: ReceiptLine[] = useMemo(
@@ -390,6 +393,14 @@ export const ReceiptSplitPage = () => {
       // ignore
     }
   }, [receiptId, selfName]);
+
+  useEffect(() => {
+    const unsub = firebase.auth().onAuthStateChanged((user) => {
+      setAuthUser(user);
+      setAuthReady(true);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (!receiptId) {
@@ -1087,6 +1098,27 @@ export const ReceiptSplitPage = () => {
     [selfName, people, linesById, updateLine]
   );
 
+  const onSignInWithGoogle = useCallback(async () => {
+    setError(null);
+    setErrorIsWarning(false);
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await firebase.auth().signInWithPopup(provider);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Sign in failed.";
+      setError(msg);
+    }
+  }, []);
+
+  const onSignOut = useCallback(async () => {
+    try {
+      await firebase.auth().signOut();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Sign out failed.";
+      setError(msg);
+    }
+  }, []);
+
   const onShareReceipt = useCallback(async () => {
     if (isShared) {
       try {
@@ -1200,15 +1232,47 @@ export const ReceiptSplitPage = () => {
           <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
             Receipt split
           </Typography>
-          <Button
-            color="inherit"
-            size="small"
-            startIcon={<ShareIcon />}
-            onClick={() => void onShareReceipt()}
-            disabled={shareBusy}
+          <Box
+            sx={{
+              ml: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              minHeight: 40,
+            }}
           >
-            {isShared ? "Copy link" : "Share"}
-          </Button>
+            {(isShared || (authReady && authUser)) && (
+              <Button
+                color="inherit"
+                size="small"
+                startIcon={<ShareIcon />}
+                onClick={() => void onShareReceipt()}
+                disabled={shareBusy}
+              >
+                {isShared ? "Copy link" : "Share"}
+              </Button>
+            )}
+            {!authReady ? (
+              <CircularProgress color="inherit" size={22} />
+            ) : authUser ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => void onSignOut()}
+              >
+                Sign out
+              </Button>
+            ) : (
+              <Button
+                color="inherit"
+                size="small"
+                startIcon={<Google />}
+                onClick={() => void onSignInWithGoogle()}
+              >
+                Sign in with Google
+              </Button>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
@@ -1223,26 +1287,26 @@ export const ReceiptSplitPage = () => {
             {isShared ? (
               <Typography variant="body1" color="text.secondary" paragraph>
                 Assign each line to one or more people (shared lines are split
-                evenly). Enter tax and tip (each as an amount or a % of subtotal)
-                below the lines; each is split in proportion to each person’s
-                share of the line-item subtotal (including unassigned items). You
-                can also add rows by hand.{" "}
-                <strong>Shared:</strong> everyone with the link sees edits in
-                real time. Use <strong>Copy link</strong> in the bar above to share
-                the URL. Pick <strong>Your name</strong> below, then use{" "}
+                evenly). Enter tax and tip (each as an amount or a % of
+                subtotal) below the lines; each is split in proportion to each
+                person’s share of the line-item subtotal (including unassigned
+                items). You can also add rows by hand. <strong>Shared:</strong>{" "}
+                everyone with the link sees edits in real time. Use{" "}
+                <strong>Copy link</strong> in the bar above to share the URL.
+                Pick <strong>Your name</strong> below, then use{" "}
                 <strong>+ Me</strong> on a line to assign yourself quickly.
               </Typography>
             ) : (
               <Typography variant="body1" color="text.secondary" paragraph>
-                Use the <strong>Receipt photo</strong> tab to upload a picture and
-                run <strong>Parse with OCR</strong> (free in-browser; accuracy
-                varies) or <strong>Parse with Gemini</strong> (slower but more
-                accurate). Use <strong>Paste text</strong> to paste receipt lines
-                instead. Then assign each line to one or more people (shared lines
-                are split evenly). Enter tax and tip (each as an amount or a % of
-                subtotal) below the lines; each is split in proportion to each
-                person’s share of the line-item subtotal (including unassigned
-                items). You can also add rows by hand.
+                Use the <strong>Receipt photo</strong> tab to upload a picture
+                and run <strong>Parse with OCR</strong> (free in-browser;
+                accuracy varies) or <strong>Parse with Gemini</strong> (slower
+                but more accurate). Use <strong>Paste text</strong> to paste
+                receipt lines instead. Then assign each line to one or more
+                people (shared lines are split evenly). Enter tax and tip (each
+                as an amount or a % of subtotal) below the lines; each is split
+                in proportion to each person’s share of the line-item subtotal
+                (including unassigned items). You can also add rows by hand.
               </Typography>
             )}
 
@@ -1272,9 +1336,7 @@ export const ReceiptSplitPage = () => {
                         alt="Receipt"
                         className={classes.preview}
                         onClick={() =>
-                          setZoomImageUrl(
-                            remoteImageUrl ?? previewUrl ?? null
-                          )
+                          setZoomImageUrl(remoteImageUrl ?? previewUrl ?? null)
                         }
                         role="button"
                         tabIndex={0}
