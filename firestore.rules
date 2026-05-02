@@ -38,7 +38,14 @@ service cloud.firestore {
     }
 
     match /receiptSplits/{receiptId} {
-      allow read, write: if true
+      allow get: if true;
+      allow list: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if true;
+      allow delete: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
     }
   }
 }

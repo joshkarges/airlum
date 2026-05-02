@@ -293,6 +293,7 @@ export const ReceiptSplitPage = () => {
 
   const skipNextMetaPush = useRef(false);
   const hasHydratedShared = useRef(false);
+  const titleEditActiveRef = useRef(false);
   /** Last `resizeImageFileToJpegBase64` result for `selectedFile` (Share reuses it). */
   const lastResizedRef = useRef<{
     file: File;
@@ -354,6 +355,8 @@ export const ReceiptSplitPage = () => {
   const [authUser, setAuthUser] = useState<firebase.User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [selfName, setSelfName] = useState("");
+  /** Shared receipt header title (Firestore `title`). */
+  const [receiptTitle, setReceiptTitle] = useState("");
 
   const lines: ReceiptLine[] = useMemo(
     () =>
@@ -407,6 +410,8 @@ export const ReceiptSplitPage = () => {
       setSharedNotFound(false);
       hasHydratedShared.current = false;
       setRemoteImageUrl(null);
+      setReceiptTitle("");
+      titleEditActiveRef.current = false;
       return undefined;
     }
     setSharedNotFound(false);
@@ -442,6 +447,9 @@ export const ReceiptSplitPage = () => {
         setFromCurrencyRate(data.currency?.fromRate ?? "1");
         setToCurrencyRate(data.currency?.toRate ?? "1");
         setReceiptTotalsFromImage(data.receiptTotalsFromImage ?? null);
+        if (!titleEditActiveRef.current) {
+          setReceiptTitle(data.title ?? "");
+        }
         const imagePath = data.imagePath ?? null;
         if (!imagePath) {
           setRemoteImageUrl(null);
@@ -1129,36 +1137,43 @@ export const ReceiptSplitPage = () => {
       }
       return;
     }
+    if (!authUser?.uid) {
+      setError("Sign in with Google to share and save a receipt.");
+      return;
+    }
     setShareBusy(true);
     setError(null);
     setErrorIsWarning(false);
     try {
       const order = lineOrder;
       const byId = linesById;
-      const id = await createReceiptSplit({
-        people,
-        lineOrder: order,
-        lines: byId,
-        paymentGroups,
-        tax: {
-          mode: taxMode,
-          amount: taxAmount,
-          percent: taxPercent,
+      const id = await createReceiptSplit(
+        {
+          people,
+          lineOrder: order,
+          lines: byId,
+          paymentGroups,
+          tax: {
+            mode: taxMode,
+            amount: taxAmount,
+            percent: taxPercent,
+          },
+          tip: {
+            mode: tipMode,
+            amount: tipAmount,
+            percent: tipPercent,
+          },
+          currency: {
+            convert: convertCurrency,
+            from: fromCurrency,
+            to: toCurrency,
+            fromRate: fromCurrencyRate,
+            toRate: toCurrencyRate,
+          },
+          receiptTotalsFromImage,
         },
-        tip: {
-          mode: tipMode,
-          amount: tipAmount,
-          percent: tipPercent,
-        },
-        currency: {
-          convert: convertCurrency,
-          from: fromCurrency,
-          to: toCurrency,
-          fromRate: fromCurrencyRate,
-          toRate: toCurrencyRate,
-        },
-        receiptTotalsFromImage,
-      });
+        authUser.uid
+      );
       if (selectedFile) {
         try {
           let base64: string;
@@ -1216,6 +1231,7 @@ export const ReceiptSplitPage = () => {
     receiptTotalsFromImage,
     selectedFile,
     history,
+    authUser,
   ]);
 
   return (
@@ -1223,15 +1239,59 @@ export const ReceiptSplitPage = () => {
       <DocTitle
         title={
           isShared && receiptId
-            ? `Receipt split · ${receiptId}`
+            ? receiptTitle.trim()
+              ? `${receiptTitle} · ${receiptId}`
+              : `Receipt split · ${receiptId}`
             : "Receipt Split"
         }
       />
       <AppBar position="static" className={classes.appBar}>
         <Toolbar sx={{ gap: 1 }}>
-          <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
-            Receipt split
-          </Typography>
+          {isShared && receiptId ? (
+            <TextField
+              variant="standard"
+              sx={{
+                flexGrow: 1,
+                maxWidth: { xs: "100%", sm: 420 },
+                minWidth: 0,
+                "& .MuiInputBase-input": {
+                  color: "#fff",
+                  fontSize: "1.25rem",
+                  fontWeight: 600,
+                  "&::placeholder": {
+                    color: "rgba(255,255,255,0.65)",
+                    opacity: 1,
+                  },
+                },
+                "& .MuiInput-underline:before": {
+                  borderBottomColor: "rgba(255,255,255,0.35)",
+                },
+                "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
+                  borderBottomColor: "rgba(255,255,255,0.5)",
+                },
+                "& .MuiInput-underline:after": {
+                  borderBottomColor: "#fff",
+                },
+              }}
+              value={receiptTitle}
+              placeholder="Untitled receipt"
+              onFocus={() => {
+                titleEditActiveRef.current = true;
+              }}
+              onBlur={() => {
+                titleEditActiveRef.current = false;
+              }}
+              onChange={(e) => {
+                const v = e.target.value;
+                setReceiptTitle(v);
+                void updateReceiptFieldsDebounced(receiptId, { title: v });
+              }}
+            />
+          ) : (
+            <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
+              Receipt split
+            </Typography>
+          )}
           <Box
             sx={{
               ml: "auto",
@@ -1241,6 +1301,15 @@ export const ReceiptSplitPage = () => {
               minHeight: 40,
             }}
           >
+            {authReady && authUser && (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => history.push("/receipt-split/history")}
+              >
+                My receipts
+              </Button>
+            )}
             {(isShared || (authReady && authUser)) && (
               <Button
                 color="inherit"

@@ -1,6 +1,7 @@
 import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
 import "./firebaseApp";
+import { deleteReceiptImageForReceiptId } from "./ReceiptImageStorage";
 
 const db = firebase.firestore();
 
@@ -56,6 +57,10 @@ export type ReceiptSplitDoc = {
   } | null;
   /** Firebase Storage object path for the shared receipt image, or null. */
   imagePath: string | null;
+  /** Creator's Firebase Auth uid, or null for legacy / anonymous-created docs. */
+  ownerUid: string | null;
+  /** User-visible name in history and header. */
+  title: string;
 };
 
 const defaultDoc = (id: string): ReceiptSplitDoc => ({
@@ -77,6 +82,8 @@ const defaultDoc = (id: string): ReceiptSplitDoc => ({
   },
   receiptTotalsFromImage: null,
   imagePath: null,
+  ownerUid: null,
+  title: "",
 });
 
 /** Build payload for setDoc (Firestore-compatible; no undefined values). */
@@ -104,20 +111,26 @@ export const buildReceiptSplitPayload = (
     currency: merged.currency,
     receiptTotalsFromImage: merged.receiptTotalsFromImage,
     imagePath: merged.imagePath ?? null,
+    ownerUid: merged.ownerUid ?? null,
+    title: merged.title ?? "",
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
 };
 
 export const createReceiptSplit = async (
-  partial: Partial<Omit<ReceiptSplitDoc, "id" | "createdAt" | "updatedAt">>
+  partial: Partial<Omit<ReceiptSplitDoc, "id" | "createdAt" | "updatedAt">>,
+  ownerUid: string
 ): Promise<string> => {
+  if (!ownerUid) {
+    throw new Error("You must be signed in to create a receipt.");
+  }
   for (let attempt = 0; attempt < 5; attempt++) {
     const id = generateReceiptId();
     const ref = db.collection(RECEIPT_SPLITS).doc(id);
     const snap = await ref.get();
     if (!snap.exists) {
-      await ref.set(buildReceiptSplitPayload(id, partial));
+      await ref.set(buildReceiptSplitPayload(id, { ...partial, ownerUid }));
       return id;
     }
   }
@@ -141,6 +154,37 @@ export const subscribeReceiptSplit = (
       onError?.(err);
     }
   );
+
+const MY_RECEIPTS_LIMIT = 100;
+
+export const subscribeMyReceiptSplits = (
+  uid: string,
+  onData: (docs: ReceiptSplitDoc[]) => void,
+  onError?: (e: Error) => void
+): (() => void) =>
+  db
+    .collection(RECEIPT_SPLITS)
+    .where("ownerUid", "==", uid)
+    .orderBy("updatedAt", "desc")
+    .limit(MY_RECEIPTS_LIMIT)
+    .onSnapshot(
+      (snap) => {
+        onData(
+          snap.docs.map((d) => {
+            const data = d.data() as Omit<ReceiptSplitDoc, "id">;
+            return { ...data, id: d.id };
+          })
+        );
+      },
+      (err) => {
+        onError?.(err as Error);
+      }
+    );
+
+export const deleteReceiptSplit = async (receiptId: string): Promise<void> => {
+  await deleteReceiptImageForReceiptId(receiptId);
+  await db.collection(RECEIPT_SPLITS).doc(receiptId).delete();
+};
 
 const debouncers = new Map<string, ReturnType<typeof setTimeout>>();
 const pendingMergedFields = new Map<string, Record<string, unknown>>();
@@ -203,6 +247,11 @@ export const updateReceiptFieldsDebounced = (
     }, delayMs);
     debouncers.set(receiptId, t);
   });
+
+export const updateReceiptTitle = (
+  receiptId: string,
+  title: string
+): Promise<void> => updateReceiptFieldsDebounced(receiptId, { title });
 
 export const updateReceiptFieldsImmediate = async (
   receiptId: string,
