@@ -38,6 +38,7 @@ import {
   Autocomplete,
   Snackbar,
   useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import Google from "@mui/icons-material/Google";
@@ -80,7 +81,7 @@ import { getCroppedImageBlob } from "../utils/getCroppedImage";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
-import { Close } from "@mui/icons-material";
+import { Close, Logout, History } from "@mui/icons-material";
 import { DocTitle } from "../utils/useDocTitleEffect";
 import firebase from "firebase/compat/app";
 
@@ -284,6 +285,7 @@ function updatePaymentGroupMembers(
 
 export const ReceiptSplitPage = () => {
   const classes = useStyles();
+  const theme = useTheme();
   const { receiptId } = useParams<{ receiptId?: string }>();
   const history = useHistory();
   const isShared = Boolean(receiptId);
@@ -1246,7 +1248,7 @@ export const ReceiptSplitPage = () => {
         }
       />
       <AppBar position="static" className={classes.appBar}>
-        <Toolbar sx={{ gap: 1 }}>
+        <Toolbar sx={{ gap: 2 }}>
           {isShared && receiptId ? (
             <TextField
               variant="standard"
@@ -1297,40 +1299,80 @@ export const ReceiptSplitPage = () => {
               ml: "auto",
               display: "flex",
               alignItems: "center",
-              gap: 1,
+              gap: 2,
               minHeight: 40,
             }}
           >
-            {authReady && authUser && (
-              <Button
-                color="inherit"
-                size="small"
-                onClick={() => history.push("/receipt-split/history")}
-              >
-                My receipts
-              </Button>
-            )}
-            {(isShared || (authReady && authUser)) && (
-              <Button
-                color="inherit"
-                size="small"
-                startIcon={<ShareIcon />}
-                onClick={() => void onShareReceipt()}
-                disabled={shareBusy}
-              >
-                {isShared ? "Copy link" : "Share"}
-              </Button>
-            )}
+            {authReady &&
+              authUser &&
+              (isMobile ? (
+                <IconButton
+                  color="inherit"
+                  size="small"
+                  onClick={() => history.push("/receipt-split/history")}
+                >
+                  <History />
+                </IconButton>
+              ) : (
+                <Button
+                  color="inherit"
+                  size="small"
+                  startIcon={<History />}
+                  onClick={() => history.push("/receipt-split/history")}
+                >
+                  My receipts
+                </Button>
+              ))}
+            {(isShared || (authReady && authUser)) &&
+              (isMobile ? (
+                <IconButton
+                  color="inherit"
+                  size="small"
+                  onClick={() => void onShareReceipt()}
+                  disabled={shareBusy}
+                >
+                  <ShareIcon />
+                </IconButton>
+              ) : (
+                <Button
+                  color="inherit"
+                  size="small"
+                  startIcon={<ShareIcon />}
+                  onClick={() => void onShareReceipt()}
+                  disabled={shareBusy}
+                >
+                  {isShared ? "Copy link" : "Share"}
+                </Button>
+              ))}
             {!authReady ? (
               <CircularProgress color="inherit" size={22} />
             ) : authUser ? (
-              <Button
+              isMobile ? (
+                <IconButton
+                  color="inherit"
+                  size="small"
+                  onClick={() => void onSignOut()}
+                >
+                  <Logout />
+                </IconButton>
+              ) : (
+                <Button
+                  color="inherit"
+                  size="small"
+                  startIcon={<Logout />}
+                  onClick={() => void onSignOut()}
+                >
+                  Sign out
+                </Button>
+              )
+            ) : isMobile ? (
+              <IconButton
                 color="inherit"
                 size="small"
-                onClick={() => void onSignOut()}
+                onClick={() => void onSignInWithGoogle()}
               >
-                Sign out
-              </Button>
+                <Google />
+              </IconButton>
             ) : (
               <Button
                 color="inherit"
@@ -1694,6 +1736,9 @@ export const ReceiptSplitPage = () => {
                       width: "max-content",
                       minWidth: "100%",
                       tableLayout: "auto",
+                      "& .MuiTableCell-root": {
+                        borderColor: theme.palette.text.primary,
+                      },
                     }}
                   >
                     <colgroup>
@@ -1707,7 +1752,7 @@ export const ReceiptSplitPage = () => {
                         <TableCell className={classes.itemColumn}>
                           Item
                         </TableCell>
-                        <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+                        <TableCell sx={{ whiteSpace: "nowrap" }}>
                           Amount
                         </TableCell>
                         {!isMobile && (
