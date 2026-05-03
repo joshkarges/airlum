@@ -3,7 +3,11 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 var firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: "airlum.firebaseapp.com",
+  // Use the app's own hosted domain so OAuth /__/auth/handler is first-party
+  // (avoids iOS Safari/Chrome third-party storage partitioning that silently
+  // drops the credential on signInWithRedirect). Firebase Hosting auto-serves
+  // /__/auth/handler from any *.web.app / *.firebaseapp.com domain.
+  authDomain: "joshkarges.com",
   projectId: "airlum",
   storageBucket: "airlum.firebasestorage.app",
   messagingSenderId: "1002201936954",

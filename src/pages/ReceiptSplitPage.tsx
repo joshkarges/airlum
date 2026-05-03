@@ -404,6 +404,14 @@ export const ReceiptSplitPage = () => {
       setAuthUser(user);
       setAuthReady(true);
     });
+    // Surface errors from a prior signInWithRedirect (mobile flow).
+    void firebase
+      .auth()
+      .getRedirectResult()
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : "Sign in failed.";
+        setError(msg);
+      });
     return unsub;
   }, []);
 
@@ -1113,12 +1121,17 @@ export const ReceiptSplitPage = () => {
     setErrorIsWarning(false);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
+      // Popups are unreliable on mobile browsers (often auto-closed); use redirect there.
+      if (isMobile) {
+        await firebase.auth().signInWithRedirect(provider);
+        return;
+      }
       await firebase.auth().signInWithPopup(provider);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Sign in failed.";
       setError(msg);
     }
-  }, []);
+  }, [isMobile]);
 
   const onSignOut = useCallback(async () => {
     try {
