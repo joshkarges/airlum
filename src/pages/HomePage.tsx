@@ -45,10 +45,10 @@ const PAGES = [
   },
   {
     title: "Receipt Split",
-    path: "/receipt-split",
+    path: "https://receiptsplit.ai",
     blog: "/blog/receipt-split",
     backgroundColor: blue[300],
-    img: { src: receiptSplit, alt: "receipt splitting" },
+    img: { src: receiptSplit, alt: "Screenshot of the Receipt Split app" },
   },
   {
     title: "Splendor",

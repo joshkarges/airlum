@@ -13,8 +13,6 @@ import { amber, blue } from "@mui/material/colors";
 import { Blog } from "./pages/Blog";
 import { TimedTeams } from "./pages/TimedTeams";
 import { SplendorStats } from "./pages/SplendorStats";
-import { ReceiptSplitPage } from "./pages/ReceiptSplitPage";
-import { ReceiptSplitHistoryPage } from "./pages/ReceiptSplitHistoryPage";
 
 export const muiCache = createCache({
   key: "mui",
@@ -61,15 +59,6 @@ function App() {
                   </Route>
                   <Route path="/blog">
                     <Blog />
-                  </Route>
-                  <Route path="/receipt-split/history">
-                    <ReceiptSplitHistoryPage />
-                  </Route>
-                  <Route path="/receipt-split/:receiptId">
-                    <ReceiptSplitPage />
-                  </Route>
-                  <Route path="/receipt-split">
-                    <ReceiptSplitPage />
                   </Route>
                   <Route path="/">
                     <HomePage />
