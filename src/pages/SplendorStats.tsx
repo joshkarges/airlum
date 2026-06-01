@@ -21,6 +21,8 @@ import { Scatter, Pie, Bar, Line } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import _ from "lodash";
 import moment from "moment";
+import { ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { useState } from "react";
 
 ChartJS.register(
   CategoryScale,
@@ -34,14 +36,30 @@ ChartJS.register(
   ChartDataLabels
 );
 
+type TimeRange = "30" | "60" | "365" | "all";
+
+const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: "30", label: "Last 30 Days" },
+  { value: "60", label: "Last 60 Days" },
+  { value: "365", label: "Last Year" },
+  { value: "all", label: "All Time" },
+];
+
 export const SplendorStats = () => {
   const [allSpendorGames, fetchAllSplendorGames] =
     useFetchedResource(getAllSpendorGames);
   useEffectIfNotFetchedYet(allSpendorGames, fetchAllSplendorGames);
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
   return (
     <FetchedComponent resource={allSpendorGames}>
       {(unsortedGames) => {
-        const games = unsortedGames.sort((a, b) => a.endTime - b.endTime);
+        const cutoff =
+          timeRange === "all"
+            ? -Infinity
+            : moment().subtract(+timeRange, "days").valueOf();
+        const games = unsortedGames
+          .filter((game) => game.endTime >= cutoff)
+          .sort((a, b) => a.endTime - b.endTime);
         const numTurns = games.map(
           (game) =>
             game.players[0].cards.length +
@@ -160,6 +178,22 @@ export const SplendorStats = () => {
               flexGrow={1}
               rowGap="16px"
             >
+              <ToggleButtonGroup
+                value={timeRange}
+                exclusive
+                color="primary"
+                onChange={(_event, value) => {
+                  if (value !== null) setTimeRange(value);
+                }}
+                aria-label="time range"
+                fullWidth
+              >
+                {TIME_RANGE_OPTIONS.map((option) => (
+                  <ToggleButton key={option.value} value={option.value}>
+                    {option.label}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
               <Pie
                 data={pieData}
                 options={{
