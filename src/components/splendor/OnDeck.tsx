@@ -152,10 +152,6 @@ export const OnDeck: VFC<OnDeckProps> = () => {
     if (color === Color.Yellow) return;
     if (!actionOnDeck.coinCost[color]) return;
     dispatch(unPrepCoin(color));
-    const needToChooseNoble = getAffordableNobles(game, player).length > 1;
-    if (needToChooseNoble) {
-      dispatch(setGameState("chooseNobles"));
-    }
   };
 
   const onTakeActionClick = useCallback(() => {
@@ -168,9 +164,14 @@ export const OnDeck: VFC<OnDeckProps> = () => {
 
     const needToChooseCoins =
       getNumCoins(player.coins) - getNumCoins(actionToTake.coinCost) > 10;
+    // Reserving does not add the card to `bought`, so it can't earn a noble.
+    const boughtCard =
+      actionToTake.type === "buy" || actionToTake.type === "buyReserve"
+        ? actionToTake.card
+        : null;
     const playerWithCard = {
       ...player,
-      bought: [...player.bought, actionToTake.card].filter(Boolean),
+      bought: boughtCard ? [...player.bought, boughtCard] : player.bought,
     } as Player;
     const needToChooseNoble =
       getAffordableNobles(game, playerWithCard).length > 1;

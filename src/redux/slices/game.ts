@@ -31,7 +31,12 @@ const gameSlice = createSlice({
       }
       if (popNoble) {
         // Return the noble you just aquired because there are multiple to choose from.
-        const player = newState.players[getPlayerIndex(newState)];
+        const currentPlayerIndex = getPlayerIndex(newState);
+        const player = newState.players[currentPlayerIndex];
+        const noblesBeforeAction =
+          state.players[currentPlayerIndex].nobles.length;
+        // Only give back a noble that this action actually earned, never an older one.
+        if (player.nobles.length <= noblesBeforeAction) return newState;
         player.nobles = [...player.nobles];
         const poppedNoble = player.nobles.pop();
         if (!poppedNoble) return newState;
@@ -59,11 +64,18 @@ const gameSlice = createSlice({
         state.turn++;
     },
     chooseNoble: (state, action: PayloadAction<Noble>) => {
+      // Ignore a repeated choice so points and turn are only applied once.
+      if (!_.some(state.nobles, (noble) => noble.id === action.payload.id))
+        return;
       const player = state.players[getPlayerIndex(state)];
-      _.remove(state.nobles, action.payload);
+      _.remove(state.nobles, (noble) => noble.id === action.payload.id);
       player.points += action.payload.points;
       player.nobles.push(action.payload);
       state.turn++;
+    },
+    /** The turn was held back for a noble choice that turned out not to exist. */
+    skipNobleChoice: (state, action: PayloadAction<{ turn: number }>) => {
+      if (state.turn === action.payload.turn) state.turn++;
     },
   },
 });
@@ -72,6 +84,7 @@ export const {
   takeAction: takeActionAction,
   putCoinBack,
   chooseNoble,
+  skipNobleChoice,
   setGame,
 } = gameSlice.actions;
 export const game = gameSlice.reducer;

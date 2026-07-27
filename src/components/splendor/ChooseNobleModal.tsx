@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, VFC } from "react";
 import { useDispatch } from "react-redux";
 import { Noble as NobleModel } from "../../models/Splendor";
 import { useGame, useGameState } from "../../redux/selectors";
-import { chooseNoble } from "../../redux/slices/game";
+import { chooseNoble, skipNobleChoice } from "../../redux/slices/game";
 import { GameState, setGameState } from "../../redux/slices/gameState";
 import { getAffordableNobles, getPlayerIndex } from "../../utils/splendor";
 import { Noble } from "./Noble";
@@ -42,22 +42,30 @@ export const ChooseNobleModal: VFC<ChooseNobleModalProps> = () => {
   );
 
   useEffect(() => {
-    if (gameState !== GameState.chooseNobles) return;
-    // No real choice — resolve immediately without flashing the dialog.
-    if (affordableNobles.length === 1) {
+    if (gameState !== GameState.chooseNobles) {
+      setIsOpen(false);
+      return;
+    }
+    if (!affordableNobles.length) {
+      // Nothing to choose, so release the turn that was held back for the choice.
+      dispatch(skipNobleChoice({ turn: game.turn }));
+      dispatch(setGameState("play"));
+      return;
+    }
+    // Only a human with more than one option has a real choice to make.
+    if (affordableNobles.length === 1 || !player.isHuman) {
       onNobleClick(affordableNobles[0]);
       return;
     }
-    if (affordableNobles.length > 1 && player.isHuman) {
-      setIsOpen(true);
-    }
-  }, [affordableNobles, gameState, onNobleClick, player.isHuman]);
-
-  useEffect(() => {
-    if (!player.isHuman && affordableNobles.length > 1) {
-      onNobleClick(affordableNobles[0]);
-    }
-  }, [player.isHuman, affordableNobles, onNobleClick]);
+    setIsOpen(true);
+  }, [
+    affordableNobles,
+    dispatch,
+    game.turn,
+    gameState,
+    onNobleClick,
+    player.isHuman,
+  ]);
 
   return (
     <Dialog open={isOpen}>
