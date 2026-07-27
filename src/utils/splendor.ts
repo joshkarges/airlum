@@ -347,6 +347,27 @@ export const getAffordableNobles = (game: Game, player: Player) =>
     });
   });
 
+/**
+ * The nobles the player could claim once `action` resolves. Reserving a card only
+ * puts it in `reserved`, so a reserve can never bring a noble within reach.
+ */
+export const getNoblesAfterAction = (
+  game: Game,
+  player: Player,
+  action: Action
+) => {
+  const boughtCard =
+    action.type === "buy" || action.type === "buyReserve" ? action.card : null;
+  return getAffordableNobles(
+    game,
+    boughtCard ? { ...player, bought: [...player.bought, boughtCard] } : player
+  );
+};
+
+/** Only more than one claimable noble is an actual choice for the player. */
+export const needsNobleChoice = (game: Game, player: Player, action: Action) =>
+  getNoblesAfterAction(game, player, action).length > 1;
+
 const maybeAcquireNoble = (game: Game, player: Player) => {
   const firstAffordableNoble = getAffordableNobles(game, player)[0];
   if (!firstAffordableNoble) return;
