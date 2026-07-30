@@ -36,12 +36,12 @@ export const ReceiptSplitBlog = () => {
         </Typography>
         <br />
         <Typography variant="body1">
-          <a href="/receipt-split">Receipt Split</a> is an app where you upload
-          a photo of a restaurant receipt. You can crop the image so only the
-          paper matters—table, hands, and background drop away before parsing.
-          Then the image gets sent to Google’s Gemini model to pull out line
-          items, subtotal, tax, tip, and grand total when they appear on the
-          slip.
+          <a href="https://receiptsplit.ai">Receipt Split</a> is an app where
+          you upload a photo of a restaurant receipt. You can crop the image so
+          only the paper matters—table, hands, and background drop away before
+          parsing. Then the image gets sent to Google’s Gemini model to pull out
+          line items, subtotal, tax, tip, and grand total when they appear on
+          the slip.
         </Typography>
         <br />
         <Flex justifyContent="center" flexWrap="wrap">
@@ -89,7 +89,7 @@ export const ReceiptSplitBlog = () => {
         </Typography>
         <br />
         <Typography variant="body1">
-          <a href="/receipt-split">Try Receipt Split here.</a>
+          <a href="https://receiptsplit.ai">Try Receipt Split here.</a>
         </Typography>
         <br />
       </div>
