@@ -28,6 +28,14 @@ export const ReceiptSplitBlog = () => {
         </Typography>
         <br />
         <Typography variant="body1">
+          <strong>EDIT:</strong> It's now been a few months of work and the app
+          has grown quite a bit since this blog was written.{" "}
+          <a href="https://receiptsplit.ai/receipt-split?demo=1&tour=1">
+            Checkout the demo here!
+          </a>
+        </Typography>
+        <br />
+        <Typography variant="body1">
           Eating out with friends is easy until the check arrives. Someone
           ordered appetizers to share, someone skipped drinks, and the receipt
           is a long strip of abbreviations and taxes. Mental math works for
