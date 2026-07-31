@@ -133,20 +133,23 @@ export const PlayerMat: VFC<PlayerMatProps> = () => {
   const coinCount = getNumCoins(player.coins);
 
   useEffect(() => {
-    if (
-      gameState === GameState.chooseCoins &&
-      !game.players[currentPlayerIndex].isHuman
-    ) {
-      // Discard random coins until the player has 10 or less
-      const color = _.sample(
-        _.without(Object.values(Color), Color.Yellow).filter(
-          (color) => game.players[currentPlayerIndex].coins[color] > 0
-        )
-      ) as Color;
-      onCoinClick(color);
+    if (gameState !== GameState.chooseCoins) return;
+    if (game.players[currentPlayerIndex].isHuman) return;
+    // Discard random coins until the player has 10 or less
+    const heldColors = Object.values(Color).filter(
+      (color) => game.players[currentPlayerIndex].coins[color] > 0
+    );
+    const color =
+      // Wilds are worth keeping, but discard one rather than stall the discard.
+      _.sample(_.without(heldColors, Color.Yellow)) ?? _.sample(heldColors);
+    if (!color) {
+      // Nothing left to discard, so don't leave the game waiting on a choice.
+      dispatch(setGameState("play"));
+      return;
     }
+    onCoinClick(color);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, currentPlayerIndex, onCoinClick]);
+  }, [gameState, currentPlayerIndex, onCoinClick, dispatch]);
 
   return (
     <div

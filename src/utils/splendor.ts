@@ -634,23 +634,28 @@ const opportunistic = (game: Game): Action => {
     if (game.coins[Color.Yellow] > 0 && player.reserved.length < 3) {
       actionPool.start();
       const reserveActions = getReserveActions(game, player);
-      const bestReserveAction = reserveActions.reduce((best, action) => {
-        const coinsNeeded = coinsNeededToAffordCard(player, action.card!);
-        if (!coinsNeeded) return best;
-        const bestCoinsNeeded = coinsNeededToAffordCard(
-          player,
-          best.card!,
-          clearCoins(coinCost)
-        );
-        if (!bestCoinsNeeded) return _.cloneDeep(action);
-        if (getNumCoins(coinsNeeded) < getNumCoins(bestCoinsNeeded)) {
-          return _.cloneDeep(action);
-        }
-        return best;
-      }, reserveActions[0]);
+      // An empty table leaves nothing to reserve, so seeding the reduce would throw.
+      const bestReserveAction = reserveActions.length
+        ? reserveActions.reduce((best, action) => {
+            const coinsNeeded = coinsNeededToAffordCard(player, action.card!);
+            if (!coinsNeeded) return best;
+            const bestCoinsNeeded = coinsNeededToAffordCard(
+              player,
+              best.card!,
+              clearCoins(coinCost)
+            );
+            if (!bestCoinsNeeded) return _.cloneDeep(action);
+            if (getNumCoins(coinsNeeded) < getNumCoins(bestCoinsNeeded)) {
+              return _.cloneDeep(action);
+            }
+            return best;
+          }, reserveActions[0])
+        : null;
       actionPool.end();
-      giveUpCoins(player, highValueReservedCard, bestReserveAction.coinCost);
-      return _.cloneDeep(bestReserveAction);
+      if (bestReserveAction) {
+        giveUpCoins(player, highValueReservedCard, bestReserveAction.coinCost);
+        return _.cloneDeep(bestReserveAction);
+      }
     }
 
     // Try to collect coins to afford the high value reserved card
@@ -752,26 +757,29 @@ const opportunistic = (game: Game): Action => {
   if (player.reserved.length < 3) {
     actionPool.start();
     const reserveActions = getReserveActions(game, player);
-    const bestReserveAction = reserveActions.reduce((best, action) => {
-      const coinsNeeded = coinsNeededToAffordCard(
-        player,
-        action.card!,
-        clearCoins(coinCost2)
-      );
-      if (!coinsNeeded) return best;
-      const bestCoinsNeeded = coinsNeededToAffordCard(
-        player,
-        best.card!,
-        clearCoins(coinCost)
-      );
-      if (!bestCoinsNeeded) return _.cloneDeep(action);
-      if (getNumCoins(coinsNeeded) < getNumCoins(bestCoinsNeeded)) {
-        return _.cloneDeep(action);
-      }
-      return best;
-    }, reserveActions[0]);
+    // An empty table leaves nothing to reserve, so seeding the reduce would throw.
+    const bestReserveAction = reserveActions.length
+      ? reserveActions.reduce((best, action) => {
+          const coinsNeeded = coinsNeededToAffordCard(
+            player,
+            action.card!,
+            clearCoins(coinCost2)
+          );
+          if (!coinsNeeded) return best;
+          const bestCoinsNeeded = coinsNeededToAffordCard(
+            player,
+            best.card!,
+            clearCoins(coinCost)
+          );
+          if (!bestCoinsNeeded) return _.cloneDeep(action);
+          if (getNumCoins(coinsNeeded) < getNumCoins(bestCoinsNeeded)) {
+            return _.cloneDeep(action);
+          }
+          return best;
+        }, reserveActions[0])
+      : null;
     actionPool.end();
-    return _.cloneDeep(bestReserveAction);
+    if (bestReserveAction) return _.cloneDeep(bestReserveAction);
   }
 
   // Otherwise, just try and buy any cheap card

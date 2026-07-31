@@ -1,16 +1,34 @@
 /* eslint-disable no-restricted-globals */
-import { Game } from "../models/Splendor";
 import { getPlayerIndex, getStrategy, Strategy } from "../utils/splendor";
+import {
+  GetNextActionRequest,
+  GetNextActionResponse,
+  MAX_AI_DEPTH,
+} from "./getNextAction.types";
 
-self.onmessage = (ev: MessageEvent<{ game: Game; depth: number }>) => {
-  const opportunisticPlayer = getPlayerIndex(ev.data.game) === 2;
+self.onmessage = (ev: MessageEvent<GetNextActionRequest>) => {
+  const { game, depth, requestId } = ev.data;
+  const opportunisticPlayer = getPlayerIndex(game) === 2;
   const getNextAction = opportunisticPlayer
     ? getStrategy(Strategy.Opportunistic)
     : getStrategy(Strategy.AlphaBeta);
-  self.postMessage({
-    action: getNextAction(ev.data.game, ev.data.depth),
-    depth: opportunisticPlayer ? 2 : ev.data.depth,
-  });
-};
+  // Opportunistic play doesn't search, so its first answer is its final one.
+  const answeredDepth = opportunisticPlayer ? MAX_AI_DEPTH : depth;
+  const respond = (response: GetNextActionResponse) => self.postMessage(response);
 
-export {};
+  try {
+    respond({
+      requestId,
+      depth: answeredDepth,
+      action: getNextAction(game, depth) ?? null,
+    });
+  } catch (e) {
+    // The UI waits for a reply to every request, so a thrown search must still answer.
+    respond({
+      requestId,
+      depth: answeredDepth,
+      action: null,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+};
